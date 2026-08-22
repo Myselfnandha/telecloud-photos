@@ -57,7 +57,7 @@ void callbackDispatcher() {
         TeleCloudLogger.backup(
           '[WorkManager] Auto-backup disabled. Terminating worker.',
         );
-        return Future.value(true);
+        return true;
       }
 
       // Check network policy
@@ -76,14 +76,14 @@ void callbackDispatcher() {
         TeleCloudLogger.backup(
           '[WorkManager] Wi-Fi only policy enabled but connected via mobile/other. Terminating.',
         );
-        return Future.value(true);
+        return true;
       }
 
       if (!isWifi && isMobile && !allowMobileData) {
         TeleCloudLogger.backup(
           '[WorkManager] Mobile data backup disabled in settings. Terminating.',
         );
-        return Future.value(true);
+        return true;
       }
 
       // Inspect SQLite Upload Queue
@@ -95,19 +95,19 @@ void callbackDispatcher() {
           '[WorkManager] Upload queue is clean (0 pending). Auto-killing background worker to preserve battery.',
         );
         await db.close();
-        return Future.value(true);
+        return true;
       }
 
       TeleCloudLogger.backup(
         '[WorkManager] Found ${pending.length} pending items in queue. Dispatched for processing.',
       );
       await db.close();
-      return Future.value(true);
+      return true;
     } catch (e) {
       TeleCloudLogger.backup(
         '[WorkManager] Background task execution error: $e',
       );
-      return Future.value(false);
+      return false;
     }
   });
 }

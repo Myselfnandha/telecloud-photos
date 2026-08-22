@@ -75,7 +75,7 @@ class CloudVideoStreamService {
         }
       });
 
-      return completer.future;
+      return await completer.future;
     } catch (e) {
       TeleCloudLogger.log('CloudStream', 'Cloud video stream error: $e');
       _activeDownloads.remove(telegramFileId);

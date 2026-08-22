@@ -339,7 +339,6 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
               Widget scrollView = CustomScrollView(
                 key: const PageStorageKey('timeline_scroll_view'),
                 controller: _scrollController,
-                cacheExtent: 800,
                 physics: const BouncingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics(),
                 ),

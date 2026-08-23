@@ -31,11 +31,26 @@ subprojects {
                 null
             }
             if (namespace == null) {
-                val targetNamespace = if (name == "tdlib") "org.drinkless.tdlib" else "com.plugin.${name.replace('-', '_')}"
+                val targetNamespace = if (name == "tdlib") "org.naji.td.tdlib" else "com.plugin.${name.replace('-', '_')}"
                 try {
                     android.javaClass.getMethod("setNamespace", String::class.java).invoke(android, targetNamespace)
                 } catch (e: Exception) {
                     // ignore
+                }
+            }
+        }
+    }
+
+    project.tasks.configureEach {
+        if (name.contains("Manifest", ignoreCase = true)) {
+            doFirst {
+                val manifestFile = file("src/main/AndroidManifest.xml")
+                if (manifestFile.exists()) {
+                    val content = manifestFile.readText()
+                    if (content.contains("package=")) {
+                        val cleaned = content.replace(Regex("""package="[^"]*""""), "")
+                        manifestFile.writeText(cleaned)
+                    }
                 }
             }
         }

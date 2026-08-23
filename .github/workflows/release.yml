@@ -48,6 +48,10 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
+      - name: Patch Legacy Plugin Manifests (AGP 8+ compatibility)
+        run: |
+          find ~/.pub-cache -name "AndroidManifest.xml" -exec sed -i -E 's/package="[^"]*"//g' {} + || true
+
       - name: Run Static Code Analysis
         run: flutter analyze
 

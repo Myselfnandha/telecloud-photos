@@ -169,13 +169,47 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                   ),
                 ),
               ),
-              initialCountryCode: 'US',
+              initialCountryCode: 'IN',
               onChanged: (phone) {
                 setState(() {
                   _phoneNumber = phone.completeNumber;
                   _rawController.text = phone.number;
                 });
               },
+            ),
+            InkWell(
+              onTap: () => context.push('/setup'),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1C1E),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.vpn_key_outlined,
+                      size: 18,
+                      color: Color(0xFF0A84FF),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Using Custom API credentials? Configure in Settings',
+                        style: TextStyle(fontSize: 13, color: Colors.white70),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const Spacer(),
             SizedBox(
@@ -205,9 +239,35 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
 
                         if (targetNumber.isNotEmpty) {
                           setState(() => _isLoading = true);
+                          final messenger = ScaffoldMessenger.of(context);
                           ref
                               .read(telegramAuthManagerProvider)
                               .sendPhoneNumber(targetNumber);
+
+                          // Safety timeout to prevent permanent loading spinner
+                          Future.delayed(const Duration(seconds: 12), () {
+                            if (mounted && _isLoading) {
+                              setState(() => _isLoading = false);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Connecting to Telegram taking longer than usual. Please check your internet or enter custom API credentials.',
+                                  ),
+                                  backgroundColor: const Color(0xFF2C2C2E),
+                                  duration: const Duration(seconds: 6),
+                                  action: SnackBarAction(
+                                    label: 'Setup API',
+                                    textColor: const Color(0xFF0A84FF),
+                                    onPressed: () {
+                                      if (mounted) {
+                                        context.push('/setup');
+                                      }
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          });
                         }
                       },
                 child: _isLoading

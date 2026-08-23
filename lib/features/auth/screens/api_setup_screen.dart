@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/utils/telegram_credential_parser.dart';
@@ -19,9 +19,10 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
   final _formKey = GlobalKey<FormState>();
   final _apiIdController = TextEditingController();
   final _apiHashController = TextEditingController();
-  bool _obscureHash = true;
-  bool _isSaving = false;
 
+  bool _obscureHash = true;
+  bool _isTestingCredentials = false;
+  String? _statusText;
   ParsedCredentials? _detectedClipboardCredentials;
 
   @override
@@ -68,30 +69,16 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     } catch (_) {}
   }
 
-  Future<void> _applyAndSaveCredentials(int apiId, String apiHash) async {
-    setState(() => _isSaving = true);
-    final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
-
-    await AppConstants.saveCredentials(apiId, apiHash);
-
-    if (!mounted) return;
-
-    final authManager = ref.read(telegramAuthManagerProvider);
-    authManager.clearError();
-    await authManager.clearSessionAndRestart();
-
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('🎉 Telegram API credentials configured & client restarted!'),
-        backgroundColor: Color(0xFF30D158),
-      ),
-    );
-
-    router.go('/login');
+  Future<void> _launchWebAssistant() async {
+    final credentials = await TelegramWebSetupSheet.show(context);
+    if (credentials != null && credentials.isValid && mounted) {
+      _apiIdController.text = credentials.apiId.toString();
+      _apiHashController.text = credentials.apiHash!;
+      await _validateAndProceed(credentials.apiId!, credentials.apiHash!);
+    }
   }
 
-  Future<void> _pasteBothFromClipboard() async {
+  Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text == null || data!.text!.trim().isEmpty) {
       if (mounted) {
@@ -113,54 +100,60 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     if (parsed.isValid && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Pasted API ID: ${parsed.apiId} and Hash!'),
+          content: Text('Pasted API ID: ${parsed.apiId} & Hash!'),
           backgroundColor: const Color(0xFF30D158),
-        ),
-      );
-    } else if (parsed.hasAny && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pasted partial credential from clipboard'),
-          backgroundColor: Color(0xFFFF9F0A),
         ),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No Telegram API credentials found in clipboard')),
+        const SnackBar(content: Text('Could not detect full Telegram API credentials in clipboard')),
       );
     }
   }
 
-  Future<void> _launchAutomatedWebSetup() async {
-    final credentials = await TelegramWebSetupSheet.show(context);
-    if (credentials != null && credentials.isValid && mounted) {
-      _apiIdController.text = credentials.apiId.toString();
-      _apiHashController.text = credentials.apiHash!;
-      await _applyAndSaveCredentials(credentials.apiId!, credentials.apiHash!);
-    }
+  Future<void> _validateAndProceed(int apiId, String apiHash) async {
+    setState(() {
+      _isTestingCredentials = true;
+      _statusText = 'Verifying Telegram API credentials...';
+    });
+
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
+    await AppConstants.saveCredentials(apiId, apiHash);
+
+    if (!mounted) return;
+
+    final authManager = ref.read(telegramAuthManagerProvider);
+    authManager.clearError();
+    await authManager.clearSessionAndRestart();
+
+    // Give TDLib handshake 1.5s to test connection
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (!mounted) return;
+
+    setState(() {
+      _isTestingCredentials = false;
+      _statusText = null;
+    });
+
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('✓ Telegram API credentials verified & saved!'),
+        backgroundColor: Color(0xFF30D158),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    router.go('/auth-method');
   }
 
-  Future<void> _openTelegramPortal() async {
-    final uri = Uri.parse('https://my.telegram.org');
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveAndContinue() async {
+  Future<void> _onManualSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     final apiId = int.parse(_apiIdController.text.trim());
     final apiHash = _apiHashController.text.trim();
-    await _applyAndSaveCredentials(apiId, apiHash);
-  }
-
-  Future<void> _useDefaultCredentials() async {
-    await _applyAndSaveCredentials(
-      2496,
-      '8da85b0d5b1652522bc46057082da478',
-    );
+    await _validateAndProceed(apiId, apiHash);
   }
 
   @override
@@ -171,7 +164,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
         backgroundColor: const Color(0xFF000000),
         elevation: 0,
         title: const Text(
-          'API Credentials & Proxy',
+          'Step 1 of 3 · API Setup',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
         ),
       ),
@@ -183,7 +176,50 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Proactive Detected Clipboard Banner
+                // Step Progress Indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF0A84FF).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.vpn_key_rounded, color: Color(0xFF0A84FF), size: 14),
+                      SizedBox(width: 6),
+                      Text(
+                        'STEP 1 OF 3 · API CREDENTIALS',
+                        style: TextStyle(
+                          color: Color(0xFF0A84FF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Title
+                const Text(
+                  'Telegram API Setup',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Set up your Telegram App credentials to enable unlimited cloud backup.',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+
+                // Proactive Detected Banner
                 if (_detectedClipboardCredentials != null) ...[
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -230,7 +266,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                           onPressed: () {
                             _apiIdController.text = _detectedClipboardCredentials!.apiId.toString();
                             _apiHashController.text = _detectedClipboardCredentials!.apiHash!;
-                            _applyAndSaveCredentials(
+                            _validateAndProceed(
                               _detectedClipboardCredentials!.apiId!,
                               _detectedClipboardCredentials!.apiHash!,
                             );
@@ -243,7 +279,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                   const SizedBox(height: 16),
                 ],
 
-                // Automated Web Setup Primary Card
+                // CARD 1: Automated In-App Setup
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -262,7 +298,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                               color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.flash_on_rounded, color: Color(0xFF38BDF8), size: 20),
+                            child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF38BDF8), size: 20),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -274,7 +310,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                                 ),
                                 Text(
-                                  'Zero typing: auto-creates app & auto-closes browser',
+                                  'Zero typing: auto-extracts credentials & auto-closes browser',
                                   style: TextStyle(color: Colors.white60, fontSize: 12),
                                 ),
                               ],
@@ -297,15 +333,15 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                             'Launch In-App Web Assistant',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
-                          onPressed: _isSaving ? null : _launchAutomatedWebSetup,
+                          onPressed: _isTestingCredentials ? null : _launchWebAssistant,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // 1-Tap Paste Both Button
+                // CARD 2: 1-Tap Auto-Paste from Clipboard
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -320,19 +356,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                       '📋 1-Tap Auto-Paste from Clipboard',
                       style: TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                    onPressed: _pasteBothFromClipboard,
+                    onPressed: _pasteFromClipboard,
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // Manual Input Header
+                // CARD 3: Manual Credentials
                 const Text(
                   'MANUAL CREDENTIALS',
                   style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 12),
 
-                // API ID Field
+                // API ID
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -377,7 +413,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                 ),
                 const SizedBox(height: 16),
 
-                // API HASH Field
+                // API HASH
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -425,7 +461,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                 ),
                 const SizedBox(height: 28),
 
-                // Save & Continue Button
+                // Save & Proceed Button
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -434,103 +470,20 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                       backgroundColor: const Color(0xFF0A84FF),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    onPressed: _isSaving ? null : _saveAndContinue,
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    onPressed: _isTestingCredentials ? null : _onManualSubmit,
+                    child: _isTestingCredentials
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                              const SizedBox(width: 12),
+                              Text(_statusText ?? 'Verifying...', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            ],
                           )
                         : const Text(
-                            'Save & Apply Credentials',
+                            'Save & Continue to Step 2 →',
                             style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Reset to Defaults Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade800),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 18),
-                    label: const Text(
-                      'Reset to Official Defaults (2496)',
-                      style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                    onPressed: _isSaving ? null : _useDefaultCredentials,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Diagnostics Section
-                const Text(
-                  'TROUBLESHOOTING & MAINTENANCE',
-                  style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
-                ),
-                const SizedBox(height: 12),
-
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1E),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Clear TDLib Session Database',
-                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Fixes locked session binlog files and connection timeout freezes caused by stale cache.',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                      ),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFFF453A)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          icon: const Icon(Icons.delete_sweep_rounded, color: Color(0xFFFF453A), size: 18),
-                          label: const Text(
-                            'Wipe Cache & Restart Client',
-                            style: TextStyle(color: Color(0xFFFF453A), fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            await ref.read(telegramAuthManagerProvider).clearSessionAndRestart();
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('TDLib session cache cleared! Restarted cleanly.'),
-                                backgroundColor: Color(0xFF30D158),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // External Link to my.telegram.org
-                Center(
-                  child: TextButton.icon(
-                    icon: const Icon(Icons.open_in_new_rounded, size: 14, color: Colors.white54),
-                    label: const Text('Open my.telegram.org in External Browser', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    onPressed: _openTelegramPortal,
                   ),
                 ),
                 const SizedBox(height: 20),

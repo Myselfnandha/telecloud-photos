@@ -14,9 +14,11 @@ import 'features/auth/screens/login_hub_screen.dart';
 import 'features/auth/screens/qr_login_screen.dart';
 import 'features/auth/screens/oauth_login_screen.dart';
 import 'features/auth/screens/api_setup_screen.dart';
+import 'features/auth/screens/auth_method_screen.dart';
 import 'features/auth/screens/phone_input_screen.dart';
 import 'features/auth/screens/otp_screen.dart';
 import 'features/auth/screens/password_screen.dart';
+import 'features/auth/screens/quick_settings_guide_screen.dart';
 import 'features/timeline/screens/timeline_screen.dart';
 import 'features/viewer/screens/media_viewer_screen.dart';
 import 'features/uploads/screens/uploads_screen.dart';
@@ -192,20 +194,12 @@ final _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
-      path: '/login-hub',
-      builder: (context, state) => const LoginHubScreen(),
-    ),
-    GoRoute(
-      path: '/login-qr',
-      builder: (context, state) => const QrLoginScreen(),
-    ),
-    GoRoute(
-      path: '/login-oauth',
-      builder: (context, state) => const OAuthLoginScreen(),
-    ),
-    GoRoute(
       path: '/setup',
       builder: (context, state) => const ApiSetupScreen(),
+    ),
+    GoRoute(
+      path: '/auth-method',
+      builder: (context, state) => const AuthMethodScreen(),
     ),
     GoRoute(
       path: '/login',
@@ -219,6 +213,22 @@ final _router = GoRouter(
     GoRoute(
       path: '/password',
       builder: (context, state) => const PasswordScreen(),
+    ),
+    GoRoute(
+      path: '/quick-settings',
+      builder: (context, state) => const QuickSettingsGuideScreen(),
+    ),
+    GoRoute(
+      path: '/login-hub',
+      builder: (context, state) => const LoginHubScreen(),
+    ),
+    GoRoute(
+      path: '/login-qr',
+      builder: (context, state) => const QrLoginScreen(),
+    ),
+    GoRoute(
+      path: '/login-oauth',
+      builder: (context, state) => const OAuthLoginScreen(),
     ),
 
     // StatefulShellRoute indexedStack for instant 0ms tab switching

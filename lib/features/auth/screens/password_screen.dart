@@ -37,7 +37,7 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
         if (!mounted) return;
         if (next.state == AuthState.authenticated) {
           setState(() => _isLoading = false);
-          context.go('/timeline');
+          context.go('/quick-settings');
         } else if (next.errorMessage != null) {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(

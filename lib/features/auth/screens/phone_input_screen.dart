@@ -100,7 +100,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
         if (!mounted) return;
         if (next.state == AuthState.authenticated) {
           setState(() => _isLoading = false);
-          context.go('/timeline');
+          context.go('/quick-settings');
         } else if (next.state == AuthState.waitingForCode) {
           setState(() => _isLoading = false);
           context.go(
@@ -157,7 +157,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
             if (Navigator.of(context).canPop()) {
               context.pop();
             } else {
-              context.go('/login-hub');
+              context.go('/auth-method');
             }
           },
         ),
@@ -266,37 +266,40 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                   });
                 },
               ),
-              InkWell(
-                onTap: () => context.push('/setup'),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C1E),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.vpn_key_outlined,
-                        size: 18,
-                        color: Color(0xFF0A84FF),
-                      ),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text(
-                          'Configure Custom API ID, Hash & Proxy in Settings',
-                          style: TextStyle(fontSize: 13, color: Colors.white70),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => context.push('/setup'),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1E),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.vpn_key_outlined,
+                          size: 18,
+                          color: Color(0xFF0A84FF),
                         ),
-                      ),
-                      Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: Colors.grey.shade600,
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Configure Custom API ID, Hash & Proxy in Settings',
+                            style: TextStyle(fontSize: 13, color: Colors.white70),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: Colors.grey.shade600,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

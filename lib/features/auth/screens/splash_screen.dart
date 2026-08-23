@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/telegram/telegram_auth_manager.dart';
 import '../../../core/utils/telecloud_logger.dart';
@@ -52,8 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Hard safety timeout guarantee (2.5s maximum so splash screen NEVER freezes)
     Timer(const Duration(milliseconds: 2500), () async {
       if (!_hasNavigated && mounted) {
-        final hasCreds = await AppConstants.hasSavedCredentials();
-        _navigateSafe(hasCreds ? '/login' : '/setup');
+        _navigateSafe('/setup');
       }
     });
 
@@ -76,21 +74,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (authState == AuthState.authenticated) {
         _navigateSafe('/timeline');
       } else {
-        // Check if API credentials have been configured
-        final hasCreds = await AppConstants.hasSavedCredentials();
-        if (hasCreds) {
-          _navigateSafe('/login');
-        } else {
-          // Default first-time setup screen
-          _navigateSafe('/setup');
-        }
+        // Default first-time setup screen
+        _navigateSafe('/setup');
       }
     } catch (e) {
       TeleCloudLogger.log('Splash', 'Splash routing error: $e');
       await minSplashTimer;
       if (mounted && !_hasNavigated) {
-        final hasCreds = await AppConstants.hasSavedCredentials();
-        _navigateSafe(hasCreds ? '/login' : '/setup');
+        _navigateSafe('/setup');
       }
     }
   }

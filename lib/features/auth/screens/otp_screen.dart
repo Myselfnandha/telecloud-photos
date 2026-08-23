@@ -75,7 +75,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         if (!mounted) return;
         if (next.state == AuthState.authenticated) {
           setState(() => _isLoading = false);
-          context.go('/timeline');
+          context.go('/quick-settings');
         } else if (next.state == AuthState.waitingForPassword) {
           setState(() => _isLoading = false);
           context.go('/password');

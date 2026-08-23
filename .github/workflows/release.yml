@@ -75,7 +75,7 @@ jobs:
         run: flutter test
 
       - name: Build Universal Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Prepare & Rename Release Binary
         id: prepare_apks

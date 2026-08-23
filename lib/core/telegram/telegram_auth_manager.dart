@@ -101,7 +101,15 @@ class TelegramAuthManager extends ChangeNotifier {
       TeleCloudLogger.auth(
         'TDLib Auth Error: [${event.code}] ${event.message}',
       );
-      _errorMessage = event.message;
+      String userFriendlyMessage = event.message;
+      if (event.message.contains('PASSWORD_HASH_INVALID')) {
+        userFriendlyMessage = 'Incorrect 2-step verification password. Please try again.';
+      } else if (event.message.contains('PHONE_CODE_INVALID')) {
+        userFriendlyMessage = 'Invalid verification code. Please try again.';
+      } else if (event.message.contains('PHONE_CODE_EXPIRED')) {
+        userFriendlyMessage = 'Verification code expired. Please request a new one.';
+      }
+      _errorMessage = userFriendlyMessage;
       if (_state == AuthState.waitingForCode &&
           (event.code == 400 ||
               event.message.toLowerCase().contains('phone') ||
@@ -145,7 +153,7 @@ class TelegramAuthManager extends ChangeNotifier {
       notifyListeners();
     } else if (authState is td.AuthorizationStateReady) {
       TeleCloudLogger.auth(
-        'Auth State -> authenticated! Ensuring backup channel & profile...',
+        'Auth State -> authenticated! Transitioning to home and initializing session...',
       );
       _state = AuthState.authenticated;
       _errorMessage = null;
@@ -153,9 +161,9 @@ class TelegramAuthManager extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('telecloud_is_authenticated', true);
       } catch (_) {}
-      await _ensureDedicatedChannel();
-      await _fetchAndPersistAccount();
       notifyListeners();
+
+      unawaited(_postAuthInitialization());
     } else if (authState is td.AuthorizationStateClosed) {
       TeleCloudLogger.auth('Auth State -> closed / uninitialized');
       _state = AuthState.uninitialized;
@@ -165,6 +173,15 @@ class TelegramAuthManager extends ChangeNotifier {
         await prefs.setBool('telecloud_is_authenticated', false);
       } catch (_) {}
       notifyListeners();
+    }
+  }
+
+  Future<void> _postAuthInitialization() async {
+    try {
+      await _ensureDedicatedChannel();
+      await _fetchAndPersistAccount();
+    } catch (e) {
+      TeleCloudLogger.auth('Post-auth initialization notice: $e');
     }
   }
 
@@ -409,7 +426,8 @@ class TelegramAuthManager extends ChangeNotifier {
   void sendPassword(String password) {
     TeleCloudLogger.auth('Submitting 2FA cloud password to TDLib...');
     _errorMessage = null;
-    _client.send(td.CheckAuthenticationPassword(password: password));
+    notifyListeners();
+    _client.send(td.CheckAuthenticationPassword(password: password.trim()));
   }
 
   void logout() {

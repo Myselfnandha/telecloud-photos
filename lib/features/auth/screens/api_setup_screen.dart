@@ -74,6 +74,32 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
     router.go('/login');
   }
 
+  Future<void> _useDefaultCredentials() async {
+    setState(() => _isSaving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
+    await AppConstants.saveCredentials(
+      2040,
+      'b18441a1b608e3cdeec510d3f026fb29',
+    );
+
+    if (!mounted) return;
+
+    final authManager = ref.read(telegramAuthManagerProvider);
+    authManager.clearError();
+    await authManager.restartClient();
+
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Using official Telegram API credentials.'),
+        backgroundColor: Color(0xFF30D158),
+      ),
+    );
+
+    router.go('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,8 +108,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
         backgroundColor: const Color(0xFF000000),
         elevation: 0,
         title: const Text(
-          'Telegram API Setup',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          'Step 1 · Telegram API Setup',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
         ),
       ),
       body: SafeArea(
@@ -94,6 +120,33 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Step Indicator Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF0A84FF).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.vpn_key_rounded, color: Color(0xFF0A84FF), size: 14),
+                      SizedBox(width: 6),
+                      Text(
+                        'STEP 1 OF 2 · API CREDENTIALS',
+                        style: TextStyle(
+                          color: Color(0xFF0A84FF),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 // Header
                 const Text(
                   'Configure Telegram API',
@@ -355,7 +408,14 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                     ),
                     onPressed: _isSaving ? null : _saveAndContinue,
                     child: _isSaving
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
                         : const Text(
                             'Save & Continue',
                             style: TextStyle(
@@ -366,7 +426,32 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+
+                // Quick Default Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade800),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.flash_on_rounded, color: Colors.white70, size: 18),
+                    label: const Text(
+                      'Continue with Official Defaults (2040)',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onPressed: _isSaving ? null : _useDefaultCredentials,
+                  ),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),

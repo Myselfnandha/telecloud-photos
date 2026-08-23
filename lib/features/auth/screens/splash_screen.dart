@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/telegram/telegram_auth_manager.dart';
 import '../../../core/utils/telecloud_logger.dart';
@@ -52,7 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Hard safety timeout guarantee (2.5s maximum so splash screen NEVER freezes)
     Timer(const Duration(milliseconds: 2500), () {
       if (!_hasNavigated && mounted) {
-        _navigateSafe('/login');
+        _navigateSafe('/setup');
       }
     });
 
@@ -70,26 +69,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         return;
       }
 
-      final hasCreds = await AppConstants.hasSavedCredentials();
-      if (!mounted || _hasNavigated) return;
-
-      if (!hasCreds) {
-        _navigateSafe('/setup');
-        return;
-      }
-
       // Check TDLib auth state
       final authState = ref.read(telegramAuthManagerProvider).state;
       if (authState == AuthState.authenticated) {
         _navigateSafe('/timeline');
       } else {
-        _navigateSafe('/login');
+        // First-time or logged-out user: Show Telegram API Setup first
+        _navigateSafe('/setup');
       }
     } catch (e) {
       TeleCloudLogger.log('Splash', 'Splash routing error: $e');
       await minSplashTimer;
       if (mounted && !_hasNavigated) {
-        _navigateSafe('/login');
+        _navigateSafe('/setup');
       }
     }
   }

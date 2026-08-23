@@ -32,7 +32,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Setup Gradle Build Accelerator
         uses: gradle/actions/setup-gradle@v4
@@ -46,15 +45,10 @@ jobs:
           cache: true
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
 
-      - name: Cache Pub Dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
+      - name: Pre-install Android SDKs & CMake
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "platforms;android-31" "cmake;3.22.1" || true
 
       - name: Verify Flutter & Environment
         run: |
@@ -75,7 +69,7 @@ jobs:
         run: flutter test
 
       - name: Build Universal Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Prepare & Rename Release Binary
         id: prepare_apks

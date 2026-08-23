@@ -23,6 +23,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
   bool _obscureHash = true;
   bool _isTestingCredentials = false;
   String? _statusText;
+  String? _errorMessage;
   ParsedCredentials? _detectedClipboardCredentials;
 
   @override
@@ -30,12 +31,9 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    if (AppConstants.telegramApiId > 0) {
-      _apiIdController.text = AppConstants.telegramApiId.toString();
-    }
-    if (AppConstants.telegramApiHash.isNotEmpty) {
-      _apiHashController.text = AppConstants.telegramApiHash;
-    }
+    // Manual credentials are kept empty by default as requested
+    _apiIdController.text = '';
+    _apiHashController.text = '';
 
     _checkClipboardForCredentials();
   }
@@ -114,39 +112,65 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
   Future<void> _validateAndProceed(int apiId, String apiHash) async {
     setState(() {
       _isTestingCredentials = true;
-      _statusText = 'Verifying Telegram API credentials...';
+      _errorMessage = null;
+      _statusText = 'Testing credentials with Telegram...';
     });
 
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
-    await AppConstants.saveCredentials(apiId, apiHash);
+    try {
+      // 1. Save credentials to secure storage
+      await AppConstants.saveCredentials(apiId, apiHash);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    final authManager = ref.read(telegramAuthManagerProvider);
-    authManager.clearError();
-    await authManager.clearSessionAndRestart();
+      // 2. Initialize TDLib client with the new credentials
+      final authManager = ref.read(telegramAuthManagerProvider);
+      authManager.clearError();
+      await authManager.clearSessionAndRestart();
 
-    // Give TDLib handshake 1.5s to test connection
-    await Future.delayed(const Duration(milliseconds: 1500));
+      // 3. Wait for handshake test (up to 2 seconds)
+      await Future.delayed(const Duration(milliseconds: 1800));
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _isTestingCredentials = false;
-      _statusText = null;
-    });
+      final currentError = authManager.errorMessage;
+      if (currentError != null &&
+          (currentError.contains('API_ID') ||
+              currentError.contains('API_HASH') ||
+              currentError.contains('INVALID'))) {
+        setState(() {
+          _isTestingCredentials = false;
+          _errorMessage = 'Invalid Telegram credentials: $currentError';
+          _statusText = null;
+        });
+        return;
+      }
 
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('✓ Telegram API credentials verified & saved!'),
-        backgroundColor: Color(0xFF30D158),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      setState(() {
+        _isTestingCredentials = false;
+        _statusText = null;
+      });
 
-    router.go('/auth-method');
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('✓ Telegram API credentials verified & tested!'),
+          backgroundColor: Color(0xFF30D158),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      router.go('/auth-method');
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isTestingCredentials = false;
+          _errorMessage = 'Connection test error: $e';
+          _statusText = null;
+        });
+      }
+    }
   }
 
   Future<void> _onManualSubmit() async {
@@ -218,6 +242,31 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
+
+                // Error message banner if test failed
+                if (_errorMessage != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF453A).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFF453A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: Color(0xFFFF453A), size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: Color(0xFFFF453A), fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Proactive Detected Banner
                 if (_detectedClipboardCredentials != null) ...[
@@ -361,7 +410,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                 ),
                 const SizedBox(height: 24),
 
-                // CARD 3: Manual Credentials
+                // CARD 3: Manual Credentials (Empty by default)
                 const Text(
                   'MANUAL CREDENTIALS',
                   style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
@@ -477,7 +526,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                             children: [
                               const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
                               const SizedBox(width: 12),
-                              Text(_statusText ?? 'Verifying...', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                              Text(_statusText ?? 'Testing credentials...', style: const TextStyle(color: Colors.white, fontSize: 14)),
                             ],
                           )
                         : const Text(

@@ -59,6 +59,13 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF000000),
         title: const Text('Login with Telegram'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+            tooltip: 'Custom API Settings',
+            onPressed: () => context.push('/setup'),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),

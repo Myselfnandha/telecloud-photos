@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/telegram/telegram_auth_manager.dart';
+import '../../../core/utils/telecloud_logger.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -16,7 +18,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
-  bool _showManualAction = false;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -26,7 +28,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
-    _verifyAndRoute();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verifyAndRoute();
+    });
   }
 
   @override
@@ -35,38 +39,57 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.dispose();
   }
 
+  void _navigateSafe(String path) {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+    context.go(path);
+  }
+
   Future<void> _verifyAndRoute() async {
-    final hasCreds = await AppConstants.hasSavedCredentials();
-    if (!mounted) return;
+    // Minimum 1.2s delay for smooth premium logo pulsing branding
+    final minSplashTimer = Future.delayed(const Duration(milliseconds: 1200));
 
-    if (!hasCreds) {
-      context.go('/setup');
-      return;
-    }
+    // Hard safety timeout guarantee (2.5s maximum so splash screen NEVER freezes)
+    Timer(const Duration(milliseconds: 2500), () {
+      if (!_hasNavigated && mounted) {
+        _navigateSafe('/login');
+      }
+    });
 
-    final prefs = await SharedPreferences.getInstance();
-    final wasAuthenticated =
-        prefs.getBool('telecloud_is_authenticated') ?? false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final wasAuthenticated =
+          prefs.getBool('telecloud_is_authenticated') ?? false;
 
-    if (wasAuthenticated) {
-      // Returning authenticated user: go straight to timeline without showing login button
-      if (mounted) {
-        context.go('/timeline');
+      await minSplashTimer;
+      if (!mounted || _hasNavigated) return;
+
+      if (wasAuthenticated) {
+        // Returning logged in user: go directly to timeline
+        _navigateSafe('/timeline');
         return;
       }
-    }
 
-    // Wait briefly for TDLib state to initialize
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
+      final hasCreds = await AppConstants.hasSavedCredentials();
+      if (!mounted || _hasNavigated) return;
 
-    final authState = ref.read(telegramAuthManagerProvider).state;
-    if (authState == AuthState.authenticated) {
-      context.go('/timeline');
-    } else if (authState == AuthState.waitingForPhoneNumber ||
-        authState == AuthState.uninitialized) {
-      if (mounted) {
-        setState(() => _showManualAction = true);
+      if (!hasCreds) {
+        _navigateSafe('/setup');
+        return;
+      }
+
+      // Check TDLib auth state
+      final authState = ref.read(telegramAuthManagerProvider).state;
+      if (authState == AuthState.authenticated) {
+        _navigateSafe('/timeline');
+      } else {
+        _navigateSafe('/login');
+      }
+    } catch (e) {
+      TeleCloudLogger.log('Splash', 'Splash routing error: $e');
+      await minSplashTimer;
+      if (mounted && !_hasNavigated) {
+        _navigateSafe('/login');
       }
     }
   }
@@ -129,59 +152,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 40),
-            if (!_showManualAction)
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Color(0xFF0A84FF),
-                ),
-              )
-            else
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0A84FF),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 36,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                onPressed: () async {
-                  final router = GoRouter.of(context);
-                  final hasCreds = await AppConstants.hasSavedCredentials();
-                  if (!mounted) return;
-                  if (!hasCreds) {
-                    router.go('/setup');
-                  } else {
-                    final authState = ref
-                        .read(telegramAuthManagerProvider)
-                        .state;
-                    if (authState == AuthState.authenticated) {
-                      router.go('/timeline');
-                    } else {
-                      router.go('/login');
-                    }
-                  }
-                },
-                icon: const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                label: const Text(
-                  'Get Started',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Color(0xFF0A84FF),
               ),
+            ),
           ],
         ),
       ),

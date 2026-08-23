@@ -30,21 +30,35 @@ class AppConstants {
       'cf007e0155c41fd1aa9b114b592377e0';
 
   static Future<bool> hasSavedCredentials() async {
-    const storage = FlutterSecureStorage();
-    final id = await storage.read(key: keyApiId);
-    final hash = await storage.read(key: keyApiHash);
-    if (id != null && id.isNotEmpty && hash != null && hash.isNotEmpty) {
-      final parsedId = int.tryParse(id);
-      if (parsedId != null) {
-        setCredentials(parsedId, hash);
+    try {
+      const storage = FlutterSecureStorage();
+      final id = await storage
+          .read(key: keyApiId)
+          .timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+      final hash = await storage
+          .read(key: keyApiHash)
+          .timeout(const Duration(milliseconds: 800), onTimeout: () => null);
+      if (id != null && id.isNotEmpty && hash != null && hash.isNotEmpty) {
+        final parsedId = int.tryParse(id);
+        if (parsedId != null) {
+          setCredentials(parsedId, hash);
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    // Also check if .env has valid non-empty credentials
+    try {
+      final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
+      final envHash = dotenv.env['TELEGRAM_API_HASH'];
+      if (envId != null && envId > 0 && envHash != null && envHash.isNotEmpty) {
+        setCredentials(envId, envHash);
         return true;
       }
-    }
-    // Also check if .env has valid non-empty credentials
-    final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
-    final envHash = dotenv.env['TELEGRAM_API_HASH'];
-    if (envId != null && envId > 0 && envHash != null && envHash.isNotEmpty) {
-      setCredentials(envId, envHash);
+    } catch (_) {}
+
+    // Fallback to built-in default credentials
+    if (telegramApiId > 0 && telegramApiHash.isNotEmpty) {
       return true;
     }
     return false;

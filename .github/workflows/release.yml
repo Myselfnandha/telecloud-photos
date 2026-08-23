@@ -13,6 +13,10 @@ on:
         required: true
         default: 'v1.0.0'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -21,11 +25,14 @@ jobs:
     name: Build & Release APK
     runs-on: ubuntu-latest
 
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx4096m -XX:+UseParallelGC -XX:MaxMetaspaceSize=1024m' -Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -45,15 +52,9 @@ jobs:
           cache: true
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
 
-      - name: Pre-install Android SDKs & CMake
+      - name: Accept Android SDK Licenses
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "platforms;android-31" "cmake;3.22.1" || true
-
-      - name: Verify Flutter & Environment
-        run: |
-          flutter --version
-          java -version
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
 
       - name: Install Flutter Dependencies
         run: flutter pub get
@@ -66,7 +67,7 @@ jobs:
         run: flutter analyze
 
       - name: Run Unit & Integration Tests
-        run: flutter test
+        run: flutter test --concurrency=4
 
       - name: Build Universal Release APK
         run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation

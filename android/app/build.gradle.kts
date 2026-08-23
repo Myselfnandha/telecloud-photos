@@ -42,9 +42,22 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = "telecloud"
+            keyPassword = "telecloud123"
+            storeFile = file("release.keystore")
+            storePassword = "telecloud123"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

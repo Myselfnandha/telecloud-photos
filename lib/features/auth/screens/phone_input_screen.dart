@@ -69,32 +69,13 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF30D158).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF30D158)),
-                ),
-                title: const Text('Try Instant QR Code Scan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                subtitle: const Text('Scan with your mobile Telegram app — 0 SMS or codes needed.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white30),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.push('/login-qr');
-                },
-              ),
-              const Divider(color: Colors.white10),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
                     color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.tune_rounded, color: Color(0xFF0A84FF)),
                 ),
                 title: const Text('API Credentials & Proxy Settings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                subtitle: const Text('Set custom API ID/Hash, configure MTProto proxy, or clear session cache.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                subtitle: const Text('Set custom API ID/Hash, launch In-App Web Assistant, or clear TDLib cache.', style: TextStyle(color: Colors.grey, fontSize: 12)),
                 trailing: const Icon(Icons.chevron_right, color: Colors.white30),
                 onTap: () {
                   Navigator.pop(ctx);

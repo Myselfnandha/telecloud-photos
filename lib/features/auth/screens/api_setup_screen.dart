@@ -88,7 +88,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
       ),
     );
 
-    router.go('/login-hub');
+    router.go('/login');
   }
 
   Future<void> _pasteBothFromClipboard() async {

@@ -22,19 +22,31 @@ class TelegramWebSetupSheet extends StatefulWidget {
 
 class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
   late final WebViewController _controller;
-  bool _isLoading = true;
+  int _loadingProgress = 0;
   bool _isSuccess = false;
-  String _statusMessage = 'Connecting to my.telegram.org...';
+  String _statusMessage = 'Log in with your Telegram code';
 
-  static const String _jsExtractionScript = '''
+  // Pure passive credential scanner: NEVER clicks buttons, NEVER reloads page.
+  static const String _jsPassiveScanScript = '''
     (function() {
-      function scanForCredentials() {
+      function scanOnly() {
         try {
           var bodyText = document.body ? document.body.innerText : '';
           
-          // Pattern matching for API ID & Hash
+          // Pattern matching for API ID & Hash in page text
           var idMatch = bodyText.match(/(?:api[-_]?id|App api_id)\\s*[:=]?\\s*(\\d{5,10})/i);
           var hashMatch = bodyText.match(/(?:api[-_]?hash|App api_hash)\\s*[:=]?\\s*([a-fA-F0-9]{32})/i);
+
+          // Also check form input values / uneditable spans if present
+          if (!idMatch || !hashMatch) {
+            var allInputs = document.querySelectorAll('input, span, td, div');
+            var rawAll = '';
+            for (var i = 0; i < allInputs.length; i++) {
+              rawAll += ' ' + (allInputs[i].innerText || allInputs[i].value || '');
+            }
+            if (!idMatch) idMatch = rawAll.match(/(?:api[-_]?id|App api_id)\\s*[:=]?\\s*(\\d{5,10})/i);
+            if (!hashMatch) hashMatch = rawAll.match(/([a-fA-F0-9]{32})/i);
+          }
 
           if (idMatch && hashMatch) {
             if (window.TeleCloudAuthChannel) {
@@ -45,31 +57,16 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
               return true;
             }
           }
-
-          // If on /apps creation form page and no app created yet, auto-fill
-          var titleInput = document.querySelector('input[name="app_title"], #app_title');
-          var shortNameInput = document.querySelector('input[name="app_short_name"], #app_short_name');
-          var platformRadio = document.querySelector('input[value="android"], #app_platform_android');
-          var submitBtn = document.querySelector('button[type="submit"], input[type="submit"]');
-
-          if (titleInput && shortNameInput && titleInput.value === '') {
-            titleInput.value = 'TeleCloud Photos';
-            shortNameInput.value = 'telecloudphotos';
-            if (platformRadio) platformRadio.checked = true;
-            if (submitBtn) {
-              submitBtn.click();
-            }
-          }
         } catch (e) {
-          console.error("Auto extraction error", e);
+          console.error("Passive scan error", e);
         }
         return false;
       }
 
-      if (!window.__telecloudScanner) {
-        window.__telecloudScanner = setInterval(scanForCredentials, 1200);
-        scanForCredentials();
+      if (!window.__telecloudPassiveScanner) {
+        window.__telecloudPassiveScanner = setInterval(scanOnly, 1000);
       }
+      scanOnly();
     })();
   ''';
 
@@ -88,28 +85,28 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
       )
       ..setNavigationDelegate(
         NavigationDelegate(
+          onProgress: (progress) {
+            if (mounted) setState(() => _loadingProgress = progress);
+          },
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              if (url.contains('/apps')) {
-                _statusMessage = 'Detecting API Credentials...';
-              } else if (url.contains('/auth')) {
-                _statusMessage = 'Log in with your Telegram code';
-              }
-            });
+            if (mounted) {
+              setState(() {
+                if (url.contains('/apps')) {
+                  _statusMessage = 'Scanning for API ID & Hash...';
+                } else if (url.contains('/auth')) {
+                  _statusMessage = 'Log in with your Telegram code';
+                } else {
+                  _statusMessage = 'my.telegram.org';
+                }
+              });
+            }
           },
           onPageFinished: (String url) {
-            setState(() => _isLoading = false);
-            _controller.runJavaScript(_jsExtractionScript);
-
-            // If logged in and on index page, auto-redirect to /apps
-            if (!url.contains('/apps') && !url.contains('/auth/login') && !url.contains('/auth/send_password')) {
-              _controller.runJavaScript('''
-                if (window.location.pathname !== '/apps') {
-                  window.location.href = 'https://my.telegram.org/apps';
-                }
-              ''');
+            if (mounted) {
+              setState(() => _loadingProgress = 100);
             }
+            // Inject passive scanner script ONLY (no page reloads or redirects)
+            _controller.runJavaScript(_jsPassiveScanScript);
           },
           onWebResourceError: (WebResourceError error) {
             TeleCloudLogger.auth('WebView resource error: ${error.description}');
@@ -120,6 +117,7 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
   }
 
   void _handleExtractedCredentials(String payload) {
+    if (_isSuccess) return;
     try {
       final data = jsonDecode(payload) as Map<String, dynamic>;
       final apiId = int.tryParse(data['api_id']?.toString() ?? '');
@@ -133,8 +131,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
 
         TeleCloudLogger.auth('Successfully auto-extracted Telegram API ID: $apiId');
 
-        // Auto-close after 800ms success animation
-        Future.delayed(const Duration(milliseconds: 800), () {
+        // Auto-close after 600ms success animation
+        Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted) {
             Navigator.of(context).pop(ParsedCredentials(apiId: apiId, apiHash: apiHash));
           }
@@ -148,7 +146,7 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.90,
+      height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
         color: Color(0xFF0B111E),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -186,7 +184,7 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Automated Telegram Setup',
+                        'Telegram Web Assistant',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -203,6 +201,18 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                     ],
                   ),
                 ),
+                // Direct shortcut to /apps if user is logged in
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  icon: const Icon(Icons.apps_rounded, color: Color(0xFF38BDF8), size: 16),
+                  label: const Text('API Tools', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12)),
+                  onPressed: () {
+                    _controller.loadRequest(Uri.parse('https://my.telegram.org/apps'));
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.close_rounded, color: Colors.white70),
                   onPressed: () => Navigator.of(context).pop(),
@@ -210,32 +220,19 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
               ],
             ),
           ),
-          const Divider(color: Colors.white12, height: 20),
 
-          // Helper Tip Banner
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.lightbulb_rounded, color: Color(0xFFFF9F0A), size: 18),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Log in with your Telegram code. The app will auto-create & copy credentials, then auto-close this window.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Non-intrusive loading bar
+          if (_loadingProgress < 100)
+            LinearProgressIndicator(
+              value: _loadingProgress / 100.0,
+              backgroundColor: Colors.transparent,
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+              minHeight: 2,
+            )
+          else
+            const Divider(color: Colors.white12, height: 1),
 
-          // WebView & Loader
+          // WebView & Success Overlay
           Expanded(
             child: Stack(
               children: [
@@ -243,16 +240,9 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   child: WebViewWidget(controller: _controller),
                 ),
-                if (_isLoading)
-                  Container(
-                    color: const Color(0xFF0B111E).withValues(alpha: 0.7),
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF007AFF)),
-                    ),
-                  ),
                 if (_isSuccess)
                   Container(
-                    color: const Color(0xFF0B111E).withValues(alpha: 0.92),
+                    color: const Color(0xFF0B111E).withValues(alpha: 0.95),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -267,12 +257,12 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            'Credentials Configured!',
+                            'Credentials Extracted!',
                             style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Auto-closing browser window...',
+                            'Auto-closing and saving credentials...',
                             style: TextStyle(color: Colors.white60, fontSize: 14),
                           ),
                         ],

@@ -375,6 +375,12 @@ class TelegramAuthManager extends ChangeNotifier {
     _client.send(td.CheckAuthenticationCode(code: code.trim()));
   }
 
+  void resendAuthenticationCode() {
+    TeleCloudLogger.auth('Requesting Telegram authentication code resend (SMS/Call)...');
+    _errorMessage = null;
+    _client.send(const td.ResendAuthenticationCode());
+  }
+
   void sendPassword(String password) {
     TeleCloudLogger.auth('Submitting 2FA cloud password to TDLib...');
     _errorMessage = null;

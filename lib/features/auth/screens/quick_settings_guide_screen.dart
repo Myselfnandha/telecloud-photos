@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/dual_app_setup_dialog.dart';
 
 class QuickSettingsGuideScreen extends StatefulWidget {
   const QuickSettingsGuideScreen({super.key});
@@ -49,10 +50,15 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
 
     if (!mounted) return;
 
+    // Prompt user for TeleCloud Files companion launcher setup
+    await DualAppSetupDialog.show(context);
+
+    if (!mounted) return;
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('🎉 Welcome to TeleCloud Photos! Setup Complete.'),
+        content: Text('🎉 Welcome to TeleCloud! Setup Complete.'),
         backgroundColor: Color(0xFF30D158),
         duration: Duration(seconds: 2),
       ),

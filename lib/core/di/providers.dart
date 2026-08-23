@@ -22,6 +22,9 @@ import '../backup/thumbnail_generator.dart';
 import '../google/google_auth_service.dart';
 import '../google/google_photos_api_client.dart';
 import '../google/google_photos_sync_service.dart';
+import '../database/daos/files_dao.dart';
+import '../telegram/telegram_files_manager.dart';
+import '../sync/files_sync_worker.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError(
@@ -268,3 +271,42 @@ final googlePhotosSyncServiceProvider =
         prefs: prefs,
       );
     });
+
+final filesDaoProvider = Provider<FilesDao>((ref) {
+  final db = ref.watch(databaseProvider);
+  return FilesDao(db);
+});
+
+final telegramFilesManagerProvider = Provider<TelegramFilesManager>((ref) {
+  final client = ref.watch(tdlibClientProvider);
+  final filesDao = ref.watch(filesDaoProvider);
+  return TelegramFilesManager(client: client, filesDao: filesDao);
+});
+
+final filesSyncWorkerProvider = Provider<FilesSyncWorker>((ref) {
+  final filesDao = ref.watch(filesDaoProvider);
+  final filesManager = ref.watch(telegramFilesManagerProvider);
+  return FilesSyncWorker(filesDao: filesDao, filesManager: filesManager);
+});
+
+final filesInFolderStreamProvider =
+    StreamProvider.family<List<CloudFile>, String>((ref, folderPath) {
+      final dao = ref.watch(filesDaoProvider);
+      return dao.watchFilesInFolder(folderPath);
+    });
+
+final subFoldersStreamProvider =
+    StreamProvider.family<List<CloudFolder>, String?>((ref, parentPath) {
+      final dao = ref.watch(filesDaoProvider);
+      return dao.watchSubFolders(parentPath);
+    });
+
+final pinnedFilesStreamProvider = StreamProvider<List<CloudFile>>((ref) {
+  final dao = ref.watch(filesDaoProvider);
+  return dao.watchPinnedFiles();
+});
+
+final recentFilesStreamProvider = StreamProvider<List<CloudFile>>((ref) {
+  final dao = ref.watch(filesDaoProvider);
+  return dao.watchRecentFiles();
+});

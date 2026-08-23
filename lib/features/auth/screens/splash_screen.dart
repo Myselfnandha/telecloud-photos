@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/telegram/telegram_auth_manager.dart';
 import '../../../core/utils/telecloud_logger.dart';
+import '../../../core/services/launcher_service.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -63,16 +64,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       await minSplashTimer;
       if (!mounted || _hasNavigated) return;
 
+      final launchMode = await LauncherService.getLaunchMode();
+      await LauncherService.clearLaunchMode();
+      final destination = launchMode == 'files' ? '/files' : '/timeline';
+
       if (wasAuthenticated) {
-        // Returning logged in user: go directly to timeline
-        _navigateSafe('/timeline');
+        // Returning logged in user: route to appropriate mode
+        _navigateSafe(destination);
         return;
       }
 
       // Check TDLib auth state
       final authState = ref.read(telegramAuthManagerProvider).state;
       if (authState == AuthState.authenticated) {
-        _navigateSafe('/timeline');
+        _navigateSafe(destination);
       } else {
         // Default first-time setup screen
         _navigateSafe('/setup');
@@ -88,9 +93,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<TelegramAuthManager>(telegramAuthManagerProvider, (prev, next) {
-      if (next.state == AuthState.authenticated && mounted) {
-        context.go('/timeline');
+    ref.listen<TelegramAuthManager>(telegramAuthManagerProvider, (prev, next) async {
+      if (next.state == AuthState.authenticated) {
+        final mode = await LauncherService.getLaunchMode();
+        _navigateSafe(mode == 'files' ? '/files' : '/timeline');
       }
     });
 

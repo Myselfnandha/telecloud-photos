@@ -6,17 +6,22 @@ import 'package:path/path.dart' as p;
 
 import 'tables/media_table.dart';
 import 'tables/albums_table.dart';
+import 'tables/files_table.dart';
 import 'daos/media_dao.dart';
+import 'daos/files_dao.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [MediaItems, Albums], daos: [MediaDao])
+@DriftDatabase(
+  tables: [MediaItems, Albums, CloudFiles, CloudFolders],
+  daos: [MediaDao, FilesDao],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,6 +33,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(mediaItems, mediaItems.isFavorite);
         await m.addColumn(mediaItems, mediaItems.isTrashed);
         await m.addColumn(mediaItems, mediaItems.trashedAt);
+      }
+      if (from < 3) {
+        await m.createTable(cloudFiles);
+        await m.createTable(cloudFolders);
       }
     },
   );

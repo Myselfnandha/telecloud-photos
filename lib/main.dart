@@ -379,6 +379,9 @@ void main() async {
     );
   }
 
+  // Load saved custom credentials from secure storage / .env
+  await AppConstants.hasSavedCredentials();
+
   final prefs = await SharedPreferences.getInstance();
 
   try {

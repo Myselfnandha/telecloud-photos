@@ -328,6 +328,24 @@ class TelegramAuthManager extends ChangeNotifier {
     _client.send(const td.GetAuthorizationState());
   }
 
+  Future<void> configureCredentials({
+    required int apiId,
+    required String apiHash,
+  }) async {
+    TeleCloudLogger.auth(
+      'Configuring and activating new TDLib credentials (apiId=$apiId)...',
+    );
+    await AppConstants.saveCredentials(apiId, apiHash);
+    _parametersSent = false;
+    _errorMessage = null;
+    _state = AuthState.uninitialized;
+    _qrCodeLink = null;
+    notifyListeners();
+
+    await _client.restartClient();
+    _client.send(const td.GetAuthorizationState());
+  }
+
   Future<void> restartClient() async {
     TeleCloudLogger.auth('Restarting TDLib client with fresh parameters...');
     _parametersSent = false;

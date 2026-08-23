@@ -141,7 +141,13 @@ class TdlibClient {
   }
 
   Future<void> restartClient() async {
+    if (_clientId != 0) {
+      try {
+        tdSend(_clientId, const td.Close());
+      } catch (_) {}
+    }
     stopClient();
+    await Future.delayed(const Duration(milliseconds: 200));
     await initClient();
   }
 

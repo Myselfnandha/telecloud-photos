@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/utils/telegram_credential_parser.dart';
 import '../widgets/telegram_web_setup_sheet.dart';
@@ -113,21 +112,18 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     setState(() {
       _isTestingCredentials = true;
       _errorMessage = null;
-      _statusText = 'Saving credentials...';
+      _statusText = 'Applying credentials to Telegram engine...';
     });
 
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
     try {
-      // 1. Save credentials to secure storage & in-memory cache
-      await AppConstants.saveCredentials(apiId, apiHash);
+      // 1. Reconfigure active TDLib engine with custom credentials
+      final authManager = ref.read(telegramAuthManagerProvider);
+      await authManager.configureCredentials(apiId: apiId, apiHash: apiHash);
 
       if (!mounted) return;
-
-      // 2. Clear error state
-      final authManager = ref.read(telegramAuthManagerProvider);
-      authManager.clearError();
 
       setState(() {
         _isTestingCredentials = false;
@@ -136,19 +132,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
 
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('✓ API credentials saved! Proceeding to phone verification...'),
+          content: Text('✓ API credentials configured! Proceeding to phone verification...'),
           backgroundColor: Color(0xFF30D158),
           duration: Duration(seconds: 2),
         ),
       );
 
-      // 3. Direct transition to Step 2 (Phone Login)
+      // 2. Direct transition to Step 2 (Phone Login)
       router.go('/login');
     } catch (e) {
       if (mounted) {
         setState(() {
           _isTestingCredentials = false;
-          _errorMessage = 'Error saving credentials: $e';
+          _errorMessage = 'Error configuring credentials: $e';
           _statusText = null;
         });
       }

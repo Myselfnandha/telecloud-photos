@@ -21,8 +21,10 @@ class AppConstants {
   // Telegram API Credentials
   static int get telegramApiId {
     if (_customApiId != null && _customApiId! > 0) return _customApiId!;
-    final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
-    if (envId != null && envId > 0) return envId;
+    if (dotenv.isInitialized) {
+      final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
+      if (envId != null && envId > 0) return envId;
+    }
     const defineId = int.fromEnvironment('TELEGRAM_API_ID', defaultValue: 0);
     if (defineId > 0) return defineId;
     // Official Telegram Android production public API ID
@@ -31,8 +33,10 @@ class AppConstants {
 
   static String get telegramApiHash {
     if (_customApiHash != null && _customApiHash!.isNotEmpty) return _customApiHash!;
-    final envHash = dotenv.env['TELEGRAM_API_HASH'];
-    if (envHash != null && envHash.isNotEmpty) return envHash;
+    if (dotenv.isInitialized) {
+      final envHash = dotenv.env['TELEGRAM_API_HASH'];
+      if (envHash != null && envHash.isNotEmpty) return envHash;
+    }
     const defineHash = String.fromEnvironment('TELEGRAM_API_HASH', defaultValue: '');
     if (defineHash.isNotEmpty) return defineHash;
     // Official Telegram Android production public API Hash
@@ -59,11 +63,13 @@ class AppConstants {
 
     // Also check if .env has valid non-empty credentials
     try {
-      final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
-      final envHash = dotenv.env['TELEGRAM_API_HASH'];
-      if (envId != null && envId > 0 && envHash != null && envHash.isNotEmpty) {
-        setCredentials(envId, envHash);
-        return true;
+      if (dotenv.isInitialized) {
+        final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
+        final envHash = dotenv.env['TELEGRAM_API_HASH'];
+        if (envId != null && envId > 0 && envHash != null && envHash.isNotEmpty) {
+          setCredentials(envId, envHash);
+          return true;
+        }
       }
     } catch (_) {}
 

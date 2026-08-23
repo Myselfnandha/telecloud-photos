@@ -100,6 +100,12 @@ class TelegramAuthManager extends ChangeNotifier {
         return;
       }
       _errorMessage = event.message;
+      if (_state == AuthState.waitingForCode &&
+          (event.code == 400 ||
+              msgLower.contains('phone') ||
+              msgLower.contains('api'))) {
+        _state = AuthState.waitingForPhoneNumber;
+      }
       notifyListeners();
     }
   }
@@ -272,7 +278,17 @@ class TelegramAuthManager extends ChangeNotifier {
     }
   }
 
-  void sendPhoneNumber(String phoneNumber) {
+  Future<void> restartClient() async {
+    TeleCloudLogger.auth('Restarting TDLib client with fresh parameters...');
+    _parametersSent = false;
+    _errorMessage = null;
+    _state = AuthState.uninitialized;
+    notifyListeners();
+    await _client.restartClient();
+    _client.send(const td.GetAuthorizationState());
+  }
+
+  Future<void> sendPhoneNumber(String phoneNumber) async {
     _errorMessage = null;
     String formatted = phoneNumber.trim();
     if (!formatted.startsWith('+')) {
@@ -282,8 +298,8 @@ class TelegramAuthManager extends ChangeNotifier {
     TeleCloudLogger.auth(
       'Submitting phone number: $formatted to Telegram TDLib...',
     );
-    _state = AuthState.waitingForCode;
-    notifyListeners();
+
+    await _client.initClient();
 
     _client.send(
       td.SetAuthenticationPhoneNumber(

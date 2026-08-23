@@ -110,6 +110,11 @@ class TdlibClient {
     _clientId = 0;
   }
 
+  Future<void> restartClient() async {
+    stopClient();
+    await initClient();
+  }
+
   void dispose() {
     stopClient();
     _eventController.close();

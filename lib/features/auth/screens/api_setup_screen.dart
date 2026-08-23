@@ -62,7 +62,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
 
     final authManager = ref.read(telegramAuthManagerProvider);
     authManager.clearError();
-    await authManager.initClient();
+    await authManager.restartClient();
 
     messenger.showSnackBar(
       const SnackBar(

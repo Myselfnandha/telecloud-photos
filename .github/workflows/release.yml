@@ -77,41 +77,27 @@ jobs:
       - name: Build Universal Release APK
         run: flutter build apk --release
 
-      - name: Build ABI-Split Release APKs (arm64, arm32, x86_64)
-        run: flutter build apk --release --split-per-abi
-
-      - name: Prepare & Rename Release Binaries
+      - name: Prepare & Rename Release Binary
         id: prepare_apks
         run: |
           mkdir -p release_binaries
           
-          # Determine Version Tag
+          # Determine Version Tag (Auto-increment with run_number)
           if [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${{ github.ref_name }}"
           elif [ -n "${{ github.event.inputs.version_tag }}" ]; then
             VERSION="${{ github.event.inputs.version_tag }}"
           else
-            VERSION="v1.0.0"
+            VERSION="v1.0.${{ github.run_number }}"
           fi
           
-          # Universal Release APK
+          # Copy Universal Release APK
           cp build/app/outputs/flutter-apk/app-release.apk release_binaries/TeleCloud-Photos-${VERSION}.apk
-          
-          # ABI-specific APKs
-          if [ -f "build/app/outputs/flutter-apk/app-arm64-v8a-release.apk" ]; then
-            cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release_binaries/TeleCloud-Photos-${VERSION}-arm64-v8a.apk
-          fi
-          if [ -f "build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk" ]; then
-            cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release_binaries/TeleCloud-Photos-${VERSION}-armeabi-v7a.apk
-          fi
-          if [ -f "build/app/outputs/flutter-apk/app-x86_64-release.apk" ]; then
-            cp build/app/outputs/flutter-apk/app-x86_64-release.apk release_binaries/TeleCloud-Photos-${VERSION}-x86_64.apk
-          fi
 
           echo "VERSION_TAG=${VERSION}" >> $GITHUB_OUTPUT
           ls -lh release_binaries/
 
-      - name: Create GitHub Release & Upload APKs
+      - name: Create GitHub Release & Upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.prepare_apks.outputs.VERSION_TAG }}
@@ -121,6 +107,8 @@ jobs:
             
             ### ✨ What's New in this Release:
             - **📸 High-Performance Timeline**: Silky-smooth two-finger pinch-to-zoom density scaling (1–6 columns) with locked 120Hz refresh rate.
+            - **🚀 Fast Auto-Login Flow**: Instant 1.2s branding animation with 2.5s hard timeout guarantee so the app never freezes on startup.
+            - **💬 Reliable Telegram Code Delivery**: Real-time authorization state listeners for seamless verification code dispatch.
             - **🎨 iOS & Modern Adaptive Icon**: Full-bleed glassmorphism squircle app icon without white circle borders.
             - **📁 Monitored Backup Folders**: Live folder scanning (<50ms), status indicators, and dedicated "Manual Folder Upload" trigger.
             - **⚙️ Hierarchical Settings**: Compact 5-category master dashboard with dedicated sub-screens for Appearance, Cloud Migration, Backup Rules, Power Policies, and Storage Maintenance.
@@ -129,10 +117,8 @@ jobs:
             - **🏷️ Supergroup Topic Management**: Real-time forum channel synchronization with fallback naming for root storage folders.
             
             ---
-            ### 📦 Download Assets:
-            - **`TeleCloud-Photos-${{ steps.prepare_apks.outputs.VERSION_TAG }}.apk`** (Universal — Recommended for all Android devices)
-            - **`TeleCloud-Photos-${{ steps.prepare_apks.outputs.VERSION_TAG }}-arm64-v8a.apk`** (Optimized for modern 64-bit phones)
-            - **`TeleCloud-Photos-${{ steps.prepare_apks.outputs.VERSION_TAG }}-armeabi-v7a.apk`** (Optimized for 32-bit legacy devices)
+            ### 📦 Download Asset:
+            - **`TeleCloud-Photos-${{ steps.prepare_apks.outputs.VERSION_TAG }}.apk`** (Universal APK — Works on all Android devices)
           files: release_binaries/*.apk
           draft: false
           prerelease: false

@@ -80,8 +80,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
     final router = GoRouter.of(context);
 
     await AppConstants.saveCredentials(
-      2040,
-      'b18441a1b608e3cdeec510d3f026fb29',
+      2496,
+      '8da85b0d5b1652522bc46057082da478',
     );
 
     if (!mounted) return;
@@ -441,7 +441,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                     ),
                     icon: const Icon(Icons.flash_on_rounded, color: Colors.white70, size: 18),
                     label: const Text(
-                      'Reset to Official Defaults (2040)',
+                      'Reset to Official Defaults (2496)',
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 14,

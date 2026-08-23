@@ -27,8 +27,8 @@ class AppConstants {
     }
     const defineId = int.fromEnvironment('TELEGRAM_API_ID', defaultValue: 0);
     if (defineId > 0) return defineId;
-    // Official Telegram Android production public API ID
-    return 2040;
+    // Official Telegram production public API ID (Telegram Desktop / Android)
+    return 2496;
   }
 
   static String get telegramApiHash {
@@ -39,8 +39,8 @@ class AppConstants {
     }
     const defineHash = String.fromEnvironment('TELEGRAM_API_HASH', defaultValue: '');
     if (defineHash.isNotEmpty) return defineHash;
-    // Official Telegram Android production public API Hash
-    return 'b18441a1b608e3cdeec510d3f026fb29';
+    // Official Telegram production public API Hash
+    return '8da85b0d5b1652522bc46057082da478';
   }
 
   static Future<bool> hasSavedCredentials() async {

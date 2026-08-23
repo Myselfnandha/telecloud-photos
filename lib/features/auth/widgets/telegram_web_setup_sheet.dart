@@ -26,23 +26,42 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
   bool _isSuccess = false;
   String _statusMessage = 'Log in with your Telegram code';
 
-  // Pure passive credential scanner: NEVER clicks buttons, NEVER reloads page.
-  static const String _jsPassiveScanScript = '''
+  // Passive scanner + auto-click "API development tools" link once logged in
+  static const String _jsAutoToolsAndScanScript = '''
     (function() {
-      function scanOnly() {
+      var hasClickedApps = false;
+
+      function checkAndScan() {
         try {
+          var currentUrl = window.location.href;
+
+          // 1. When code is entered & user reaches portal menu, auto-click "API development tools"
+          if (!currentUrl.includes('/apps') && !currentUrl.includes('/auth')) {
+            if (!hasClickedApps) {
+              var links = document.querySelectorAll('a');
+              for (var i = 0; i < links.length; i++) {
+                var href = links[i].getAttribute('href') || '';
+                var text = (links[i].innerText || '').toLowerCase();
+                if (href === '/apps' || href.indexOf('/apps') !== -1 || text.indexOf('api development tools') !== -1) {
+                  hasClickedApps = true;
+                  links[i].click();
+                  return;
+                }
+              }
+            }
+          }
+
+          // 2. Scan page contents for api_id and api_hash
           var bodyText = document.body ? document.body.innerText : '';
           
-          // Pattern matching for API ID & Hash in page text
           var idMatch = bodyText.match(/(?:api[-_]?id|App api_id)\\s*[:=]?\\s*(\\d{5,10})/i);
           var hashMatch = bodyText.match(/(?:api[-_]?hash|App api_hash)\\s*[:=]?\\s*([a-fA-F0-9]{32})/i);
 
-          // Also check form input values / uneditable spans if present
           if (!idMatch || !hashMatch) {
-            var allInputs = document.querySelectorAll('input, span, td, div');
+            var allInputs = document.querySelectorAll('input, span, td, div, p, strong, b');
             var rawAll = '';
-            for (var i = 0; i < allInputs.length; i++) {
-              rawAll += ' ' + (allInputs[i].innerText || allInputs[i].value || '');
+            for (var j = 0; j < allInputs.length; j++) {
+              rawAll += ' ' + (allInputs[j].innerText || allInputs[j].value || '');
             }
             if (!idMatch) idMatch = rawAll.match(/(?:api[-_]?id|App api_id)\\s*[:=]?\\s*(\\d{5,10})/i);
             if (!hashMatch) hashMatch = rawAll.match(/([a-fA-F0-9]{32})/i);
@@ -58,15 +77,15 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             }
           }
         } catch (e) {
-          console.error("Passive scan error", e);
+          console.error("Auto tools & scan error", e);
         }
         return false;
       }
 
-      if (!window.__telecloudPassiveScanner) {
-        window.__telecloudPassiveScanner = setInterval(scanOnly, 1000);
+      if (!window.__telecloudAutoScanner) {
+        window.__telecloudAutoScanner = setInterval(checkAndScan, 800);
       }
-      scanOnly();
+      checkAndScan();
     })();
   ''';
 
@@ -105,8 +124,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             if (mounted) {
               setState(() => _loadingProgress = 100);
             }
-            // Inject passive scanner script ONLY (no page reloads or redirects)
-            _controller.runJavaScript(_jsPassiveScanScript);
+            // Inject script to auto-click API development tools & scan credentials
+            _controller.runJavaScript(_jsAutoToolsAndScanScript);
           },
           onWebResourceError: (WebResourceError error) {
             TeleCloudLogger.auth('WebView resource error: ${error.description}');

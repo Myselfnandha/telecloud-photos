@@ -147,6 +147,11 @@ class TelegramAuthManager extends ChangeNotifier {
       _state = AuthState.waitingForPassword;
       _errorMessage = null;
       notifyListeners();
+    } else if (authState is td.AuthorizationStateWaitRegistration) {
+      TeleCloudLogger.auth('Auth State -> waitingRegistration');
+      _state = AuthState.waitingForCode;
+      _errorMessage = null;
+      notifyListeners();
     } else if (authState is td.AuthorizationStateReady) {
       TeleCloudLogger.auth(
         'Auth State -> authenticated! Ensuring backup channel & profile...',
@@ -354,6 +359,10 @@ class TelegramAuthManager extends ChangeNotifier {
     );
 
     await _client.initClient();
+
+    if (!_parametersSent) {
+      await _sendTdlibParameters();
+    }
 
     _client.send(
       td.SetAuthenticationPhoneNumber(

@@ -69,7 +69,7 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
 
     ref.listen<TelegramAuthManager>(telegramAuthManagerProvider, (prev, next) {
       if (next.state == AuthState.authenticated && mounted) {
-        context.go('/timeline');
+        context.go('/quick-settings');
       }
     });
 

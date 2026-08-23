@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:tdlib/td_api.dart' as td;
 import '../../../core/di/providers.dart';
 import '../../../core/telegram/telegram_auth_manager.dart';
 
@@ -92,9 +91,6 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authManager = ref.watch(telegramAuthManagerProvider);
-    final connState = authManager.connectionState;
-
     ref.listen<TelegramAuthManager>(telegramAuthManagerProvider, (prev, next) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -182,10 +178,6 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                 'Connect your Telegram account for unlimited photo cloud storage.',
                 style: TextStyle(color: Colors.grey),
               ),
-              const SizedBox(height: 16),
-
-              // Network Connection Status Indicator
-              _buildConnectionStatePill(connState),
               const SizedBox(height: 20),
 
               Container(
@@ -292,7 +284,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                                 .sendPhoneNumber(targetNumber);
 
                             // Safety timeout to prevent permanent loading spinner
-                            Future.delayed(const Duration(seconds: 10), () {
+                            Future.delayed(const Duration(seconds: 25), () {
                               if (mounted && _isLoading) {
                                 setState(() => _isLoading = false);
                                 _showConnectionTroubleshootSheet();
@@ -325,58 +317,4 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
     );
   }
 
-  Widget _buildConnectionStatePill(td.ConnectionState state) {
-    Color dotColor = const Color(0xFF30D158);
-    String status = 'Telegram DC Connected';
-
-    if (state is td.ConnectionStateConnecting) {
-      dotColor = const Color(0xFFFF9F0A);
-      status = 'Connecting to Telegram servers...';
-    } else if (state is td.ConnectionStateConnectingToProxy) {
-      dotColor = const Color(0xFF0A84FF);
-      status = 'Connected via MTProto Proxy';
-    } else if (state is td.ConnectionStateWaitingForNetwork) {
-      dotColor = const Color(0xFFFF453A);
-      status = 'Network unreachable';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            status,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: _showConnectionTroubleshootSheet,
-            child: const Text(
-              'Troubleshoot',
-              style: TextStyle(
-                color: Color(0xFF0A84FF),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

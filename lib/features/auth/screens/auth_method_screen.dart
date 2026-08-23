@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/telegram/telegram_auth_manager.dart';
 
@@ -13,30 +12,6 @@ class AuthMethodScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
-  bool _isLaunchingOAuth = false;
-
-  Future<void> _handleOAuthLogin() async {
-    setState(() => _isLaunchingOAuth = true);
-
-    try {
-      // 1. Try launching official Telegram App OAuth intent
-      final appUri = Uri.parse('tg://oauth?bot_id=telecloud&scope=read,write');
-      if (await canLaunchUrl(appUri)) {
-        await launchUrl(appUri, mode: LaunchMode.externalApplication);
-      } else {
-        // 2. Browser OAuth fallback
-        final webUri = Uri.parse('https://oauth.telegram.org/auth');
-        if (await canLaunchUrl(webUri)) {
-          await launchUrl(webUri, mode: LaunchMode.externalApplication);
-        }
-      }
-    } catch (_) {}
-
-    if (mounted) {
-      setState(() => _isLaunchingOAuth = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listen<TelegramAuthManager>(telegramAuthManagerProvider, (prev, next) {
@@ -108,11 +83,11 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
               ),
               const SizedBox(height: 24),
 
-              // CARD 1: Telegram Web OAuth (1-Click App Approval)
+              // CARD 1: Instant QR & Telegram App Login (1-Click Device Link)
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: _isLaunchingOAuth ? null : _handleOAuthLogin,
+                  onTap: () => context.push('/login-qr'),
                   borderRadius: BorderRadius.circular(18),
                   child: Container(
                     padding: const EdgeInsets.all(18),
@@ -132,7 +107,7 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.language_rounded, color: Colors.white, size: 28),
+                          child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -142,7 +117,7 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                               Row(
                                 children: [
                                   const Text(
-                                    'Telegram Web OAuth',
+                                    'Instant QR & App Login',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
@@ -157,7 +132,7 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
-                                      '1-CLICK',
+                                      'INSTANT',
                                       style: TextStyle(
                                         color: Color(0xFFFF9F0A),
                                         fontSize: 10,
@@ -169,16 +144,14 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Authenticate via official Telegram App or Web authorization portal.',
+                                'Scan QR code or link device directly from your Telegram App.',
                                 style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.3),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _isLaunchingOAuth
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF9F0A)))
-                            : const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
                       ],
                     ),
                   ),

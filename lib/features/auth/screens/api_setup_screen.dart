@@ -113,40 +113,21 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     setState(() {
       _isTestingCredentials = true;
       _errorMessage = null;
-      _statusText = 'Testing credentials with Telegram...';
+      _statusText = 'Saving credentials...';
     });
 
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
     try {
-      // 1. Save credentials to secure storage
+      // 1. Save credentials to secure storage & in-memory cache
       await AppConstants.saveCredentials(apiId, apiHash);
 
       if (!mounted) return;
 
-      // 2. Initialize TDLib client with the new credentials
+      // 2. Clear error state
       final authManager = ref.read(telegramAuthManagerProvider);
       authManager.clearError();
-      await authManager.clearSessionAndRestart();
-
-      // 3. Wait for handshake test (up to 2 seconds)
-      await Future.delayed(const Duration(milliseconds: 1800));
-
-      if (!mounted) return;
-
-      final currentError = authManager.errorMessage;
-      if (currentError != null &&
-          (currentError.contains('API_ID') ||
-              currentError.contains('API_HASH') ||
-              currentError.contains('INVALID'))) {
-        setState(() {
-          _isTestingCredentials = false;
-          _errorMessage = 'Invalid Telegram credentials: $currentError';
-          _statusText = null;
-        });
-        return;
-      }
 
       setState(() {
         _isTestingCredentials = false;
@@ -155,18 +136,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
 
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('✓ Telegram API credentials verified & tested!'),
+          content: Text('✓ API credentials saved! Proceeding to phone verification...'),
           backgroundColor: Color(0xFF30D158),
           duration: Duration(seconds: 2),
         ),
       );
 
-      router.go('/auth-method');
+      // 3. Direct transition to Step 2 (Phone Login)
+      router.go('/login');
     } catch (e) {
       if (mounted) {
         setState(() {
           _isTestingCredentials = false;
-          _errorMessage = 'Connection test error: $e';
+          _errorMessage = 'Error saving credentials: $e';
           _statusText = null;
         });
       }

@@ -101,20 +101,11 @@ class TelegramAuthManager extends ChangeNotifier {
       TeleCloudLogger.auth(
         'TDLib Auth Error: [${event.code}] ${event.message}',
       );
-      // Ignore benign parameter errors and internal file lock races
-      final msgLower = event.message.toLowerCase();
-      if (msgLower.contains('settdlibparameters') ||
-          msgLower.contains('settodlibparameters') ||
-          msgLower.contains('unexpected settdlibparameters') ||
-          msgLower.contains('td.binlog') ||
-          msgLower.contains('already in use')) {
-        return;
-      }
       _errorMessage = event.message;
       if (_state == AuthState.waitingForCode &&
           (event.code == 400 ||
-              msgLower.contains('phone') ||
-              msgLower.contains('api'))) {
+              event.message.toLowerCase().contains('phone') ||
+              event.message.toLowerCase().contains('api'))) {
         _state = AuthState.waitingForPhoneNumber;
       }
       notifyListeners();
@@ -362,6 +353,13 @@ class TelegramAuthManager extends ChangeNotifier {
 
     if (!_parametersSent) {
       await _sendTdlibParameters();
+    }
+
+    // Wait until TDLib transitions to waitingForPhoneNumber or parameters are acknowledged
+    int waitCount = 0;
+    while (_state == AuthState.uninitialized && waitCount < 20) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      waitCount++;
     }
 
     _client.send(

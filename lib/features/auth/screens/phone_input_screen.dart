@@ -146,6 +146,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
       backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
         backgroundColor: const Color(0xFF000000),
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           tooltip: 'Back',
@@ -153,18 +154,48 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
             if (Navigator.of(context).canPop()) {
               context.pop();
             } else {
-              context.go('/auth-method');
+              context.go('/setup');
             }
           },
         ),
-        title: const Text('Enter Phone Number'),
+        title: const Text(
+          'Step 2 of 3 · Phone Login',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+        ),
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Step Progress Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF30D158).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.phone_android_rounded, color: Color(0xFF30D158), size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'STEP 2 OF 3 · PHONE AUTHENTICATION',
+                      style: TextStyle(
+                        color: Color(0xFF30D158),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
               const Text(
                 'Enter Phone Number',
                 style: TextStyle(
@@ -173,10 +204,10 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              const SizedBox(height: 6),
+              Text(
                 'Connect your Telegram account for unlimited photo cloud storage.',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
               ),
               const SizedBox(height: 20),
 

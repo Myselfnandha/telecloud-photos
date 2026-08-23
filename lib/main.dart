@@ -10,6 +10,9 @@ import 'core/utils/telecloud_logger.dart';
 import 'shared/theme/app_theme.dart';
 import 'shared/theme/theme_provider.dart';
 import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/screens/login_hub_screen.dart';
+import 'features/auth/screens/qr_login_screen.dart';
+import 'features/auth/screens/oauth_login_screen.dart';
 import 'features/auth/screens/api_setup_screen.dart';
 import 'features/auth/screens/phone_input_screen.dart';
 import 'features/auth/screens/otp_screen.dart';
@@ -188,6 +191,18 @@ final _router = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/login-hub',
+      builder: (context, state) => const LoginHubScreen(),
+    ),
+    GoRoute(
+      path: '/login-qr',
+      builder: (context, state) => const QrLoginScreen(),
+    ),
+    GoRoute(
+      path: '/login-oauth',
+      builder: (context, state) => const OAuthLoginScreen(),
+    ),
     GoRoute(
       path: '/setup',
       builder: (context, state) => const ApiSetupScreen(),

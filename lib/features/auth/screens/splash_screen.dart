@@ -51,7 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Hard safety timeout guarantee (2.5s maximum so splash screen NEVER freezes)
     Timer(const Duration(milliseconds: 2500), () {
       if (!_hasNavigated && mounted) {
-        _navigateSafe('/setup');
+        _navigateSafe('/login-hub');
       }
     });
 
@@ -74,14 +74,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (authState == AuthState.authenticated) {
         _navigateSafe('/timeline');
       } else {
-        // First-time or logged-out user: Show Telegram API Setup first
-        _navigateSafe('/setup');
+        // First-time or logged-out user: Show Login Hub with all methods
+        _navigateSafe('/login-hub');
       }
     } catch (e) {
       TeleCloudLogger.log('Splash', 'Splash routing error: $e');
       await minSplashTimer;
       if (mounted && !_hasNavigated) {
-        _navigateSafe('/setup');
+        _navigateSafe('/login-hub');
       }
     }
   }

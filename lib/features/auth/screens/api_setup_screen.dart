@@ -417,7 +417,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                             ),
                           )
                         : const Text(
-                            'Save & Continue',
+                            'Save & Apply Credentials',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -441,7 +441,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                     ),
                     icon: const Icon(Icons.flash_on_rounded, color: Colors.white70, size: 18),
                     label: const Text(
-                      'Continue with Official Defaults (2040)',
+                      'Reset to Official Defaults (2040)',
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -451,7 +451,75 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                     onPressed: _isSaving ? null : _useDefaultCredentials,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 32),
+
+                // Diagnostics & Maintenance Section
+                const Text(
+                  'TROUBLESHOOTING & MAINTENANCE',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1E),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Clear TDLib Session Database',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Fixes locked session binlog files and connection timeout freezes caused by stale cache.',
+                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFFF453A)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          icon: const Icon(Icons.delete_sweep_rounded, color: Color(0xFFFF453A), size: 18),
+                          label: const Text(
+                            'Wipe Cache & Restart Client',
+                            style: TextStyle(color: Color(0xFFFF453A), fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            await ref.read(telegramAuthManagerProvider).clearSessionAndRestart();
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('TDLib session cache cleared! Restarted cleanly.'),
+                                backgroundColor: Color(0xFF30D158),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),

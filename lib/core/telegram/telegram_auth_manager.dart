@@ -16,6 +16,7 @@ enum AuthState {
   waitingForPhoneNumber,
   waitingForCode,
   waitingForPassword,
+  waitingForOtherDevice,
   authenticated,
   error,
 }
@@ -25,16 +26,23 @@ class TelegramAuthManager extends ChangeNotifier {
   final TelegramAccountService? _accountService;
   final ChannelManager? _channelManager;
   StreamSubscription? _sub;
+  StreamSubscription? _connSub;
   bool _isDisposed = false;
 
   AuthState _state = AuthState.uninitialized;
   AuthState get state => _state;
+
+  String? _qrCodeLink;
+  String? get qrCodeLink => _qrCodeLink;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
   int? _targetChannelId;
   int? get targetChannelId => _targetChannelId;
+
+  td.ConnectionState get connectionState => _client.currentConnectionState;
+  Stream<td.ConnectionState> get connectionStateStream => _client.connectionStateStream;
 
   bool _parametersSent = false;
   final String? _currentSessionDir;
@@ -66,6 +74,9 @@ class TelegramAuthManager extends ChangeNotifier {
   void _init() async {
     TeleCloudLogger.auth('Initializing TelegramAuthManager...');
     _sub = _client.events.listen(_handleUpdate);
+    _connSub = _client.connectionStateStream.listen((_) {
+      notifyListeners();
+    });
     await initClient();
   }
 
@@ -116,6 +127,14 @@ class TelegramAuthManager extends ChangeNotifier {
     } else if (authState is td.AuthorizationStateWaitPhoneNumber) {
       TeleCloudLogger.auth('Auth State -> waitingForPhoneNumber');
       _state = AuthState.waitingForPhoneNumber;
+      _errorMessage = null;
+      notifyListeners();
+    } else if (authState is td.AuthorizationStateWaitOtherDeviceConfirmation) {
+      TeleCloudLogger.auth(
+        'Auth State -> waitingForOtherDevice (QR link: ${authState.link})',
+      );
+      _state = AuthState.waitingForOtherDevice;
+      _qrCodeLink = authState.link;
       _errorMessage = null;
       notifyListeners();
     } else if (authState is td.AuthorizationStateWaitCode) {
@@ -278,6 +297,41 @@ class TelegramAuthManager extends ChangeNotifier {
     }
   }
 
+  Future<void> requestQrCodeAuth() async {
+    TeleCloudLogger.auth('Requesting Telegram QR Code authorization token...');
+    _errorMessage = null;
+    _qrCodeLink = null;
+    _state = AuthState.waitingForOtherDevice;
+    notifyListeners();
+    await _client.initClient();
+    _client.send(const td.RequestQrCodeAuthentication(otherUserIds: []));
+  }
+
+  void enableMtprotoProxy({
+    required String server,
+    required int port,
+    required String secret,
+  }) {
+    _client.enableMtprotoProxy(server: server, port: port, secret: secret);
+  }
+
+  void disableProxy() {
+    _client.disableProxy();
+  }
+
+  Future<void> clearSessionAndRestart() async {
+    TeleCloudLogger.auth('Clearing TDLib session database and lockfiles...');
+    final dir = await getApplicationDocumentsDirectory();
+    final dbPath = _currentSessionDir ?? '${dir.path}/tdlib';
+    _parametersSent = false;
+    _state = AuthState.uninitialized;
+    _errorMessage = null;
+    _qrCodeLink = null;
+    notifyListeners();
+    await _client.clearSessionFiles(dbPath);
+    _client.send(const td.GetAuthorizationState());
+  }
+
   Future<void> restartClient() async {
     TeleCloudLogger.auth('Restarting TDLib client with fresh parameters...');
     _parametersSent = false;
@@ -336,6 +390,7 @@ class TelegramAuthManager extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     _sub?.cancel();
+    _connSub?.cancel();
     super.dispose();
   }
 }

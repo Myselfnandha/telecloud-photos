@@ -230,7 +230,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   decoration: InputDecoration(
-                    hintText: 'e.g. 30662321',
+                    hintText: 'e.g. 2040',
                     hintStyle: TextStyle(color: Colors.grey.shade600),
                     filled: true,
                     fillColor: const Color(0xFF1C1C1E),
@@ -305,7 +305,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> {
                   obscureText: _obscureHash,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   decoration: InputDecoration(
-                    hintText: 'e.g. cf007e0155c41fd1aa9b114b592377e0',
+                    hintText: 'e.g. b18441a1b608e3cdeec510d3f026fb29',
                     hintStyle: TextStyle(color: Colors.grey.shade600),
                     filled: true,
                     fillColor: const Color(0xFF1C1C1E),

@@ -43,11 +43,31 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
         } else if (next.errorMessage != null &&
             next.errorMessage != prev?.errorMessage) {
           setState(() => _isLoading = false);
+          final errorMsg = next.errorMessage!;
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          
+          final isApiError = errorMsg.toUpperCase().contains('API_ID') || 
+                             errorMsg.toUpperCase().contains('API_HASH') ||
+                             errorMsg.toUpperCase().contains('SETTDLIBPARAMETERS');
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(next.errorMessage!),
+              content: Text(
+                isApiError
+                    ? 'Invalid Telegram API credentials. Please configure your custom API ID & Hash from my.telegram.org.'
+                    : errorMsg,
+              ),
               backgroundColor: const Color(0xFFFF453A),
+              duration: const Duration(seconds: 8),
+              action: SnackBarAction(
+                label: isApiError ? 'Setup API' : 'Dismiss',
+                textColor: Colors.white,
+                onPressed: () {
+                  if (isApiError) {
+                    context.push('/setup');
+                  }
+                },
+              ),
             ),
           );
         }

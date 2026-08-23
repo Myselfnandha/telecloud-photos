@@ -19,15 +19,25 @@ class AppConstants {
   }
 
   // Telegram API Credentials
-  static int get telegramApiId =>
-      _customApiId ??
-      int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '') ??
-      30662321;
+  static int get telegramApiId {
+    if (_customApiId != null && _customApiId! > 0) return _customApiId!;
+    final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
+    if (envId != null && envId > 0) return envId;
+    const defineId = int.fromEnvironment('TELEGRAM_API_ID', defaultValue: 0);
+    if (defineId > 0) return defineId;
+    // Official Telegram Android production public API ID
+    return 2040;
+  }
 
-  static String get telegramApiHash =>
-      _customApiHash ??
-      dotenv.env['TELEGRAM_API_HASH'] ??
-      'cf007e0155c41fd1aa9b114b592377e0';
+  static String get telegramApiHash {
+    if (_customApiHash != null && _customApiHash!.isNotEmpty) return _customApiHash!;
+    final envHash = dotenv.env['TELEGRAM_API_HASH'];
+    if (envHash != null && envHash.isNotEmpty) return envHash;
+    const defineHash = String.fromEnvironment('TELEGRAM_API_HASH', defaultValue: '');
+    if (defineHash.isNotEmpty) return defineHash;
+    // Official Telegram Android production public API Hash
+    return 'b18441a1b608e3cdeec510d3f026fb29';
+  }
 
   static Future<bool> hasSavedCredentials() async {
     try {

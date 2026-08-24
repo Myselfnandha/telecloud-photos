@@ -92,6 +92,13 @@ jobs:
           echo "VERSION_TAG=${VERSION}" >> $GITHUB_OUTPUT
           ls -lh release_binaries/
 
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TeleCloud-Photos-Release-APK
+          path: release_binaries/*.apk
+          retention-days: 14
+
       - name: Create GitHub Release & Upload APK
         uses: softprops/action-gh-release@v2
         with:

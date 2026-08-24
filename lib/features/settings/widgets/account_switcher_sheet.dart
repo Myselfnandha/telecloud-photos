@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -252,16 +253,25 @@ class AccountSwitcherSheet extends ConsumerWidget {
             CircleAvatar(
               radius: 20,
               backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.2),
-              child: Text(
-                account.firstName.isNotEmpty
-                    ? account.firstName[0].toUpperCase()
-                    : 'T',
-                style: const TextStyle(
-                  color: AppColors.primaryBlue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
+              backgroundImage: (account.profilePhotoPath != null &&
+                      account.profilePhotoPath!.isNotEmpty &&
+                      File(account.profilePhotoPath!).existsSync())
+                  ? FileImage(File(account.profilePhotoPath!))
+                  : null,
+              child: (account.profilePhotoPath != null &&
+                      account.profilePhotoPath!.isNotEmpty &&
+                      File(account.profilePhotoPath!).existsSync())
+                  ? null
+                  : Text(
+                      account.firstName.isNotEmpty
+                          ? account.firstName[0].toUpperCase()
+                          : 'T',
+                      style: const TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(

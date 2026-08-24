@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,7 +7,8 @@ class QuickSettingsGuideScreen extends StatefulWidget {
   const QuickSettingsGuideScreen({super.key});
 
   @override
-  State<QuickSettingsGuideScreen> createState() => _QuickSettingsGuideScreenState();
+  State<QuickSettingsGuideScreen> createState() =>
+      _QuickSettingsGuideScreenState();
 }
 
 class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
@@ -14,6 +16,8 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
   bool _wifiOnly = true;
   bool _chargingOnly = false;
   bool _cameraBackup = true;
+  bool _highRefreshRate = true;
+  bool _smoothTransitions = true;
   bool _isSaving = false;
 
   @override
@@ -30,12 +34,15 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
         _chargingOnly = prefs.getBool('backup_charging_only') ?? false;
         _cameraBackup = prefs.getBool('backup_camera_auto') ?? true;
         _losslessQuality = prefs.getBool('backup_lossless') ?? true;
+        _highRefreshRate = prefs.getBool('pref_high_refresh_rate') ?? true;
+        _smoothTransitions = prefs.getBool('pref_smooth_transitions') ?? true;
       });
     } catch (_) {}
   }
 
   Future<void> _finishSetup() async {
     setState(() => _isSaving = true);
+    HapticFeedback.mediumImpact();
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -43,6 +50,8 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
       await prefs.setBool('backup_charging_only', _chargingOnly);
       await prefs.setBool('backup_camera_auto', _cameraBackup);
       await prefs.setBool('backup_lossless', _losslessQuality);
+      await prefs.setBool('pref_high_refresh_rate', _highRefreshRate);
+      await prefs.setBool('pref_smooth_transitions', _smoothTransitions);
       await prefs.setBool('telecloud_onboarding_completed', true);
       await prefs.setBool('telecloud_is_authenticated', true);
     } catch (_) {}
@@ -54,7 +63,7 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
       const SnackBar(
         content: Text('🎉 Welcome to TeleCloud Photos! Setup Complete.'),
         backgroundColor: Color(0xFF30D158),
-        duration: Duration(seconds: 2),
+        duration: Duration(seconds: 3),
       ),
     );
 
@@ -85,12 +94,18 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF0A84FF).withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: const Color(0xFF0A84FF).withValues(alpha: 0.4),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.tune_rounded, color: Color(0xFF0A84FF), size: 14),
+                    Icon(
+                      Icons.tune_rounded,
+                      color: Color(0xFF0A84FF),
+                      size: 14,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'STEP 3 OF 3 · QUICK SETTINGS GUIDE',
@@ -108,7 +123,7 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
 
               // Title & Subtitle
               const Text(
-                'Cloud Backup Preferences',
+                'Initial Setup Preferences',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -117,7 +132,7 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Customize your sync preferences. You can adjust these anytime in Settings.',
+                'Customize your essential sync and display preferences. You can adjust these anytime in Settings.',
                 style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
               ),
               const SizedBox(height: 24),
@@ -127,7 +142,8 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                 icon: Icons.hd_rounded,
                 iconColor: const Color(0xFF38BDF8),
                 title: 'Lossless Original Quality',
-                subtitle: 'Store photos & 4K videos in original raw resolution without compression.',
+                subtitle:
+                    'Store photos & 4K videos in original raw resolution without compression.',
                 value: _losslessQuality,
                 onChanged: (val) => setState(() => _losslessQuality = val),
               ),
@@ -138,7 +154,8 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                 icon: Icons.wifi_rounded,
                 iconColor: const Color(0xFF0A84FF),
                 title: 'Back up on Wi-Fi Only',
-                subtitle: 'Saves mobile data by backing up photos only when connected to Wi-Fi.',
+                subtitle:
+                    'Saves mobile data by backing up photos only when connected to Wi-Fi.',
                 value: _wifiOnly,
                 onChanged: (val) => setState(() => _wifiOnly = val),
               ),
@@ -148,8 +165,9 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
               _buildToggleCard(
                 icon: Icons.battery_charging_full_rounded,
                 iconColor: const Color(0xFF30D158),
-                title: 'Back up while Charging',
-                subtitle: 'Optimizes battery life by running heavy upload sync while plugged into power.',
+                title: 'Back up while Charging Only',
+                subtitle:
+                    'Optimizes battery life by running heavy upload sync while plugged into power.',
                 value: _chargingOnly,
                 onChanged: (val) => setState(() => _chargingOnly = val),
               ),
@@ -159,10 +177,35 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
               _buildToggleCard(
                 icon: Icons.camera_alt_rounded,
                 iconColor: const Color(0xFFFF9F0A),
-                title: 'Auto-Sync Camera Photos',
-                subtitle: 'Automatically detects and queues new photos taken with your camera.',
+                title: 'Auto-Sync Camera Roll',
+                subtitle:
+                    'Automatically detects and queues new photos taken with your camera.',
                 value: _cameraBackup,
                 onChanged: (val) => setState(() => _cameraBackup = val),
+              ),
+              const SizedBox(height: 12),
+
+              // Setting Card 5: High Refresh Rate (90/120Hz)
+              _buildToggleCard(
+                icon: Icons.speed_rounded,
+                iconColor: const Color(0xFFBF5AF2),
+                title: 'High Refresh Rate (120Hz/90Hz)',
+                subtitle:
+                    'Unlocks fluid 120Hz scrolling for buttery smooth gallery browsing.',
+                value: _highRefreshRate,
+                onChanged: (val) => setState(() => _highRefreshRate = val),
+              ),
+              const SizedBox(height: 12),
+
+              // Setting Card 6: Smooth Page Transitions
+              _buildToggleCard(
+                icon: Icons.animation_rounded,
+                iconColor: const Color(0xFFFF375F),
+                title: 'Smooth Apple Transitions',
+                subtitle:
+                    'Applies refined iOS Cupertino spring curves to screen transitions.',
+                value: _smoothTransitions,
+                onChanged: (val) => setState(() => _smoothTransitions = val),
               ),
               const SizedBox(height: 36),
 
@@ -174,14 +217,26 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0A84FF),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   icon: const Icon(Icons.rocket_launch_rounded, size: 20),
                   label: _isSaving
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : const Text(
                           'Finish Setup & Enter TeleCloud',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                   onPressed: _isSaving ? null : _finishSetup,
                 ),
@@ -207,7 +262,9 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: value ? iconColor.withValues(alpha: 0.3) : Colors.white10),
+        border: Border.all(
+          color: value ? iconColor.withValues(alpha: 0.3) : Colors.white10,
+        ),
       ),
       child: Row(
         children: [
@@ -235,7 +292,11 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 12, height: 1.3),
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -244,7 +305,10 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
           Switch.adaptive(
             value: value,
             activeColor: iconColor,
-            onChanged: onChanged,
+            onChanged: (val) {
+              HapticFeedback.selectionClick();
+              onChanged(val);
+            },
           ),
         ],
       ),

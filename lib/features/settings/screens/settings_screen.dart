@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,12 +78,32 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
+                      child: ClipOval(
+                        child: (activeAccount?.profilePhotoPath != null &&
+                                activeAccount!.profilePhotoPath!.isNotEmpty &&
+                                File(activeAccount.profilePhotoPath!).existsSync())
+                            ? Image.file(
+                                File(activeAccount.profilePhotoPath!),
+                                width: 52,
+                                height: 52,
+                                fit: BoxFit.cover,
+                              )
+                            : Center(
+                                child: (activeAccount?.displayName.isNotEmpty == true)
+                                    ? Text(
+                                        activeAccount!.displayName[0].toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.send_rounded,
+                                        color: Colors.white,
+                                        size: 26,
+                                      ),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 14),

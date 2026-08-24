@@ -179,6 +179,17 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     }
   }
 
+  void _toggleFavorite() async {
+    if (_items.isEmpty || _currentIndex >= _items.length) return;
+    final item = _items[_currentIndex];
+    final newFav = !item.isFavorite;
+    await ref.read(mediaDaoProvider).toggleFavorite(item.localId, newFav);
+    setState(() {
+      _items[_currentIndex] = item.copyWith(isFavorite: newFav);
+    });
+    HapticFeedback.lightImpact();
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncMedia = ref.watch(allMediaStreamProvider);
@@ -188,6 +199,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     return Scaffold(
       backgroundColor: Colors.black.withValues(alpha: bgOpacity),
       extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: (_showUiOverlays && !_isDragging)
           ? AppBar(
               backgroundColor: Colors.black.withValues(alpha: 0.5),
@@ -221,30 +233,22 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                     )
                   : null,
               centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
               actions: [
                 if (_items.isNotEmpty && _currentIndex < _items.length) ...[
                   IconButton(
                     icon: Icon(
                       _items[_currentIndex].isFavorite
                           ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
+                          : Icons.favorite_outline_rounded,
                       color: _items[_currentIndex].isFavorite
-                          ? AppColors.systemRed
+                          ? const Color(0xFFFF453A)
                           : Colors.white,
                     ),
-                    onPressed: () async {
-                      final item = _items[_currentIndex];
-                      final newFav = !item.isFavorite;
-                      await ref
-                          .read(mediaDaoProvider)
-                          .toggleFavorite(item.localId, newFav);
-                      setState(() {
-                        _items[_currentIndex] = item.copyWith(
-                          isFavorite: newFav,
-                        );
-                      });
-                      HapticFeedback.lightImpact();
-                    },
+                    onPressed: _toggleFavorite,
                   ),
                   IconButton(
                     icon: const Icon(Icons.info_outline, color: Colors.white),
@@ -323,20 +327,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                       },
                     ),
 
-                    // Info Sheet
-                    IconButton(
-                      tooltip: 'Details',
-                      icon: const Icon(
-                        Icons.info_outline_rounded,
-                        color: Colors.white,
-                        size: AppIcons.m,
-                      ),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        _showInfoSheet(context, _items[_currentIndex]);
-                      },
-                    ),
-
                     // Move to Trash
                     IconButton(
                       tooltip: 'Delete',
@@ -386,9 +376,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
               }
             },
             onVerticalDragEnd: (details) {
-              if (_dragOffsetY > 110 ||
+              if (_dragOffsetY > 60 ||
                   (details.primaryVelocity != null &&
-                      details.primaryVelocity! > 600)) {
+                      details.primaryVelocity! > 400)) {
                 HapticFeedback.lightImpact();
                 Navigator.of(context).pop();
               } else if (_dragOffsetY > 0) {
@@ -639,6 +629,8 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
     }
   }
 
+  bool _isLiveMuted = false;
+
   void _startLivePlayback() async {
     if (_motionVideoPath == null) return;
     HapticFeedback.mediumImpact();
@@ -646,6 +638,7 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
     _liveController?.dispose();
     _liveController = VideoPlayerController.file(File(_motionVideoPath!));
     await _liveController!.initialize();
+    await _liveController!.setVolume(_isLiveMuted ? 0.0 : 1.0);
     await _liveController!.setLooping(true);
     await _liveController!.play();
 
@@ -1097,7 +1090,7 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
         ),
 
         // Live Photo Pill Badge
-        if (_motionVideoPath != null)
+        if (_motionVideoPath != null) ...[
           Positioned(
             top: 100,
             left: 20,
@@ -1144,6 +1137,42 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
               ),
             ),
           ),
+          Positioned(
+            top: 100,
+            right: 20,
+            child: AnimatedOpacity(
+              opacity: widget.showControls ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _isLiveMuted = !_isLiveMuted;
+                    _liveController?.setVolume(_isLiveMuted ? 0.0 : 1.0);
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    _isLiveMuted
+                        ? Icons.volume_off_rounded
+                        : Icons.volume_up_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

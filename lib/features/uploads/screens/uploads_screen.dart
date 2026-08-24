@@ -700,11 +700,11 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
                       _loadBackupFoldersPref();
                     },
                     child: const Text(
-                      '+ Manage',
+                      'Manage',
                       style: TextStyle(
                         color: Color(0xFF0A84FF),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

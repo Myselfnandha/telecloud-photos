@@ -1,8 +1,9 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../../../core/cache/thumbnail_cache_service.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/daos/media_dao.dart';
@@ -78,7 +79,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 );
               }
             },
-            child: const Text('Create', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Create',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -111,21 +118,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: AppElevation.none,
         title: Text(
-          'Library & Collections',
-          style: AppTypography.headlineMedium(
-            color: primaryTextColor,
-          ).copyWith(fontWeight: AppTypography.bold, letterSpacing: -0.5),
+          'Library',
+          style: AppTypography.displayMedium(color: primaryTextColor),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.search_rounded,
-              color: AppColors.primaryBlue,
-              size: AppIcons.l,
-            ),
-            tooltip: 'Search Library',
-            onPressed: () => context.push('/search'),
-          ),
           IconButton(
             icon: const Icon(
               Icons.add_rounded,
@@ -140,6 +136,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       body: ListView(
         padding: AppSpacing.screenPadding,
         children: [
+          // 0. Device Folders Section (Above My Albums)
+          _DeviceFoldersSection(
+            isLight: isLight,
+            primaryTextColor: primaryTextColor,
+            secondaryTextColor: secondaryTextColor,
+            cardBg: cardBg,
+            cardBorder: cardBorder,
+          ),
+
           // 1. User Albums Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -151,17 +156,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.8,
-                ),
-              ),
-              GestureDetector(
-                onTap: _showCreateAlbumDialog,
-                child: const Text(
-                  '+ Add Album',
-                  style: TextStyle(
-                    color: Color(0xFF0A84FF),
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
                 ),
               ),
             ],
@@ -728,6 +722,242 @@ class _AlbumCoverThumbnailState extends State<_AlbumCoverThumbnail> {
           color: Colors.white70,
         ),
       ),
+    );
+  }
+}
+
+class _DeviceFolderThumbnail extends StatefulWidget {
+  final AssetPathEntity folder;
+  final Color fallbackColor;
+
+  const _DeviceFolderThumbnail({
+    required this.folder,
+    required this.fallbackColor,
+  });
+
+  @override
+  State<_DeviceFolderThumbnail> createState() => _DeviceFolderThumbnailState();
+}
+
+class _DeviceFolderThumbnailState extends State<_DeviceFolderThumbnail> {
+  Uint8List? _thumbBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchThumbnail();
+  }
+
+  Future<void> _fetchThumbnail() async {
+    try {
+      final assets = await widget.folder.getAssetListRange(start: 0, end: 1);
+      if (assets.isNotEmpty && mounted) {
+        final bytes = await assets.first.thumbnailDataWithSize(
+          const ThumbnailSize.square(200),
+        );
+        if (mounted) {
+          setState(() {
+            _thumbBytes = bytes;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_thumbBytes != null) {
+      return Image.memory(
+        _thumbBytes!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.folder_rounded, color: widget.fallbackColor, size: 36),
+      );
+    }
+    return Center(
+      child: Icon(Icons.folder_rounded, color: widget.fallbackColor, size: 36),
+    );
+  }
+}
+
+class _DeviceFoldersSection extends ConsumerStatefulWidget {
+  final bool isLight;
+  final Color primaryTextColor;
+  final Color secondaryTextColor;
+  final Color cardBg;
+  final Color cardBorder;
+
+  const _DeviceFoldersSection({
+    required this.isLight,
+    required this.primaryTextColor,
+    required this.secondaryTextColor,
+    required this.cardBg,
+    required this.cardBorder,
+  });
+
+  @override
+  ConsumerState<_DeviceFoldersSection> createState() =>
+      _DeviceFoldersSectionState();
+}
+
+class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
+  List<({AssetPathEntity folder, int count})> _folders = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFolders();
+  }
+
+  Future<void> _loadFolders() async {
+    try {
+      final rawFolders = await PhotoManager.getAssetPathList(
+        type: RequestType.common,
+      );
+      final List<({AssetPathEntity folder, int count})> loaded = [];
+      for (final f in rawFolders) {
+        final count = await f.assetCountAsync;
+        if (count > 0) {
+          loaded.add((folder: f, count: count));
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _folders = loaded;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox.shrink();
+    }
+
+    if (_folders.isEmpty) return const SizedBox.shrink();
+
+    final displayFolders = _folders.length > 4 ? _folders.sublist(0, 4) : _folders;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'DEVICE FOLDERS',
+              style: TextStyle(
+                color: widget.isLight
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade400,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                context.push('/settings/folders');
+              },
+              child: const Text(
+                'Manage',
+                style: TextStyle(
+                  color: Color(0xFF0A84FF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.15,
+          ),
+          itemCount: displayFolders.length,
+          itemBuilder: (context, index) {
+            final item = displayFolders[index];
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                context.push(
+                  '/library/collection',
+                  extra: {
+                    'categoryKey': item.folder.name,
+                    'categoryTitle': item.folder.name,
+                  },
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: widget.cardBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(15),
+                        ),
+                        child: _DeviceFolderThumbnail(
+                          folder: item.folder,
+                          fallbackColor: const Color(0xFF0A84FF),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.folder.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: widget.primaryTextColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            '${item.count} items',
+                            style: TextStyle(
+                              color: widget.secondaryTextColor,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }

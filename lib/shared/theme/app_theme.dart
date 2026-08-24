@@ -140,6 +140,9 @@ class AppTheme {
         contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 6,
+        dismissDirection: DismissDirection.down,
+        showCloseIcon: true,
+        closeIconColor: Colors.white70,
       ),
     );
   }
@@ -193,6 +196,9 @@ class AppTheme {
         contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 6,
+        dismissDirection: DismissDirection.down,
+        showCloseIcon: true,
+        closeIconColor: Colors.white70,
       ),
     );
   }
@@ -246,6 +252,9 @@ class AppTheme {
         contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 6,
+        dismissDirection: DismissDirection.down,
+        showCloseIcon: true,
+        closeIconColor: Colors.white70,
       ),
     );
   }

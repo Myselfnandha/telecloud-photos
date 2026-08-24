@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
-import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radii.dart';
 
-enum GestureHudType { none, volume, brightness, seekForward, seekBackward }
+enum GestureHudType { none, seekForward, seekBackward }
 
 class VideoGestureOverlay extends StatefulWidget {
   final VideoPlayerController controller;
@@ -26,8 +25,6 @@ class VideoGestureOverlay extends StatefulWidget {
 class _VideoGestureOverlayState extends State<VideoGestureOverlay>
     with SingleTickerProviderStateMixin {
   GestureHudType _hudType = GestureHudType.none;
-  double _volume = 1.0;
-  double _brightness = 0.5;
   Timer? _hideTimer;
   DateTime? _lastTapTime;
   Offset? _lastTapPosition;
@@ -38,7 +35,6 @@ class _VideoGestureOverlayState extends State<VideoGestureOverlay>
   @override
   void initState() {
     super.initState();
-    _volume = widget.controller.value.volume;
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -60,33 +56,13 @@ class _VideoGestureOverlayState extends State<VideoGestureOverlay>
     _hideTimer?.cancel();
     setState(() => _hudType = type);
     _fadeController.forward();
-    _hideTimer = Timer(const Duration(milliseconds: 1200), () {
+    _hideTimer = Timer(const Duration(milliseconds: 1000), () {
       if (mounted) {
         _fadeController.reverse().then((_) {
           if (mounted) setState(() => _hudType = GestureHudType.none);
         });
       }
     });
-  }
-
-  void _onVerticalDragUpdate(DragUpdateDetails details, double screenWidth, double screenHeight) {
-    final isLeft = details.globalPosition.dx < screenWidth / 2;
-    final delta = -details.primaryDelta! / (screenHeight * 0.4);
-
-    if (isLeft) {
-      // Adjust Brightness
-      setState(() {
-        _brightness = (_brightness + delta).clamp(0.0, 1.0);
-      });
-      _showHud(GestureHudType.brightness);
-    } else {
-      // Adjust Volume
-      setState(() {
-        _volume = (_volume + delta).clamp(0.0, 1.0);
-        widget.controller.setVolume(_volume);
-      });
-      _showHud(GestureHudType.volume);
-    }
   }
 
   void _handleDoubleTap(Offset position, double screenWidth) {
@@ -143,8 +119,6 @@ class _VideoGestureOverlayState extends State<VideoGestureOverlay>
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapUp: (details) => _onTapUp(details, size.width),
-            onVerticalDragUpdate: (details) =>
-                _onVerticalDragUpdate(details, size.width, size.height),
             child: const SizedBox.expand(),
           ),
         ),
@@ -167,28 +141,6 @@ class _VideoGestureOverlayState extends State<VideoGestureOverlay>
 
   Widget _buildHudContent() {
     switch (_hudType) {
-      case GestureHudType.volume:
-        return _buildLevelHud(
-          icon: _volume <= 0
-              ? Icons.volume_off_rounded
-              : (_volume < 0.5
-                  ? Icons.volume_down_rounded
-                  : Icons.volume_up_rounded),
-          label: 'Volume',
-          level: _volume,
-          color: AppColors.primaryBlue,
-        );
-      case GestureHudType.brightness:
-        return _buildLevelHud(
-          icon: _brightness < 0.3
-              ? Icons.brightness_low_rounded
-              : (_brightness < 0.7
-                  ? Icons.brightness_medium_rounded
-                  : Icons.brightness_high_rounded),
-          label: 'Brightness',
-          level: _brightness,
-          color: const Color(0xFFFF9F0A),
-        );
       case GestureHudType.seekForward:
         return _buildSeekHud(isForward: true);
       case GestureHudType.seekBackward:
@@ -196,56 +148,6 @@ class _VideoGestureOverlayState extends State<VideoGestureOverlay>
       case GestureHudType.none:
         return const SizedBox.shrink();
     }
-  }
-
-  Widget _buildLevelHud({
-    required IconData icon,
-    required String label,
-    required double level,
-    required Color color,
-  }) {
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.75),
-        borderRadius: AppRadii.borderXL,
-        border: Border.all(color: Colors.white12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 24,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 36),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: level,
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-              minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${(level * 100).round()}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSeekHud({required bool isForward}) {

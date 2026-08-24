@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,6 @@ import 'features/search/screens/search_screen.dart';
 import 'features/library/screens/library_screen.dart';
 import 'features/library/screens/media_collection_screen.dart';
 import 'features/google_photos/screens/google_photos_hub_screen.dart';
-import 'features/google_photos/screens/google_photos_synced_screen.dart';
 import 'shared/widgets/app_bottom_nav.dart';
 import 'shared/navigation/page_transitions.dart';
 import 'features/auth/screens/onboarding_screen.dart';
@@ -137,6 +137,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
         }
       },
       child: Scaffold(
+        extendBody: true,
         body: navigationShell,
         bottomNavigationBar: AppBottomNav(
           currentIndex: navigationShell.currentIndex,
@@ -349,14 +350,6 @@ final _router = GoRouter(
       ),
     ),
     GoRoute(
-      path: '/google-photos/synced',
-      pageBuilder: (context, state) => buildTransitionPage(
-        context: context,
-        state: state,
-        child: const GooglePhotosSyncedScreen(),
-      ),
-    ),
-    GoRoute(
       path: '/settings/folders',
       pageBuilder: (context, state) => buildTransitionPage(
         context: context,
@@ -421,6 +414,14 @@ final _router = GoRouter(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
   TeleCloudLogger.log('App', 'Starting TeleCloud Photos Application...');
 
   // Unlock native 90Hz / 120Hz / 144Hz high refresh rate on Android

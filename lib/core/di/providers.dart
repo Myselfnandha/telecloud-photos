@@ -19,9 +19,6 @@ import '../telegram/cloud_video_stream_service.dart';
 import '../storage/storage_cleanup_service.dart';
 import '../sync/cloud_sync_service.dart';
 import '../backup/thumbnail_generator.dart';
-import '../google/google_auth_service.dart';
-import '../google/google_photos_api_client.dart';
-import '../google/google_photos_sync_service.dart';
 import '../backup/media_deduplicator.dart';
 import '../backup/sync_policy_guard.dart';
 import '../backup/folder_sync_manager.dart';
@@ -277,33 +274,4 @@ final folderTopicMappingsProvider =
     FutureProvider.autoDispose<Map<String, int>>((ref) async {
       final channelMgr = ref.watch(channelManagerProvider);
       return await channelMgr.getAllFolderTopicMappings();
-    });
-
-final googleAuthServiceProvider = ChangeNotifierProvider<GoogleAuthService>((
-  ref,
-) {
-  final secureStorage = ref.watch(secureStorageProvider);
-  final prefs = ref.watch(sharedPreferencesProvider);
-  return GoogleAuthService(secureStorage: secureStorage, prefs: prefs);
-});
-
-final googlePhotosApiClientProvider = Provider<GooglePhotosApiClient>((ref) {
-  final authService = ref.watch(googleAuthServiceProvider);
-  return GooglePhotosApiClient(authService: authService);
-});
-
-final googlePhotosSyncServiceProvider =
-    ChangeNotifierProvider<GooglePhotosSyncService>((ref) {
-      final apiClient = ref.watch(googlePhotosApiClientProvider);
-      final dao = ref.watch(mediaDaoProvider);
-      final channelMgr = ref.watch(channelManagerProvider);
-      final uploadService = ref.watch(telegramUploadServiceProvider);
-      final prefs = ref.watch(sharedPreferencesProvider);
-      return GooglePhotosSyncService(
-        apiClient: apiClient,
-        mediaDao: dao,
-        channelManager: channelMgr,
-        uploadService: uploadService,
-        prefs: prefs,
-      );
     });

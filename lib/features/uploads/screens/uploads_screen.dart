@@ -1422,49 +1422,52 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
                                       ),
                                       GestureDetector(
                                         onTap: () => context.push('/viewer/${item.localId}'),
-                                        child: Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: isLight
-                                                ? Colors.grey.shade200
-                                                : Colors.grey.shade900,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                        child: Hero(
+                                          tag: 'media_${item.localId}',
+                                          child: Container(
+                                            width: 38,
+                                            height: 38,
+                                            decoration: BoxDecoration(
+                                              color: isLight
+                                                  ? Colors.grey.shade200
+                                                  : Colors.grey.shade900,
+                                              borderRadius: BorderRadius.circular(
+                                                6,
+                                              ),
                                             ),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(
+                                                6,
+                                              ),
+                                              child: hasThumb
+                                                  ? Image.file(
+                                                      File(thumbPath),
+                                                      fit: BoxFit.cover,
+                                                      cacheWidth: 80,
+                                                      cacheHeight: 80,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) => Icon(
+                                                            Icons.image,
+                                                            size: 18,
+                                                            color: isLight
+                                                                ? Colors
+                                                                      .grey
+                                                                      .shade400
+                                                                : Colors.grey,
+                                                          ),
+                                                    )
+                                                  : Icon(
+                                                      Icons.image,
+                                                      size: 18,
+                                                      color: isLight
+                                                          ? Colors.grey.shade400
+                                                          : Colors.grey,
+                                                    ),
                                             ),
-                                            child: hasThumb
-                                                ? Image.file(
-                                                    File(thumbPath),
-                                                    fit: BoxFit.cover,
-                                                    cacheWidth: 80,
-                                                    cacheHeight: 80,
-                                                    errorBuilder:
-                                                        (
-                                                          context,
-                                                          error,
-                                                          stackTrace,
-                                                        ) => Icon(
-                                                          Icons.image,
-                                                          size: 18,
-                                                          color: isLight
-                                                              ? Colors
-                                                                    .grey
-                                                                    .shade400
-                                                              : Colors.grey,
-                                                        ),
-                                                  )
-                                                : Icon(
-                                                    Icons.image,
-                                                    size: 18,
-                                                    color: isLight
-                                                        ? Colors.grey.shade400
-                                                        : Colors.grey,
-                                                  ),
                                           ),
                                         ),
                                       ),

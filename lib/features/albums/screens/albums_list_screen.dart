@@ -10,6 +10,7 @@ import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../../../shared/theme/app_elevation.dart';
 import '../../../shared/theme/app_icons.dart';
+import '../../../shared/widgets/skeleton_layouts.dart';
 
 class AlbumsListScreen extends ConsumerStatefulWidget {
   const AlbumsListScreen({super.key});
@@ -267,11 +268,7 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return const SliverToBoxAdapter(
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
+                  child: AlbumListSkeleton(itemCount: 4),
                 );
               }
 

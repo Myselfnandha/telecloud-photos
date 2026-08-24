@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/cache/thumbnail_cache_service.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/skeleton_layouts.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radii.dart';
 import '../../../shared/theme/app_spacing.dart';
@@ -137,6 +138,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                     selected: isSelected,
                     onSelected: (selected) {
+                      HapticFeedback.selectionClick();
                       setState(() {
                         if (selected) {
                           _query = filter;
@@ -188,11 +190,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     stream: mediaDao.searchMedia(_query),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primaryBlue,
-                          ),
-                        );
+                        return const SearchResultsSkeleton();
                       }
 
                       final results = snapshot.data ?? [];
@@ -290,27 +288,30 @@ class _SearchTileState extends State<_SearchTile>
 
     return GestureDetector(
       onTap: () => context.push('/viewer/${widget.item.localId}'),
-      child: ClipRRect(
-        borderRadius: AppRadii.borderS,
-        child: Container(
-          color: const Color(0xFF141416),
-          child: _bytes != null
-              ? Image.memory(
-                  _bytes!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const ShimmerLoading(),
-                )
-              : (hasValidDiskThumb
-                    ? Image.file(
-                        File(thumbPath),
-                        fit: BoxFit.cover,
-                        cacheWidth: 256,
-                        cacheHeight: 256,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const ShimmerLoading(),
-                      )
-                    : const ShimmerLoading()),
+      child: Hero(
+        tag: 'media_${widget.item.localId}',
+        child: ClipRRect(
+          borderRadius: AppRadii.borderS,
+          child: Container(
+            color: const Color(0xFF141416),
+            child: _bytes != null
+                ? Image.memory(
+                    _bytes!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const ShimmerLoading(),
+                  )
+                : (hasValidDiskThumb
+                      ? Image.file(
+                          File(thumbPath),
+                          fit: BoxFit.cover,
+                          cacheWidth: 256,
+                          cacheHeight: 256,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const ShimmerLoading(),
+                        )
+                      : const ShimmerLoading()),
+          ),
         ),
       ),
     );

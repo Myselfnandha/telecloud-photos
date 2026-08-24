@@ -39,7 +39,9 @@ import 'features/library/screens/library_screen.dart';
 import 'features/library/screens/media_collection_screen.dart';
 import 'features/google_photos/screens/google_photos_hub_screen.dart';
 import 'features/google_photos/screens/google_photos_synced_screen.dart';
-import 'shared/theme/app_colors.dart';
+import 'shared/widgets/app_bottom_nav.dart';
+import 'shared/navigation/page_transitions.dart';
+import 'features/auth/screens/onboarding_screen.dart';
 import 'core/di/providers.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -127,11 +129,6 @@ class ScaffoldWithNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final borderColor =
-        theme.dividerTheme.color ?? Colors.grey.withValues(alpha: 0.2);
-
     return PopScope(
       canPop: navigationShell.currentIndex == 0,
       onPopInvokedWithResult: (didPop, result) {
@@ -141,48 +138,14 @@ class ScaffoldWithNavBar extends StatelessWidget {
       },
       child: Scaffold(
         body: navigationShell,
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: bgColor,
-            border: Border(top: BorderSide(color: borderColor, width: 0.5)),
-          ),
-          child: NavigationBar(
-            height: 64,
-            backgroundColor: bgColor,
-            indicatorColor: AppColors.primaryBlue.withValues(alpha: 0.2),
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (index) {
-              navigationShell.goBranch(
-                index,
-                initialLocation: index == navigationShell.currentIndex,
-              );
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.photo_outlined, color: Colors.grey),
-                selectedIcon: Icon(Icons.photo, color: AppColors.primaryBlue),
-                label: 'Photos',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.photo_library_outlined, color: Colors.grey),
-                selectedIcon: Icon(
-                  Icons.photo_library,
-                  color: AppColors.primaryBlue,
-                ),
-                label: 'Library',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.cloud_sync_outlined, color: Colors.grey),
-                selectedIcon: Icon(Icons.cloud_sync, color: AppColors.primaryBlue),
-                label: 'Uploads',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined, color: Colors.grey),
-                selectedIcon: Icon(Icons.settings, color: AppColors.primaryBlue),
-                label: 'Settings',
-              ),
-            ],
-          ),
+        bottomNavigationBar: AppBottomNav(
+          currentIndex: navigationShell.currentIndex,
+          onTap: (index) {
+            navigationShell.goBranch(
+              index,
+              initialLocation: index == navigationShell.currentIndex,
+            );
+          },
         ),
       ),
     );
@@ -194,41 +157,84 @@ final _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
+      path: '/onboarding',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const OnboardingScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/setup',
-      builder: (context, state) => const ApiSetupScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const ApiSetupScreen(),
+      ),
     ),
     GoRoute(
       path: '/auth-method',
-      builder: (context, state) => const AuthMethodScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const AuthMethodScreen(),
+      ),
     ),
     GoRoute(
       path: '/login',
-      builder: (context, state) => const PhoneInputScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const PhoneInputScreen(),
+      ),
     ),
     GoRoute(
       path: '/otp',
-      builder: (context, state) =>
-          OtpScreen(phoneNumber: state.extra as String? ?? ''),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: OtpScreen(phoneNumber: state.extra as String? ?? ''),
+      ),
     ),
     GoRoute(
       path: '/password',
-      builder: (context, state) => const PasswordScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const PasswordScreen(),
+      ),
     ),
     GoRoute(
       path: '/quick-settings',
-      builder: (context, state) => const QuickSettingsGuideScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const QuickSettingsGuideScreen(),
+      ),
     ),
     GoRoute(
       path: '/login-hub',
-      builder: (context, state) => const LoginHubScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const LoginHubScreen(),
+      ),
     ),
     GoRoute(
       path: '/login-qr',
-      builder: (context, state) => const QrLoginScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const QrLoginScreen(),
+      ),
     ),
     GoRoute(
       path: '/login-oauth',
-      builder: (context, state) => const OAuthLoginScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const OAuthLoginScreen(),
+      ),
     ),
 
     // StatefulShellRoute indexedStack for instant 0ms tab switching
@@ -274,44 +280,89 @@ final _router = GoRouter(
 
     GoRoute(
       path: '/collection/:type',
-      builder: (context, state) => MediaCollectionScreen(
-        categoryKey: state.pathParameters['type'] ?? 'photos',
-        categoryTitle: state.extra as String? ?? 'Media Collection',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: MediaCollectionScreen(
+          categoryKey: state.pathParameters['type'] ?? 'photos',
+          categoryTitle: state.extra as String? ?? 'Media Collection',
+        ),
       ),
     ),
     GoRoute(
       path: '/viewer/:id',
-      builder: (context, state) =>
-          MediaViewerScreen(mediaId: state.pathParameters['id'] ?? ''),
+      pageBuilder: (context, state) => buildViewerTransitionPage(
+        context: context,
+        state: state,
+        child: MediaViewerScreen(mediaId: state.pathParameters['id'] ?? ''),
+      ),
     ),
     GoRoute(
       path: '/albums',
-      builder: (context, state) => const AlbumsListScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const AlbumsListScreen(),
+      ),
     ),
     GoRoute(
       path: '/albums/:id',
-      builder: (context, state) => AlbumDetailScreen(
-        albumId: int.parse(state.pathParameters['id']!),
-        albumName: state.extra as String? ?? 'Album',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: AlbumDetailScreen(
+          albumId: int.parse(state.pathParameters['id']!),
+          albumName: state.extra as String? ?? 'Album',
+        ),
       ),
     ),
     GoRoute(
       path: '/favorites',
-      builder: (context, state) => const FavoritesScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const FavoritesScreen(),
+      ),
     ),
-    GoRoute(path: '/trash', builder: (context, state) => const TrashScreen()),
-    GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+    GoRoute(
+      path: '/trash',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const TrashScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/search',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const SearchScreen(),
+      ),
+    ),
     GoRoute(
       path: '/google-photos',
-      builder: (context, state) => const GooglePhotosHubScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const GooglePhotosHubScreen(),
+      ),
     ),
     GoRoute(
       path: '/google-photos/synced',
-      builder: (context, state) => const GooglePhotosSyncedScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const GooglePhotosSyncedScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings/folders',
-      builder: (context, state) => const BackupFoldersScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const BackupFoldersScreen(),
+      ),
     ),
     GoRoute(
       path: '/backup-folders',
@@ -319,27 +370,51 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/settings/topics',
-      builder: (context, state) => const TopicManagerScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const TopicManagerScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings/appearance',
-      builder: (context, state) => const AppearanceSettingsScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const AppearanceSettingsScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings/cloud',
-      builder: (context, state) => const CloudMigrationSettingsScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const CloudMigrationSettingsScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings/backup',
-      builder: (context, state) => const BackupEngineSettingsScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const BackupEngineSettingsScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings/power',
-      builder: (context, state) => const PowerBatterySettingsScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const PowerBatterySettingsScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings/storage',
-      builder: (context, state) => const StorageMaintenanceSettingsScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const StorageMaintenanceSettingsScreen(),
+      ),
     ),
   ],
 );

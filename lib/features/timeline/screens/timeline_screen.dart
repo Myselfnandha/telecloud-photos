@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -343,6 +344,15 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                   parent: AlwaysScrollableScrollPhysics(),
                 ),
                 slivers: [
+                  // iOS Native Rubber-Band Pull to Refresh Control
+                  CupertinoSliverRefreshControl(
+                    onRefresh: () async {
+                      HapticFeedback.mediumImpact();
+                      ref.invalidate(allMediaStreamProvider);
+                      await Future.delayed(const Duration(milliseconds: 600));
+                    },
+                  ),
+
                   // Flashback Memories Carousel (in daily & single photo views)
                   if (_currentTier == TimelineTier.dailyGrid ||
                       _currentTier == TimelineTier.singlePhoto)
@@ -671,13 +681,16 @@ class _MediaTileState extends State<_MediaTile>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(
-              isSinglePhoto ? 14 : (isYearly ? 1 : 3),
-            ),
-            child: Container(
-              color: const Color(0xFF141416),
-              child: imageWidget,
+          Hero(
+            tag: 'media_${widget.item.localId}',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                isSinglePhoto ? 14 : (isYearly ? 1 : 3),
+              ),
+              child: Container(
+                color: const Color(0xFF141416),
+                child: imageWidget,
+              ),
             ),
           ),
           if (widget.item.isFavorite && !isYearly)

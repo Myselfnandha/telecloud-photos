@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tdlib/td_api.dart' as td;
@@ -24,6 +25,7 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
   bool _isSelectionMode = false;
 
   void _toggleSelection(String id) {
+    HapticFeedback.selectionClick();
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
@@ -37,6 +39,7 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
 
   Future<void> _restoreSelected() async {
     if (_selectedIds.isEmpty) return;
+    HapticFeedback.lightImpact();
     final mediaDao = ref.read(mediaDaoProvider);
     final count = await mediaDao.restoreFromTrash(_selectedIds.toList());
     if (mounted) {
@@ -110,6 +113,7 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
     );
 
     if (confirmed == true) {
+      HapticFeedback.heavyImpact();
       final mediaDao = ref.read(mediaDaoProvider);
       final client = ref.read(tdlibClientProvider);
       final channelMgr = ref.read(channelManagerProvider);

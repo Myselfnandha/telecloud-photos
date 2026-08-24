@@ -377,12 +377,14 @@ class _CollectionMediaTileState extends State<_CollectionMediaTile>
 
     return GestureDetector(
       onTap: () => context.push('/viewer/${item.localId}'),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            thumbnailWidget,
+      child: Hero(
+        tag: 'media_${item.localId}',
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              thumbnailWidget,
             if (isVideo)
               Positioned(
                 bottom: 4,
@@ -434,7 +436,8 @@ class _CollectionMediaTileState extends State<_CollectionMediaTile>
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

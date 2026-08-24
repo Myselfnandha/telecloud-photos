@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_radii.dart';
+import 'skeleton_layouts.dart';
+
+export 'skeleton_layouts.dart';
 
 class ShimmerGrid extends StatelessWidget {
   final int itemCount;
+  final bool contentAware;
 
-  const ShimmerGrid({super.key, this.itemCount = 18});
+  const ShimmerGrid({
+    super.key,
+    this.itemCount = 18,
+    this.contentAware = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
+    if (contentAware) {
+      return const TimelineSkeletonGrid();
+    }
 
-    return Shimmer.fromColors(
-      baseColor: isLight
-          ? AppColors.shimmerBaseLight
-          : AppColors.shimmerBaseDark,
-      highlightColor: isLight
-          ? AppColors.shimmerHighlightLight
-          : AppColors.shimmerHighlightDark,
+    return SkeletonShimmer(
       child: GridView.builder(
         padding: const EdgeInsets.all(2),
         physics: const NeverScrollableScrollPhysics(),
@@ -30,11 +31,8 @@ class ShimmerGrid extends StatelessWidget {
         ),
         itemCount: itemCount,
         itemBuilder: (context, index) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: AppRadii.borderS,
-            ),
+          return const SkeletonBone(
+            borderRadius: BorderRadius.all(Radius.circular(3)),
           );
         },
       ),

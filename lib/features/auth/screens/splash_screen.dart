@@ -59,6 +59,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final prefs = await SharedPreferences.getInstance();
       final wasAuthenticated =
           prefs.getBool('telecloud_is_authenticated') ?? false;
+      final onboardingDone =
+          prefs.getBool('telecloud_onboarding_done') ?? false;
 
       await minSplashTimer;
       if (!mounted || _hasNavigated) return;
@@ -73,15 +75,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final authState = ref.read(telegramAuthManagerProvider).state;
       if (authState == AuthState.authenticated) {
         _navigateSafe('/timeline');
+      } else if (!onboardingDone) {
+        // First time launch: show animated onboarding walkthrough
+        _navigateSafe('/onboarding');
       } else {
-        // Default first-time setup screen
+        // Default setup screen
         _navigateSafe('/setup');
       }
     } catch (e) {
       TeleCloudLogger.log('Splash', 'Splash routing error: $e');
       await minSplashTimer;
       if (mounted && !_hasNavigated) {
-        _navigateSafe('/setup');
+        _navigateSafe('/onboarding');
       }
     }
   }

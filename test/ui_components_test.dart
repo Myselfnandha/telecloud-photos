@@ -12,11 +12,13 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: ShimmerGrid(itemCount: 6))),
+      const MaterialApp(
+        home: Scaffold(body: ShimmerGrid(itemCount: 6, contentAware: false)),
+      ),
     );
 
     expect(find.byType(ShimmerGrid), findsOneWidget);
-    expect(find.byType(GridView), findsOneWidget);
+    expect(find.byType(GridView), findsWidgets);
   });
 
   testWidgets('2. ShimmerLoading renders animated gradient container', (

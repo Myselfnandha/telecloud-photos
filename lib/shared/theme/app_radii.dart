@@ -26,6 +26,7 @@ class AppRadii {
   static const BorderRadius borderL = BorderRadius.all(radiusL);
   static const BorderRadius borderXL = BorderRadius.all(radiusXL);
   static const BorderRadius borderFull = BorderRadius.all(radiusFull);
+  static const BorderRadius borderPill = BorderRadius.all(radiusFull);
 
   // Top-only (BottomSheet / Dialog)
   static const BorderRadius borderTopM = BorderRadius.vertical(top: radiusM);

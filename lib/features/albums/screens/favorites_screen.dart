@@ -277,48 +277,51 @@ class _FavoriteTileState extends State<_FavoriteTile>
 
     return GestureDetector(
       onTap: () => context.push('/viewer/${widget.item.localId}'),
-      child: ClipRRect(
-        borderRadius: AppRadii.borderS,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              color: const Color(0xFF141416),
-              child: _bytes != null
-                  ? Image.memory(
-                      _bytes!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const ShimmerLoading(),
-                    )
-                  : (hasValidDiskThumb
-                        ? Image.file(
-                            File(thumbPath),
-                            fit: BoxFit.cover,
-                            cacheWidth: 256,
-                            cacheHeight: 256,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const ShimmerLoading(),
-                          )
-                        : const ShimmerLoading()),
-            ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.favorite_rounded,
-                  color: AppColors.systemRed,
-                  size: 12,
+      child: Hero(
+        tag: 'media_${widget.item.localId}',
+        child: ClipRRect(
+          borderRadius: AppRadii.borderS,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                color: const Color(0xFF141416),
+                child: _bytes != null
+                    ? Image.memory(
+                        _bytes!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ShimmerLoading(),
+                      )
+                    : (hasValidDiskThumb
+                          ? Image.file(
+                              File(thumbPath),
+                              fit: BoxFit.cover,
+                              cacheWidth: 256,
+                              cacheHeight: 256,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const ShimmerLoading(),
+                            )
+                          : const ShimmerLoading()),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.favorite_rounded,
+                    color: AppColors.systemRed,
+                    size: 12,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

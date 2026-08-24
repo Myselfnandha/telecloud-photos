@@ -16,6 +16,8 @@ import '../widgets/add_to_album_sheet.dart';
 import '../widgets/exif_info_sheet.dart';
 import '../widgets/video_gesture_overlay.dart';
 
+import '../../../shared/theme/app_motion.dart';
+
 class MediaViewerScreen extends ConsumerStatefulWidget {
   final String mediaId;
 
@@ -25,7 +27,8 @@ class MediaViewerScreen extends ConsumerStatefulWidget {
   ConsumerState<MediaViewerScreen> createState() => _MediaViewerScreenState();
 }
 
-class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
+class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
+    with TickerProviderStateMixin {
   late PageController _pageController;
   int _currentIndex = 0;
   List<MediaItem> _items = [];
@@ -35,18 +38,48 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   bool _isDragging = false;
   int _rotationQuarterTurns = 0;
 
+  late final AnimationController _snapController;
+  Animation<double>? _snapAnimation;
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _snapController = AnimationController(
+      vsync: this,
+      duration: AppMotion.durationDismiss,
+    );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _snapController.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _snapBack(double fromOffset) {
+    _snapAnimation = Tween<double>(begin: fromOffset, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _snapController,
+        curve: AppMotion.curveSwipeDismiss,
+      ),
+    )..addListener(() {
+        setState(() {
+          _dragOffsetY = _snapAnimation!.value;
+        });
+      });
+
+    _snapController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          _dragOffsetY = 0.0;
+          _isDragging = false;
+        });
+      }
+    });
   }
 
   void _toggleUiOverlays() {
@@ -358,6 +391,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                       details.primaryVelocity! > 600)) {
                 HapticFeedback.lightImpact();
                 Navigator.of(context).pop();
+              } else if (_dragOffsetY > 0) {
+                _snapBack(_dragOffsetY);
               } else {
                 setState(() {
                   _dragOffsetY = 0.0;
@@ -366,20 +401,28 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
               }
             },
             onVerticalDragCancel: () {
-              setState(() {
-                _dragOffsetY = 0.0;
-                _isDragging = false;
-              });
+              if (_dragOffsetY > 0) {
+                _snapBack(_dragOffsetY);
+              } else {
+                setState(() {
+                  _dragOffsetY = 0.0;
+                  _isDragging = false;
+                });
+              }
             },
             child: Transform.translate(
               offset: Offset(0, _dragOffsetY),
               child: Transform.scale(
                 scale: currentScale,
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: _isDragging
-                      ? const NeverScrollableScrollPhysics()
-                      : const BouncingScrollPhysics(),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    (_dragOffsetY / 12).clamp(0.0, 24.0),
+                  ),
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: _isDragging
+                        ? const NeverScrollableScrollPhysics()
+                        : const BouncingScrollPhysics(),
                   itemCount: items.length,
                   onPageChanged: (index) {
                     setState(() {
@@ -406,7 +449,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                 ),
               ),
             ),
-          );
+          ),
+        );
         },
         loading: () =>
             const Center(child: CircularProgressIndicator(color: Colors.white)),

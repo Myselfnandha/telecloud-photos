@@ -325,27 +325,30 @@ class _AlbumMediaTileState extends State<_AlbumMediaTile>
 
     return GestureDetector(
       onTap: () => context.push('/viewer/${widget.item.localId}'),
-      child: ClipRRect(
-        borderRadius: AppRadii.borderS,
-        child: Container(
-          color: const Color(0xFF141416),
-          child: _bytes != null
-              ? Image.memory(
-                  _bytes!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const ShimmerLoading(),
-                )
-              : (hasValidDiskThumb
-                    ? Image.file(
-                        File(thumbPath),
-                        fit: BoxFit.cover,
-                        cacheWidth: 256,
-                        cacheHeight: 256,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const ShimmerLoading(),
-                      )
-                    : const ShimmerLoading()),
+      child: Hero(
+        tag: 'media_${widget.item.localId}',
+        child: ClipRRect(
+          borderRadius: AppRadii.borderS,
+          child: Container(
+            color: const Color(0xFF141416),
+            child: _bytes != null
+                ? Image.memory(
+                    _bytes!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const ShimmerLoading(),
+                  )
+                : (hasValidDiskThumb
+                      ? Image.file(
+                          File(thumbPath),
+                          fit: BoxFit.cover,
+                          cacheWidth: 256,
+                          cacheHeight: 256,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const ShimmerLoading(),
+                        )
+                      : const ShimmerLoading()),
+          ),
         ),
       ),
     );

@@ -13,6 +13,7 @@ import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../../../shared/theme/app_elevation.dart';
 import '../../../shared/theme/app_icons.dart';
+import '../../../shared/widgets/skeleton_layouts.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -170,6 +171,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           StreamBuilder<List<Album>>(
             stream: mediaDao.watchAllAlbums(),
             builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return const AlbumListSkeleton(itemCount: 2);
+              }
               final albums = snapshot.data ?? [];
               if (albums.isEmpty) {
                 return GestureDetector(

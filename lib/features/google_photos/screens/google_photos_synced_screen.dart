@@ -381,24 +381,27 @@ class _GooglePhotoSyncedTileState extends State<_GooglePhotoSyncedTile>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Container(
-            color: const Color(0xFF1C1C1E),
-            child: _bytes != null
-                ? Image.memory(
-                    _bytes!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildPlaceholder(),
-                  )
-                : (widget.item.thumbnailPath != null &&
-                          File(widget.item.thumbnailPath!).existsSync()
-                      ? Image.file(
-                          File(widget.item.thumbnailPath!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildPlaceholder(),
-                        )
-                      : _buildPlaceholder()),
+          Hero(
+            tag: 'media_${widget.item.localId}',
+            child: Container(
+              color: const Color(0xFF1C1C1E),
+              child: _bytes != null
+                  ? Image.memory(
+                      _bytes!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildPlaceholder(),
+                    )
+                  : (widget.item.thumbnailPath != null &&
+                            File(widget.item.thumbnailPath!).existsSync()
+                        ? Image.file(
+                            File(widget.item.thumbnailPath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildPlaceholder(),
+                          )
+                        : _buildPlaceholder()),
+            ),
           ),
           const Positioned(
             top: 4,

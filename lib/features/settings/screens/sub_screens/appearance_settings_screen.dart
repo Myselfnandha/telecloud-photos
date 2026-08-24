@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../shared/navigation/transition_preference_provider.dart';
 import '../../../../shared/theme/app_theme.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -168,8 +169,108 @@ class _AppearanceSettingsScreenState
               ],
             ),
           ),
+
+          const SizedBox(height: 24),
+
+          Text(
+            'PAGE TRANSITIONS',
+            style: AppTypography.labelSmall(
+              color: secondaryTextColor,
+            ).copyWith(fontWeight: AppTypography.bold, letterSpacing: 0.8),
+          ),
+          AppSpacing.gapVerticalS,
+          Consumer(
+            builder: (context, ref, _) {
+              final currentStyle = ref.watch(pageTransitionProvider);
+              return Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: AppRadii.borderXL,
+                  border: Border.all(color: cardBorder),
+                ),
+                child: Column(
+                  children: [
+                    _buildTransitionRow(
+                      title: PageTransitionStyle.fadeSlideUp.displayName,
+                      subtitle: PageTransitionStyle.fadeSlideUp.description,
+                      value: PageTransitionStyle.fadeSlideUp,
+                      groupValue: currentStyle,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref
+                            .read(pageTransitionProvider.notifier)
+                            .setTransitionStyle(PageTransitionStyle.fadeSlideUp);
+                      },
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildTransitionRow(
+                      title: PageTransitionStyle.sharedAxis.displayName,
+                      subtitle: PageTransitionStyle.sharedAxis.description,
+                      value: PageTransitionStyle.sharedAxis,
+                      groupValue: currentStyle,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref
+                            .read(pageTransitionProvider.notifier)
+                            .setTransitionStyle(PageTransitionStyle.sharedAxis);
+                      },
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildTransitionRow(
+                      title: PageTransitionStyle.cupertinoSlide.displayName,
+                      subtitle: PageTransitionStyle.cupertinoSlide.description,
+                      value: PageTransitionStyle.cupertinoSlide,
+                      groupValue: currentStyle,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref
+                            .read(pageTransitionProvider.notifier)
+                            .setTransitionStyle(PageTransitionStyle.cupertinoSlide);
+                      },
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTransitionRow({
+    required String title,
+    required String subtitle,
+    required PageTransitionStyle value,
+    required PageTransitionStyle groupValue,
+    required VoidCallback onTap,
+    required Color primaryTextColor,
+    required Color secondaryTextColor,
+  }) {
+    final isSelected = value == groupValue;
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? AppColors.primaryBlue : primaryTextColor,
+          fontSize: 15,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: secondaryTextColor, fontSize: 12),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue, size: 22)
+          : const Icon(Icons.circle_outlined, color: Colors.grey, size: 22),
+      onTap: onTap,
     );
   }
 

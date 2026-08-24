@@ -22,9 +22,10 @@ import '../backup/thumbnail_generator.dart';
 import '../google/google_auth_service.dart';
 import '../google/google_photos_api_client.dart';
 import '../google/google_photos_sync_service.dart';
-import '../database/daos/files_dao.dart';
-import '../telegram/telegram_files_manager.dart';
-import '../sync/files_sync_worker.dart';
+import '../backup/media_deduplicator.dart';
+import '../backup/sync_policy_guard.dart';
+import '../backup/folder_sync_manager.dart';
+import '../constants/app_constants.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError(
@@ -129,9 +130,41 @@ final mediaScannerProvider = Provider<MediaScanner>((ref) {
   );
 });
 
+final mediaDeduplicatorProvider = Provider<MediaDeduplicator>((ref) {
+  final dao = ref.watch(mediaDaoProvider);
+  return MediaDeduplicator(mediaDao: dao);
+});
+
+final syncPolicyGuardProvider = Provider<SyncPolicyGuard>((ref) {
+  return SyncPolicyGuard();
+});
+
+final folderSyncManagerProvider = Provider<FolderSyncManager>((ref) {
+  final dao = ref.watch(mediaDaoProvider);
+  return FolderSyncManager(mediaDao: dao);
+});
+
+final folderSyncListStreamProvider =
+    StreamProvider<List<FolderSyncSetting>>((ref) {
+  final manager = ref.watch(folderSyncManagerProvider);
+  return manager.watchFolders();
+});
+
 final uploadQueueProvider = Provider<UploadQueue>((ref) {
   final dao = ref.watch(mediaDaoProvider);
-  return UploadQueue(mediaDao: dao);
+  final deduplicator = ref.watch(mediaDeduplicatorProvider);
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final concurrency =
+      prefs.getInt(AppConstants.keyMaxConcurrentUploads) ??
+      AppConstants.defaultMaxConcurrentUploads;
+  final queue = UploadQueue(mediaDao: dao, deduplicator: deduplicator);
+  queue.setConcurrency(concurrency);
+  return queue;
+});
+
+final uploadProgressStreamProvider = StreamProvider<UploadProgressState>((ref) {
+  final queue = ref.watch(uploadQueueProvider);
+  return queue.progressStream;
 });
 
 final uploadTelemetryProvider =
@@ -156,6 +189,9 @@ final backupManagerProvider = Provider<BackupManager>((ref) {
         onBatchStart: (total) {
           telemetryNotifier.startBatch(total);
         },
+        onProgress: (progress) {
+          manager.updateUploadProgressNotification(progress);
+        },
         uploadItem: (item, [int? index, int? total]) async {
           telemetryNotifier.startItemUpload(
             item,
@@ -164,9 +200,11 @@ final backupManagerProvider = Provider<BackupManager>((ref) {
             totalCount: total,
           );
 
-          // Resolve album name from item's albumId, or infer from filename
+          // Resolve album name from item's folderName, albumId, or filename
           String albumName = 'Camera';
-          if (item.albumId != null) {
+          if (item.folderName != null && item.folderName!.isNotEmpty) {
+            albumName = item.folderName!;
+          } else if (item.albumId != null) {
             final album = await mediaDao.getAlbumById(item.albumId!);
             if (album != null && album.name.isNotEmpty) {
               albumName = album.name;
@@ -271,42 +309,3 @@ final googlePhotosSyncServiceProvider =
         prefs: prefs,
       );
     });
-
-final filesDaoProvider = Provider<FilesDao>((ref) {
-  final db = ref.watch(databaseProvider);
-  return FilesDao(db);
-});
-
-final telegramFilesManagerProvider = Provider<TelegramFilesManager>((ref) {
-  final client = ref.watch(tdlibClientProvider);
-  final filesDao = ref.watch(filesDaoProvider);
-  return TelegramFilesManager(client: client, filesDao: filesDao);
-});
-
-final filesSyncWorkerProvider = Provider<FilesSyncWorker>((ref) {
-  final filesDao = ref.watch(filesDaoProvider);
-  final filesManager = ref.watch(telegramFilesManagerProvider);
-  return FilesSyncWorker(filesDao: filesDao, filesManager: filesManager);
-});
-
-final filesInFolderStreamProvider =
-    StreamProvider.family<List<CloudFile>, String>((ref, folderPath) {
-      final dao = ref.watch(filesDaoProvider);
-      return dao.watchFilesInFolder(folderPath);
-    });
-
-final subFoldersStreamProvider =
-    StreamProvider.family<List<CloudFolder>, String?>((ref, parentPath) {
-      final dao = ref.watch(filesDaoProvider);
-      return dao.watchSubFolders(parentPath);
-    });
-
-final pinnedFilesStreamProvider = StreamProvider<List<CloudFile>>((ref) {
-  final dao = ref.watch(filesDaoProvider);
-  return dao.watchPinnedFiles();
-});
-
-final recentFilesStreamProvider = StreamProvider<List<CloudFile>>((ref) {
-  final dao = ref.watch(filesDaoProvider);
-  return dao.watchRecentFiles();
-});

@@ -1,11 +1,12 @@
 import 'package:drift/drift.dart';
 import '../tables/media_table.dart';
 import '../tables/albums_table.dart';
+import '../tables/folder_sync_table.dart';
 import '../app_database.dart';
 
 part 'media_dao.g.dart';
 
-@DriftAccessor(tables: [MediaItems, Albums])
+@DriftAccessor(tables: [MediaItems, Albums, FolderSyncSettings])
 class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   MediaDao(super.db);
 
@@ -390,5 +391,106 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
       }
     }
   }
+
+  // --- Smart Hash Deduplication Queries ---
+
+  /// Finds an already backed-up media item with matching SHA-256 hash.
+  Future<MediaItem?> getBackedUpMediaBySha256(String hash) {
+    return (select(mediaItems)
+          ..where(
+            (t) =>
+                t.sha256Hash.equals(hash) &
+                t.telegramFileId.isNotNull() &
+                t.uploadStatus.equals(UploadStatus.done.index) &
+                t.isTrashed.equals(false),
+          )
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  /// Updates the computed SHA-256 hash for a media item.
+  Future<bool> updateMediaHash(String localId, String hash) async {
+    final count = await (update(mediaItems)
+          ..where((t) => t.localId.equals(localId)))
+        .write(MediaItemsCompanion(sha256Hash: Value(hash)));
+    return count > 0;
+  }
+
+  /// Retrieves local items without a computed hash.
+  Future<List<MediaItem>> getUncomputedHashLocalMedia({int limit = 50}) {
+    return (select(mediaItems)
+          ..where(
+            (t) =>
+                t.sha256Hash.isNull() &
+                t.isTrashed.equals(false) &
+                t.localId.like('tg_%').not() &
+                t.localId.like('gp_%').not(),
+          )
+          ..limit(limit))
+        .get();
+  }
+
+  // --- Selective Folder Sync Queries ---
+
+  /// Streams all folder sync settings ordered by folder name.
+  Stream<List<FolderSyncSetting>> watchFolderSyncSettings() {
+    return (select(folderSyncSettings)
+          ..orderBy([(t) => OrderingTerm.asc(t.folderName)]))
+        .watch();
+  }
+
+  /// Gets all folder sync settings.
+  Future<List<FolderSyncSetting>> getAllFolderSyncSettings() {
+    return (select(folderSyncSettings)
+          ..orderBy([(t) => OrderingTerm.asc(t.folderName)]))
+        .get();
+  }
+
+  /// Gets a specific folder sync setting by folderId.
+  Future<FolderSyncSetting?> getFolderSyncSetting(String folderId) {
+    return (select(folderSyncSettings)
+          ..where((t) => t.folderId.equals(folderId)))
+        .getSingleOrNull();
+  }
+
+  /// Inserts or updates folder sync setting.
+  Future<void> upsertFolderSyncSetting(
+    FolderSyncSettingsCompanion setting,
+  ) async {
+    await into(folderSyncSettings).insertOnConflictUpdate(setting);
+  }
+
+  /// Enables or disables auto-backup for a folder.
+  Future<bool> setFolderAutoBackup(String folderId, bool isEnabled) async {
+    final count = await (update(folderSyncSettings)
+          ..where((t) => t.folderId.equals(folderId)))
+        .write(FolderSyncSettingsCompanion(isAutoBackupEnabled: Value(isEnabled)));
+    return count > 0;
+  }
+
+  /// Queues all non-uploaded media in a specific folder for backup.
+  Future<int> queueFolderMediaForUpload(String folderName) async {
+    return (update(mediaItems)
+          ..where(
+            (t) =>
+                t.folderName.equals(folderName) &
+                t.telegramFileId.isNull() &
+                t.isTrashed.equals(false),
+          ))
+        .write(
+          const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
+        );
+  }
+
+  /// Streams all media items belonging to a specific device folder.
+  Stream<List<MediaItem>> watchMediaByFolder(String folderName) {
+    return (select(mediaItems)
+          ..where(
+            (t) => t.folderName.equals(folderName) & t.isTrashed.equals(false),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.capturedAt)]))
+        .watch();
+  }
 }
+
 

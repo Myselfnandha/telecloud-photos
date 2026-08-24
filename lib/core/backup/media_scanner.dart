@@ -147,6 +147,8 @@ class MediaScanner {
                 uploadStatus: UploadStatus.pending,
                 albumId: const Value.absent(),
                 thumbnailPath: const Value.absent(),
+                folderName: Value(album.name),
+                folderPath: Value(album.name),
               ),
             );
           }

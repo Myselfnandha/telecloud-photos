@@ -129,8 +129,41 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
       _selectedFolderIds.toList(),
     );
 
+    await ref.read(folderSyncManagerProvider).setFolderBackupEnabled(
+      folder.id,
+      isSelected,
+    );
+
     // Rescan camera roll in background to update active scope
     ref.read(mediaScannerProvider).scanCameraRoll();
+
+    if (isSelected && mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Auto-backup enabled for "${folder.name}".'),
+          action: SnackBarAction(
+            label: 'Back up All',
+            textColor: AppColors.primaryBlue,
+            onPressed: () async {
+              final count = await ref
+                  .read(folderSyncManagerProvider)
+                  .queueFolderHistoricalMedia(folder.name);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Queued $count historical items in "${folder.name}" for backup.',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   Future<void> _selectAll(bool select) async {

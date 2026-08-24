@@ -6,4 +6,6 @@ part of 'media_dao.dart';
 mixin _$MediaDaoMixin on DatabaseAccessor<AppDatabase> {
   $AlbumsTable get albums => attachedDatabase.albums;
   $MediaItemsTable get mediaItems => attachedDatabase.mediaItems;
+  $FolderSyncSettingsTable get folderSyncSettings =>
+      attachedDatabase.folderSyncSettings;
 }

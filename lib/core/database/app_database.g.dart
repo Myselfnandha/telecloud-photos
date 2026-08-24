@@ -384,6 +384,24 @@ class $MediaItemsTable extends MediaItems
   late final GeneratedColumn<DateTime> trashedAt = GeneratedColumn<DateTime>(
       'trashed_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _sha256HashMeta =
+      const VerificationMeta('sha256Hash');
+  @override
+  late final GeneratedColumn<String> sha256Hash = GeneratedColumn<String>(
+      'sha256_hash', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _folderNameMeta =
+      const VerificationMeta('folderName');
+  @override
+  late final GeneratedColumn<String> folderName = GeneratedColumn<String>(
+      'folder_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _folderPathMeta =
+      const VerificationMeta('folderPath');
+  @override
+  late final GeneratedColumn<String> folderPath = GeneratedColumn<String>(
+      'folder_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         localId,
@@ -402,7 +420,10 @@ class $MediaItemsTable extends MediaItems
         albumId,
         isFavorite,
         isTrashed,
-        trashedAt
+        trashedAt,
+        sha256Hash,
+        folderName,
+        folderPath
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -498,6 +519,24 @@ class $MediaItemsTable extends MediaItems
       context.handle(_trashedAtMeta,
           trashedAt.isAcceptableOrUnknown(data['trashed_at']!, _trashedAtMeta));
     }
+    if (data.containsKey('sha256_hash')) {
+      context.handle(
+          _sha256HashMeta,
+          sha256Hash.isAcceptableOrUnknown(
+              data['sha256_hash']!, _sha256HashMeta));
+    }
+    if (data.containsKey('folder_name')) {
+      context.handle(
+          _folderNameMeta,
+          folderName.isAcceptableOrUnknown(
+              data['folder_name']!, _folderNameMeta));
+    }
+    if (data.containsKey('folder_path')) {
+      context.handle(
+          _folderPathMeta,
+          folderPath.isAcceptableOrUnknown(
+              data['folder_path']!, _folderPathMeta));
+    }
     return context;
   }
 
@@ -542,6 +581,12 @@ class $MediaItemsTable extends MediaItems
           .read(DriftSqlType.bool, data['${effectivePrefix}is_trashed'])!,
       trashedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}trashed_at']),
+      sha256Hash: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sha256_hash']),
+      folderName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}folder_name']),
+      folderPath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}folder_path']),
     );
   }
 
@@ -572,6 +617,9 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
   final bool isFavorite;
   final bool isTrashed;
   final DateTime? trashedAt;
+  final String? sha256Hash;
+  final String? folderName;
+  final String? folderPath;
   const MediaItem(
       {required this.localId,
       this.telegramMsgId,
@@ -589,7 +637,10 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       this.albumId,
       required this.isFavorite,
       required this.isTrashed,
-      this.trashedAt});
+      this.trashedAt,
+      this.sha256Hash,
+      this.folderName,
+      this.folderPath});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -633,6 +684,15 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
     if (!nullToAbsent || trashedAt != null) {
       map['trashed_at'] = Variable<DateTime>(trashedAt);
     }
+    if (!nullToAbsent || sha256Hash != null) {
+      map['sha256_hash'] = Variable<String>(sha256Hash);
+    }
+    if (!nullToAbsent || folderName != null) {
+      map['folder_name'] = Variable<String>(folderName);
+    }
+    if (!nullToAbsent || folderPath != null) {
+      map['folder_path'] = Variable<String>(folderPath);
+    }
     return map;
   }
 
@@ -673,6 +733,15 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       trashedAt: trashedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(trashedAt),
+      sha256Hash: sha256Hash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sha256Hash),
+      folderName: folderName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folderName),
+      folderPath: folderPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folderPath),
     );
   }
 
@@ -698,6 +767,9 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       isTrashed: serializer.fromJson<bool>(json['isTrashed']),
       trashedAt: serializer.fromJson<DateTime?>(json['trashedAt']),
+      sha256Hash: serializer.fromJson<String?>(json['sha256Hash']),
+      folderName: serializer.fromJson<String?>(json['folderName']),
+      folderPath: serializer.fromJson<String?>(json['folderPath']),
     );
   }
   @override
@@ -722,6 +794,9 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'isTrashed': serializer.toJson<bool>(isTrashed),
       'trashedAt': serializer.toJson<DateTime?>(trashedAt),
+      'sha256Hash': serializer.toJson<String?>(sha256Hash),
+      'folderName': serializer.toJson<String?>(folderName),
+      'folderPath': serializer.toJson<String?>(folderPath),
     };
   }
 
@@ -742,7 +817,10 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
           Value<int?> albumId = const Value.absent(),
           bool? isFavorite,
           bool? isTrashed,
-          Value<DateTime?> trashedAt = const Value.absent()}) =>
+          Value<DateTime?> trashedAt = const Value.absent(),
+          Value<String?> sha256Hash = const Value.absent(),
+          Value<String?> folderName = const Value.absent(),
+          Value<String?> folderPath = const Value.absent()}) =>
       MediaItem(
         localId: localId ?? this.localId,
         telegramMsgId:
@@ -765,6 +843,9 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
         isFavorite: isFavorite ?? this.isFavorite,
         isTrashed: isTrashed ?? this.isTrashed,
         trashedAt: trashedAt.present ? trashedAt.value : this.trashedAt,
+        sha256Hash: sha256Hash.present ? sha256Hash.value : this.sha256Hash,
+        folderName: folderName.present ? folderName.value : this.folderName,
+        folderPath: folderPath.present ? folderPath.value : this.folderPath,
       );
   MediaItem copyWithCompanion(MediaItemsCompanion data) {
     return MediaItem(
@@ -797,6 +878,12 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
           data.isFavorite.present ? data.isFavorite.value : this.isFavorite,
       isTrashed: data.isTrashed.present ? data.isTrashed.value : this.isTrashed,
       trashedAt: data.trashedAt.present ? data.trashedAt.value : this.trashedAt,
+      sha256Hash:
+          data.sha256Hash.present ? data.sha256Hash.value : this.sha256Hash,
+      folderName:
+          data.folderName.present ? data.folderName.value : this.folderName,
+      folderPath:
+          data.folderPath.present ? data.folderPath.value : this.folderPath,
     );
   }
 
@@ -819,7 +906,10 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
           ..write('albumId: $albumId, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('isTrashed: $isTrashed, ')
-          ..write('trashedAt: $trashedAt')
+          ..write('trashedAt: $trashedAt, ')
+          ..write('sha256Hash: $sha256Hash, ')
+          ..write('folderName: $folderName, ')
+          ..write('folderPath: $folderPath')
           ..write(')'))
         .toString();
   }
@@ -842,7 +932,10 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       albumId,
       isFavorite,
       isTrashed,
-      trashedAt);
+      trashedAt,
+      sha256Hash,
+      folderName,
+      folderPath);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -863,7 +956,10 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
           other.albumId == this.albumId &&
           other.isFavorite == this.isFavorite &&
           other.isTrashed == this.isTrashed &&
-          other.trashedAt == this.trashedAt);
+          other.trashedAt == this.trashedAt &&
+          other.sha256Hash == this.sha256Hash &&
+          other.folderName == this.folderName &&
+          other.folderPath == this.folderPath);
 }
 
 class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
@@ -884,6 +980,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
   final Value<bool> isFavorite;
   final Value<bool> isTrashed;
   final Value<DateTime?> trashedAt;
+  final Value<String?> sha256Hash;
+  final Value<String?> folderName;
+  final Value<String?> folderPath;
   final Value<int> rowid;
   const MediaItemsCompanion({
     this.localId = const Value.absent(),
@@ -903,6 +1002,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     this.isFavorite = const Value.absent(),
     this.isTrashed = const Value.absent(),
     this.trashedAt = const Value.absent(),
+    this.sha256Hash = const Value.absent(),
+    this.folderName = const Value.absent(),
+    this.folderPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MediaItemsCompanion.insert({
@@ -923,6 +1025,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     this.isFavorite = const Value.absent(),
     this.isTrashed = const Value.absent(),
     this.trashedAt = const Value.absent(),
+    this.sha256Hash = const Value.absent(),
+    this.folderName = const Value.absent(),
+    this.folderPath = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : localId = Value(localId),
         filename = Value(filename),
@@ -947,6 +1052,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     Expression<bool>? isFavorite,
     Expression<bool>? isTrashed,
     Expression<DateTime>? trashedAt,
+    Expression<String>? sha256Hash,
+    Expression<String>? folderName,
+    Expression<String>? folderPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -967,6 +1075,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (isTrashed != null) 'is_trashed': isTrashed,
       if (trashedAt != null) 'trashed_at': trashedAt,
+      if (sha256Hash != null) 'sha256_hash': sha256Hash,
+      if (folderName != null) 'folder_name': folderName,
+      if (folderPath != null) 'folder_path': folderPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -989,6 +1100,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
       Value<bool>? isFavorite,
       Value<bool>? isTrashed,
       Value<DateTime?>? trashedAt,
+      Value<String?>? sha256Hash,
+      Value<String?>? folderName,
+      Value<String?>? folderPath,
       Value<int>? rowid}) {
     return MediaItemsCompanion(
       localId: localId ?? this.localId,
@@ -1008,6 +1122,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
       isFavorite: isFavorite ?? this.isFavorite,
       isTrashed: isTrashed ?? this.isTrashed,
       trashedAt: trashedAt ?? this.trashedAt,
+      sha256Hash: sha256Hash ?? this.sha256Hash,
+      folderName: folderName ?? this.folderName,
+      folderPath: folderPath ?? this.folderPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1067,6 +1184,15 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     if (trashedAt.present) {
       map['trashed_at'] = Variable<DateTime>(trashedAt.value);
     }
+    if (sha256Hash.present) {
+      map['sha256_hash'] = Variable<String>(sha256Hash.value);
+    }
+    if (folderName.present) {
+      map['folder_name'] = Variable<String>(folderName.value);
+    }
+    if (folderPath.present) {
+      map['folder_path'] = Variable<String>(folderPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1093,724 +1219,87 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
           ..write('isFavorite: $isFavorite, ')
           ..write('isTrashed: $isTrashed, ')
           ..write('trashedAt: $trashedAt, ')
+          ..write('sha256Hash: $sha256Hash, ')
+          ..write('folderName: $folderName, ')
+          ..write('folderPath: $folderPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
 }
 
-class $CloudFilesTable extends CloudFiles
-    with TableInfo<$CloudFilesTable, CloudFile> {
+class $FolderSyncSettingsTable extends FolderSyncSettings
+    with TableInfo<$FolderSyncSettingsTable, FolderSyncSetting> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $CloudFilesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  $FolderSyncSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _folderIdMeta =
+      const VerificationMeta('folderId');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-      'id', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
-  static const VerificationMeta _localPathMeta =
-      const VerificationMeta('localPath');
-  @override
-  late final GeneratedColumn<String> localPath = GeneratedColumn<String>(
-      'local_path', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _fileNameMeta =
-      const VerificationMeta('fileName');
-  @override
-  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
-      'file_name', aliasedName, false,
+  late final GeneratedColumn<String> folderId = GeneratedColumn<String>(
+      'folder_id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _fileSizeBytesMeta =
-      const VerificationMeta('fileSizeBytes');
-  @override
-  late final GeneratedColumn<BigInt> fileSizeBytes = GeneratedColumn<BigInt>(
-      'file_size_bytes', aliasedName, false,
-      type: DriftSqlType.bigInt, requiredDuringInsert: true);
-  static const VerificationMeta _mimeTypeMeta =
-      const VerificationMeta('mimeType');
-  @override
-  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
-      'mime_type', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _folderPathMeta =
-      const VerificationMeta('folderPath');
-  @override
-  late final GeneratedColumn<String> folderPath = GeneratedColumn<String>(
-      'folder_path', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant('/'));
-  static const VerificationMeta _telegramMsgIdMeta =
-      const VerificationMeta('telegramMsgId');
-  @override
-  late final GeneratedColumn<int> telegramMsgId = GeneratedColumn<int>(
-      'telegram_msg_id', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _telegramFileIdMeta =
-      const VerificationMeta('telegramFileId');
-  @override
-  late final GeneratedColumn<String> telegramFileId = GeneratedColumn<String>(
-      'telegram_file_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _topicIdMeta =
-      const VerificationMeta('topicId');
-  @override
-  late final GeneratedColumn<int> topicId = GeneratedColumn<int>(
-      'topic_id', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _isPinnedOfflineMeta =
-      const VerificationMeta('isPinnedOffline');
-  @override
-  late final GeneratedColumn<bool> isPinnedOffline = GeneratedColumn<bool>(
-      'is_pinned_offline', aliasedName, false,
-      type: DriftSqlType.bool,
-      requiredDuringInsert: false,
-      defaultConstraints: GeneratedColumn.constraintIsAlways(
-          'CHECK ("is_pinned_offline" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  @override
-  late final GeneratedColumnWithTypeConverter<UploadStatus, int> uploadStatus =
-      GeneratedColumn<int>('upload_status', aliasedName, false,
-              type: DriftSqlType.int, requiredDuringInsert: true)
-          .withConverter<UploadStatus>($CloudFilesTable.$converteruploadStatus);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _modifiedAtMeta =
-      const VerificationMeta('modifiedAt');
-  @override
-  late final GeneratedColumn<DateTime> modifiedAt = GeneratedColumn<DateTime>(
-      'modified_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  @override
-  List<GeneratedColumn> get $columns => [
-        id,
-        localPath,
-        fileName,
-        fileSizeBytes,
-        mimeType,
-        folderPath,
-        telegramMsgId,
-        telegramFileId,
-        topicId,
-        isPinnedOffline,
-        uploadStatus,
-        createdAt,
-        modifiedAt
-      ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'cloud_files';
-  @override
-  VerificationContext validateIntegrity(Insertable<CloudFile> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('local_path')) {
-      context.handle(_localPathMeta,
-          localPath.isAcceptableOrUnknown(data['local_path']!, _localPathMeta));
-    }
-    if (data.containsKey('file_name')) {
-      context.handle(_fileNameMeta,
-          fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta));
-    } else if (isInserting) {
-      context.missing(_fileNameMeta);
-    }
-    if (data.containsKey('file_size_bytes')) {
-      context.handle(
-          _fileSizeBytesMeta,
-          fileSizeBytes.isAcceptableOrUnknown(
-              data['file_size_bytes']!, _fileSizeBytesMeta));
-    } else if (isInserting) {
-      context.missing(_fileSizeBytesMeta);
-    }
-    if (data.containsKey('mime_type')) {
-      context.handle(_mimeTypeMeta,
-          mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta));
-    } else if (isInserting) {
-      context.missing(_mimeTypeMeta);
-    }
-    if (data.containsKey('folder_path')) {
-      context.handle(
-          _folderPathMeta,
-          folderPath.isAcceptableOrUnknown(
-              data['folder_path']!, _folderPathMeta));
-    }
-    if (data.containsKey('telegram_msg_id')) {
-      context.handle(
-          _telegramMsgIdMeta,
-          telegramMsgId.isAcceptableOrUnknown(
-              data['telegram_msg_id']!, _telegramMsgIdMeta));
-    }
-    if (data.containsKey('telegram_file_id')) {
-      context.handle(
-          _telegramFileIdMeta,
-          telegramFileId.isAcceptableOrUnknown(
-              data['telegram_file_id']!, _telegramFileIdMeta));
-    }
-    if (data.containsKey('topic_id')) {
-      context.handle(_topicIdMeta,
-          topicId.isAcceptableOrUnknown(data['topic_id']!, _topicIdMeta));
-    }
-    if (data.containsKey('is_pinned_offline')) {
-      context.handle(
-          _isPinnedOfflineMeta,
-          isPinnedOffline.isAcceptableOrUnknown(
-              data['is_pinned_offline']!, _isPinnedOfflineMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    if (data.containsKey('modified_at')) {
-      context.handle(
-          _modifiedAtMeta,
-          modifiedAt.isAcceptableOrUnknown(
-              data['modified_at']!, _modifiedAtMeta));
-    } else if (isInserting) {
-      context.missing(_modifiedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  CloudFile map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CloudFile(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      localPath: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}local_path']),
-      fileName: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}file_name'])!,
-      fileSizeBytes: attachedDatabase.typeMapping.read(
-          DriftSqlType.bigInt, data['${effectivePrefix}file_size_bytes'])!,
-      mimeType: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}mime_type'])!,
-      folderPath: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}folder_path'])!,
-      telegramMsgId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}telegram_msg_id']),
-      telegramFileId: attachedDatabase.typeMapping.read(
-          DriftSqlType.string, data['${effectivePrefix}telegram_file_id']),
-      topicId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}topic_id']),
-      isPinnedOffline: attachedDatabase.typeMapping.read(
-          DriftSqlType.bool, data['${effectivePrefix}is_pinned_offline'])!,
-      uploadStatus: $CloudFilesTable.$converteruploadStatus.fromSql(
-          attachedDatabase.typeMapping.read(
-              DriftSqlType.int, data['${effectivePrefix}upload_status'])!),
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
-      modifiedAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}modified_at'])!,
-    );
-  }
-
-  @override
-  $CloudFilesTable createAlias(String alias) {
-    return $CloudFilesTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<UploadStatus, int, int> $converteruploadStatus =
-      const EnumIndexConverter<UploadStatus>(UploadStatus.values);
-}
-
-class CloudFile extends DataClass implements Insertable<CloudFile> {
-  final int id;
-  final String? localPath;
-  final String fileName;
-  final BigInt fileSizeBytes;
-  final String mimeType;
-  final String folderPath;
-  final int? telegramMsgId;
-  final String? telegramFileId;
-  final int? topicId;
-  final bool isPinnedOffline;
-  final UploadStatus uploadStatus;
-  final DateTime createdAt;
-  final DateTime modifiedAt;
-  const CloudFile(
-      {required this.id,
-      this.localPath,
-      required this.fileName,
-      required this.fileSizeBytes,
-      required this.mimeType,
-      required this.folderPath,
-      this.telegramMsgId,
-      this.telegramFileId,
-      this.topicId,
-      required this.isPinnedOffline,
-      required this.uploadStatus,
-      required this.createdAt,
-      required this.modifiedAt});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    if (!nullToAbsent || localPath != null) {
-      map['local_path'] = Variable<String>(localPath);
-    }
-    map['file_name'] = Variable<String>(fileName);
-    map['file_size_bytes'] = Variable<BigInt>(fileSizeBytes);
-    map['mime_type'] = Variable<String>(mimeType);
-    map['folder_path'] = Variable<String>(folderPath);
-    if (!nullToAbsent || telegramMsgId != null) {
-      map['telegram_msg_id'] = Variable<int>(telegramMsgId);
-    }
-    if (!nullToAbsent || telegramFileId != null) {
-      map['telegram_file_id'] = Variable<String>(telegramFileId);
-    }
-    if (!nullToAbsent || topicId != null) {
-      map['topic_id'] = Variable<int>(topicId);
-    }
-    map['is_pinned_offline'] = Variable<bool>(isPinnedOffline);
-    {
-      map['upload_status'] = Variable<int>(
-          $CloudFilesTable.$converteruploadStatus.toSql(uploadStatus));
-    }
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['modified_at'] = Variable<DateTime>(modifiedAt);
-    return map;
-  }
-
-  CloudFilesCompanion toCompanion(bool nullToAbsent) {
-    return CloudFilesCompanion(
-      id: Value(id),
-      localPath: localPath == null && nullToAbsent
-          ? const Value.absent()
-          : Value(localPath),
-      fileName: Value(fileName),
-      fileSizeBytes: Value(fileSizeBytes),
-      mimeType: Value(mimeType),
-      folderPath: Value(folderPath),
-      telegramMsgId: telegramMsgId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(telegramMsgId),
-      telegramFileId: telegramFileId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(telegramFileId),
-      topicId: topicId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(topicId),
-      isPinnedOffline: Value(isPinnedOffline),
-      uploadStatus: Value(uploadStatus),
-      createdAt: Value(createdAt),
-      modifiedAt: Value(modifiedAt),
-    );
-  }
-
-  factory CloudFile.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CloudFile(
-      id: serializer.fromJson<int>(json['id']),
-      localPath: serializer.fromJson<String?>(json['localPath']),
-      fileName: serializer.fromJson<String>(json['fileName']),
-      fileSizeBytes: serializer.fromJson<BigInt>(json['fileSizeBytes']),
-      mimeType: serializer.fromJson<String>(json['mimeType']),
-      folderPath: serializer.fromJson<String>(json['folderPath']),
-      telegramMsgId: serializer.fromJson<int?>(json['telegramMsgId']),
-      telegramFileId: serializer.fromJson<String?>(json['telegramFileId']),
-      topicId: serializer.fromJson<int?>(json['topicId']),
-      isPinnedOffline: serializer.fromJson<bool>(json['isPinnedOffline']),
-      uploadStatus: $CloudFilesTable.$converteruploadStatus
-          .fromJson(serializer.fromJson<int>(json['uploadStatus'])),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      modifiedAt: serializer.fromJson<DateTime>(json['modifiedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'localPath': serializer.toJson<String?>(localPath),
-      'fileName': serializer.toJson<String>(fileName),
-      'fileSizeBytes': serializer.toJson<BigInt>(fileSizeBytes),
-      'mimeType': serializer.toJson<String>(mimeType),
-      'folderPath': serializer.toJson<String>(folderPath),
-      'telegramMsgId': serializer.toJson<int?>(telegramMsgId),
-      'telegramFileId': serializer.toJson<String?>(telegramFileId),
-      'topicId': serializer.toJson<int?>(topicId),
-      'isPinnedOffline': serializer.toJson<bool>(isPinnedOffline),
-      'uploadStatus': serializer.toJson<int>(
-          $CloudFilesTable.$converteruploadStatus.toJson(uploadStatus)),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'modifiedAt': serializer.toJson<DateTime>(modifiedAt),
-    };
-  }
-
-  CloudFile copyWith(
-          {int? id,
-          Value<String?> localPath = const Value.absent(),
-          String? fileName,
-          BigInt? fileSizeBytes,
-          String? mimeType,
-          String? folderPath,
-          Value<int?> telegramMsgId = const Value.absent(),
-          Value<String?> telegramFileId = const Value.absent(),
-          Value<int?> topicId = const Value.absent(),
-          bool? isPinnedOffline,
-          UploadStatus? uploadStatus,
-          DateTime? createdAt,
-          DateTime? modifiedAt}) =>
-      CloudFile(
-        id: id ?? this.id,
-        localPath: localPath.present ? localPath.value : this.localPath,
-        fileName: fileName ?? this.fileName,
-        fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
-        mimeType: mimeType ?? this.mimeType,
-        folderPath: folderPath ?? this.folderPath,
-        telegramMsgId:
-            telegramMsgId.present ? telegramMsgId.value : this.telegramMsgId,
-        telegramFileId:
-            telegramFileId.present ? telegramFileId.value : this.telegramFileId,
-        topicId: topicId.present ? topicId.value : this.topicId,
-        isPinnedOffline: isPinnedOffline ?? this.isPinnedOffline,
-        uploadStatus: uploadStatus ?? this.uploadStatus,
-        createdAt: createdAt ?? this.createdAt,
-        modifiedAt: modifiedAt ?? this.modifiedAt,
-      );
-  CloudFile copyWithCompanion(CloudFilesCompanion data) {
-    return CloudFile(
-      id: data.id.present ? data.id.value : this.id,
-      localPath: data.localPath.present ? data.localPath.value : this.localPath,
-      fileName: data.fileName.present ? data.fileName.value : this.fileName,
-      fileSizeBytes: data.fileSizeBytes.present
-          ? data.fileSizeBytes.value
-          : this.fileSizeBytes,
-      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
-      folderPath:
-          data.folderPath.present ? data.folderPath.value : this.folderPath,
-      telegramMsgId: data.telegramMsgId.present
-          ? data.telegramMsgId.value
-          : this.telegramMsgId,
-      telegramFileId: data.telegramFileId.present
-          ? data.telegramFileId.value
-          : this.telegramFileId,
-      topicId: data.topicId.present ? data.topicId.value : this.topicId,
-      isPinnedOffline: data.isPinnedOffline.present
-          ? data.isPinnedOffline.value
-          : this.isPinnedOffline,
-      uploadStatus: data.uploadStatus.present
-          ? data.uploadStatus.value
-          : this.uploadStatus,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      modifiedAt:
-          data.modifiedAt.present ? data.modifiedAt.value : this.modifiedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('CloudFile(')
-          ..write('id: $id, ')
-          ..write('localPath: $localPath, ')
-          ..write('fileName: $fileName, ')
-          ..write('fileSizeBytes: $fileSizeBytes, ')
-          ..write('mimeType: $mimeType, ')
-          ..write('folderPath: $folderPath, ')
-          ..write('telegramMsgId: $telegramMsgId, ')
-          ..write('telegramFileId: $telegramFileId, ')
-          ..write('topicId: $topicId, ')
-          ..write('isPinnedOffline: $isPinnedOffline, ')
-          ..write('uploadStatus: $uploadStatus, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('modifiedAt: $modifiedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-      id,
-      localPath,
-      fileName,
-      fileSizeBytes,
-      mimeType,
-      folderPath,
-      telegramMsgId,
-      telegramFileId,
-      topicId,
-      isPinnedOffline,
-      uploadStatus,
-      createdAt,
-      modifiedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is CloudFile &&
-          other.id == this.id &&
-          other.localPath == this.localPath &&
-          other.fileName == this.fileName &&
-          other.fileSizeBytes == this.fileSizeBytes &&
-          other.mimeType == this.mimeType &&
-          other.folderPath == this.folderPath &&
-          other.telegramMsgId == this.telegramMsgId &&
-          other.telegramFileId == this.telegramFileId &&
-          other.topicId == this.topicId &&
-          other.isPinnedOffline == this.isPinnedOffline &&
-          other.uploadStatus == this.uploadStatus &&
-          other.createdAt == this.createdAt &&
-          other.modifiedAt == this.modifiedAt);
-}
-
-class CloudFilesCompanion extends UpdateCompanion<CloudFile> {
-  final Value<int> id;
-  final Value<String?> localPath;
-  final Value<String> fileName;
-  final Value<BigInt> fileSizeBytes;
-  final Value<String> mimeType;
-  final Value<String> folderPath;
-  final Value<int?> telegramMsgId;
-  final Value<String?> telegramFileId;
-  final Value<int?> topicId;
-  final Value<bool> isPinnedOffline;
-  final Value<UploadStatus> uploadStatus;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> modifiedAt;
-  const CloudFilesCompanion({
-    this.id = const Value.absent(),
-    this.localPath = const Value.absent(),
-    this.fileName = const Value.absent(),
-    this.fileSizeBytes = const Value.absent(),
-    this.mimeType = const Value.absent(),
-    this.folderPath = const Value.absent(),
-    this.telegramMsgId = const Value.absent(),
-    this.telegramFileId = const Value.absent(),
-    this.topicId = const Value.absent(),
-    this.isPinnedOffline = const Value.absent(),
-    this.uploadStatus = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.modifiedAt = const Value.absent(),
-  });
-  CloudFilesCompanion.insert({
-    this.id = const Value.absent(),
-    this.localPath = const Value.absent(),
-    required String fileName,
-    required BigInt fileSizeBytes,
-    required String mimeType,
-    this.folderPath = const Value.absent(),
-    this.telegramMsgId = const Value.absent(),
-    this.telegramFileId = const Value.absent(),
-    this.topicId = const Value.absent(),
-    this.isPinnedOffline = const Value.absent(),
-    required UploadStatus uploadStatus,
-    required DateTime createdAt,
-    required DateTime modifiedAt,
-  })  : fileName = Value(fileName),
-        fileSizeBytes = Value(fileSizeBytes),
-        mimeType = Value(mimeType),
-        uploadStatus = Value(uploadStatus),
-        createdAt = Value(createdAt),
-        modifiedAt = Value(modifiedAt);
-  static Insertable<CloudFile> custom({
-    Expression<int>? id,
-    Expression<String>? localPath,
-    Expression<String>? fileName,
-    Expression<BigInt>? fileSizeBytes,
-    Expression<String>? mimeType,
-    Expression<String>? folderPath,
-    Expression<int>? telegramMsgId,
-    Expression<String>? telegramFileId,
-    Expression<int>? topicId,
-    Expression<bool>? isPinnedOffline,
-    Expression<int>? uploadStatus,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? modifiedAt,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (localPath != null) 'local_path': localPath,
-      if (fileName != null) 'file_name': fileName,
-      if (fileSizeBytes != null) 'file_size_bytes': fileSizeBytes,
-      if (mimeType != null) 'mime_type': mimeType,
-      if (folderPath != null) 'folder_path': folderPath,
-      if (telegramMsgId != null) 'telegram_msg_id': telegramMsgId,
-      if (telegramFileId != null) 'telegram_file_id': telegramFileId,
-      if (topicId != null) 'topic_id': topicId,
-      if (isPinnedOffline != null) 'is_pinned_offline': isPinnedOffline,
-      if (uploadStatus != null) 'upload_status': uploadStatus,
-      if (createdAt != null) 'created_at': createdAt,
-      if (modifiedAt != null) 'modified_at': modifiedAt,
-    });
-  }
-
-  CloudFilesCompanion copyWith(
-      {Value<int>? id,
-      Value<String?>? localPath,
-      Value<String>? fileName,
-      Value<BigInt>? fileSizeBytes,
-      Value<String>? mimeType,
-      Value<String>? folderPath,
-      Value<int?>? telegramMsgId,
-      Value<String?>? telegramFileId,
-      Value<int?>? topicId,
-      Value<bool>? isPinnedOffline,
-      Value<UploadStatus>? uploadStatus,
-      Value<DateTime>? createdAt,
-      Value<DateTime>? modifiedAt}) {
-    return CloudFilesCompanion(
-      id: id ?? this.id,
-      localPath: localPath ?? this.localPath,
-      fileName: fileName ?? this.fileName,
-      fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
-      mimeType: mimeType ?? this.mimeType,
-      folderPath: folderPath ?? this.folderPath,
-      telegramMsgId: telegramMsgId ?? this.telegramMsgId,
-      telegramFileId: telegramFileId ?? this.telegramFileId,
-      topicId: topicId ?? this.topicId,
-      isPinnedOffline: isPinnedOffline ?? this.isPinnedOffline,
-      uploadStatus: uploadStatus ?? this.uploadStatus,
-      createdAt: createdAt ?? this.createdAt,
-      modifiedAt: modifiedAt ?? this.modifiedAt,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (localPath.present) {
-      map['local_path'] = Variable<String>(localPath.value);
-    }
-    if (fileName.present) {
-      map['file_name'] = Variable<String>(fileName.value);
-    }
-    if (fileSizeBytes.present) {
-      map['file_size_bytes'] = Variable<BigInt>(fileSizeBytes.value);
-    }
-    if (mimeType.present) {
-      map['mime_type'] = Variable<String>(mimeType.value);
-    }
-    if (folderPath.present) {
-      map['folder_path'] = Variable<String>(folderPath.value);
-    }
-    if (telegramMsgId.present) {
-      map['telegram_msg_id'] = Variable<int>(telegramMsgId.value);
-    }
-    if (telegramFileId.present) {
-      map['telegram_file_id'] = Variable<String>(telegramFileId.value);
-    }
-    if (topicId.present) {
-      map['topic_id'] = Variable<int>(topicId.value);
-    }
-    if (isPinnedOffline.present) {
-      map['is_pinned_offline'] = Variable<bool>(isPinnedOffline.value);
-    }
-    if (uploadStatus.present) {
-      map['upload_status'] = Variable<int>(
-          $CloudFilesTable.$converteruploadStatus.toSql(uploadStatus.value));
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (modifiedAt.present) {
-      map['modified_at'] = Variable<DateTime>(modifiedAt.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('CloudFilesCompanion(')
-          ..write('id: $id, ')
-          ..write('localPath: $localPath, ')
-          ..write('fileName: $fileName, ')
-          ..write('fileSizeBytes: $fileSizeBytes, ')
-          ..write('mimeType: $mimeType, ')
-          ..write('folderPath: $folderPath, ')
-          ..write('telegramMsgId: $telegramMsgId, ')
-          ..write('telegramFileId: $telegramFileId, ')
-          ..write('topicId: $topicId, ')
-          ..write('isPinnedOffline: $isPinnedOffline, ')
-          ..write('uploadStatus: $uploadStatus, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('modifiedAt: $modifiedAt')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $CloudFoldersTable extends CloudFolders
-    with TableInfo<$CloudFoldersTable, CloudFolder> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $CloudFoldersTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-      'id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _parentPathMeta =
-      const VerificationMeta('parentPath');
-  @override
-  late final GeneratedColumn<String> parentPath = GeneratedColumn<String>(
-      'parent_path', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _folderNameMeta =
       const VerificationMeta('folderName');
   @override
   late final GeneratedColumn<String> folderName = GeneratedColumn<String>(
       'folder_name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _topicIdMeta =
-      const VerificationMeta('topicId');
+  static const VerificationMeta _folderPathMeta =
+      const VerificationMeta('folderPath');
   @override
-  late final GeneratedColumn<int> topicId = GeneratedColumn<int>(
-      'topic_id', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
+  late final GeneratedColumn<String> folderPath = GeneratedColumn<String>(
+      'folder_path', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isAutoBackupEnabledMeta =
+      const VerificationMeta('isAutoBackupEnabled');
   @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-      'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  late final GeneratedColumn<bool> isAutoBackupEnabled = GeneratedColumn<bool>(
+      'is_auto_backup_enabled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_auto_backup_enabled" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _mediaCountMeta =
+      const VerificationMeta('mediaCount');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, parentPath, folderName, topicId, createdAt];
+  late final GeneratedColumn<int> mediaCount = GeneratedColumn<int>(
+      'media_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _lastSyncedAtMeta =
+      const VerificationMeta('lastSyncedAt');
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+      'last_synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        folderId,
+        folderName,
+        folderPath,
+        isAutoBackupEnabled,
+        mediaCount,
+        lastSyncedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'cloud_folders';
+  static const String $name = 'folder_sync_settings';
   @override
-  VerificationContext validateIntegrity(Insertable<CloudFolder> instance,
+  VerificationContext validateIntegrity(Insertable<FolderSyncSetting> instance,
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    if (data.containsKey('folder_id')) {
+      context.handle(_folderIdMeta,
+          folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta));
     } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('parent_path')) {
-      context.handle(
-          _parentPathMeta,
-          parentPath.isAcceptableOrUnknown(
-              data['parent_path']!, _parentPathMeta));
+      context.missing(_folderIdMeta);
     }
     if (data.containsKey('folder_name')) {
       context.handle(
@@ -1820,215 +1309,256 @@ class $CloudFoldersTable extends CloudFolders
     } else if (isInserting) {
       context.missing(_folderNameMeta);
     }
-    if (data.containsKey('topic_id')) {
-      context.handle(_topicIdMeta,
-          topicId.isAcceptableOrUnknown(data['topic_id']!, _topicIdMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    if (data.containsKey('folder_path')) {
+      context.handle(
+          _folderPathMeta,
+          folderPath.isAcceptableOrUnknown(
+              data['folder_path']!, _folderPathMeta));
     } else if (isInserting) {
-      context.missing(_createdAtMeta);
+      context.missing(_folderPathMeta);
+    }
+    if (data.containsKey('is_auto_backup_enabled')) {
+      context.handle(
+          _isAutoBackupEnabledMeta,
+          isAutoBackupEnabled.isAcceptableOrUnknown(
+              data['is_auto_backup_enabled']!, _isAutoBackupEnabledMeta));
+    }
+    if (data.containsKey('media_count')) {
+      context.handle(
+          _mediaCountMeta,
+          mediaCount.isAcceptableOrUnknown(
+              data['media_count']!, _mediaCountMeta));
+    }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+          _lastSyncedAtMeta,
+          lastSyncedAt.isAcceptableOrUnknown(
+              data['last_synced_at']!, _lastSyncedAtMeta));
     }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {folderId};
   @override
-  CloudFolder map(Map<String, dynamic> data, {String? tablePrefix}) {
+  FolderSyncSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CloudFolder(
-      id: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      parentPath: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}parent_path']),
+    return FolderSyncSetting(
+      folderId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}folder_id'])!,
       folderName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}folder_name'])!,
-      topicId: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}topic_id']),
-      createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      folderPath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}folder_path'])!,
+      isAutoBackupEnabled: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}is_auto_backup_enabled'])!,
+      mediaCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}media_count'])!,
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_synced_at']),
     );
   }
 
   @override
-  $CloudFoldersTable createAlias(String alias) {
-    return $CloudFoldersTable(attachedDatabase, alias);
+  $FolderSyncSettingsTable createAlias(String alias) {
+    return $FolderSyncSettingsTable(attachedDatabase, alias);
   }
 }
 
-class CloudFolder extends DataClass implements Insertable<CloudFolder> {
-  final String id;
-  final String? parentPath;
+class FolderSyncSetting extends DataClass
+    implements Insertable<FolderSyncSetting> {
+  final String folderId;
   final String folderName;
-  final int? topicId;
-  final DateTime createdAt;
-  const CloudFolder(
-      {required this.id,
-      this.parentPath,
+  final String folderPath;
+  final bool isAutoBackupEnabled;
+  final int mediaCount;
+  final DateTime? lastSyncedAt;
+  const FolderSyncSetting(
+      {required this.folderId,
       required this.folderName,
-      this.topicId,
-      required this.createdAt});
+      required this.folderPath,
+      required this.isAutoBackupEnabled,
+      required this.mediaCount,
+      this.lastSyncedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    if (!nullToAbsent || parentPath != null) {
-      map['parent_path'] = Variable<String>(parentPath);
-    }
+    map['folder_id'] = Variable<String>(folderId);
     map['folder_name'] = Variable<String>(folderName);
-    if (!nullToAbsent || topicId != null) {
-      map['topic_id'] = Variable<int>(topicId);
+    map['folder_path'] = Variable<String>(folderPath);
+    map['is_auto_backup_enabled'] = Variable<bool>(isAutoBackupEnabled);
+    map['media_count'] = Variable<int>(mediaCount);
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
     }
-    map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
 
-  CloudFoldersCompanion toCompanion(bool nullToAbsent) {
-    return CloudFoldersCompanion(
-      id: Value(id),
-      parentPath: parentPath == null && nullToAbsent
-          ? const Value.absent()
-          : Value(parentPath),
+  FolderSyncSettingsCompanion toCompanion(bool nullToAbsent) {
+    return FolderSyncSettingsCompanion(
+      folderId: Value(folderId),
       folderName: Value(folderName),
-      topicId: topicId == null && nullToAbsent
+      folderPath: Value(folderPath),
+      isAutoBackupEnabled: Value(isAutoBackupEnabled),
+      mediaCount: Value(mediaCount),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
           ? const Value.absent()
-          : Value(topicId),
-      createdAt: Value(createdAt),
+          : Value(lastSyncedAt),
     );
   }
 
-  factory CloudFolder.fromJson(Map<String, dynamic> json,
+  factory FolderSyncSetting.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CloudFolder(
-      id: serializer.fromJson<String>(json['id']),
-      parentPath: serializer.fromJson<String?>(json['parentPath']),
+    return FolderSyncSetting(
+      folderId: serializer.fromJson<String>(json['folderId']),
       folderName: serializer.fromJson<String>(json['folderName']),
-      topicId: serializer.fromJson<int?>(json['topicId']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      folderPath: serializer.fromJson<String>(json['folderPath']),
+      isAutoBackupEnabled:
+          serializer.fromJson<bool>(json['isAutoBackupEnabled']),
+      mediaCount: serializer.fromJson<int>(json['mediaCount']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'parentPath': serializer.toJson<String?>(parentPath),
+      'folderId': serializer.toJson<String>(folderId),
       'folderName': serializer.toJson<String>(folderName),
-      'topicId': serializer.toJson<int?>(topicId),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'folderPath': serializer.toJson<String>(folderPath),
+      'isAutoBackupEnabled': serializer.toJson<bool>(isAutoBackupEnabled),
+      'mediaCount': serializer.toJson<int>(mediaCount),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
     };
   }
 
-  CloudFolder copyWith(
-          {String? id,
-          Value<String?> parentPath = const Value.absent(),
+  FolderSyncSetting copyWith(
+          {String? folderId,
           String? folderName,
-          Value<int?> topicId = const Value.absent(),
-          DateTime? createdAt}) =>
-      CloudFolder(
-        id: id ?? this.id,
-        parentPath: parentPath.present ? parentPath.value : this.parentPath,
+          String? folderPath,
+          bool? isAutoBackupEnabled,
+          int? mediaCount,
+          Value<DateTime?> lastSyncedAt = const Value.absent()}) =>
+      FolderSyncSetting(
+        folderId: folderId ?? this.folderId,
         folderName: folderName ?? this.folderName,
-        topicId: topicId.present ? topicId.value : this.topicId,
-        createdAt: createdAt ?? this.createdAt,
+        folderPath: folderPath ?? this.folderPath,
+        isAutoBackupEnabled: isAutoBackupEnabled ?? this.isAutoBackupEnabled,
+        mediaCount: mediaCount ?? this.mediaCount,
+        lastSyncedAt:
+            lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
       );
-  CloudFolder copyWithCompanion(CloudFoldersCompanion data) {
-    return CloudFolder(
-      id: data.id.present ? data.id.value : this.id,
-      parentPath:
-          data.parentPath.present ? data.parentPath.value : this.parentPath,
+  FolderSyncSetting copyWithCompanion(FolderSyncSettingsCompanion data) {
+    return FolderSyncSetting(
+      folderId: data.folderId.present ? data.folderId.value : this.folderId,
       folderName:
           data.folderName.present ? data.folderName.value : this.folderName,
-      topicId: data.topicId.present ? data.topicId.value : this.topicId,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      folderPath:
+          data.folderPath.present ? data.folderPath.value : this.folderPath,
+      isAutoBackupEnabled: data.isAutoBackupEnabled.present
+          ? data.isAutoBackupEnabled.value
+          : this.isAutoBackupEnabled,
+      mediaCount:
+          data.mediaCount.present ? data.mediaCount.value : this.mediaCount,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('CloudFolder(')
-          ..write('id: $id, ')
-          ..write('parentPath: $parentPath, ')
+    return (StringBuffer('FolderSyncSetting(')
+          ..write('folderId: $folderId, ')
           ..write('folderName: $folderName, ')
-          ..write('topicId: $topicId, ')
-          ..write('createdAt: $createdAt')
+          ..write('folderPath: $folderPath, ')
+          ..write('isAutoBackupEnabled: $isAutoBackupEnabled, ')
+          ..write('mediaCount: $mediaCount, ')
+          ..write('lastSyncedAt: $lastSyncedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, parentPath, folderName, topicId, createdAt);
+  int get hashCode => Object.hash(folderId, folderName, folderPath,
+      isAutoBackupEnabled, mediaCount, lastSyncedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CloudFolder &&
-          other.id == this.id &&
-          other.parentPath == this.parentPath &&
+      (other is FolderSyncSetting &&
+          other.folderId == this.folderId &&
           other.folderName == this.folderName &&
-          other.topicId == this.topicId &&
-          other.createdAt == this.createdAt);
+          other.folderPath == this.folderPath &&
+          other.isAutoBackupEnabled == this.isAutoBackupEnabled &&
+          other.mediaCount == this.mediaCount &&
+          other.lastSyncedAt == this.lastSyncedAt);
 }
 
-class CloudFoldersCompanion extends UpdateCompanion<CloudFolder> {
-  final Value<String> id;
-  final Value<String?> parentPath;
+class FolderSyncSettingsCompanion extends UpdateCompanion<FolderSyncSetting> {
+  final Value<String> folderId;
   final Value<String> folderName;
-  final Value<int?> topicId;
-  final Value<DateTime> createdAt;
+  final Value<String> folderPath;
+  final Value<bool> isAutoBackupEnabled;
+  final Value<int> mediaCount;
+  final Value<DateTime?> lastSyncedAt;
   final Value<int> rowid;
-  const CloudFoldersCompanion({
-    this.id = const Value.absent(),
-    this.parentPath = const Value.absent(),
+  const FolderSyncSettingsCompanion({
+    this.folderId = const Value.absent(),
     this.folderName = const Value.absent(),
-    this.topicId = const Value.absent(),
-    this.createdAt = const Value.absent(),
+    this.folderPath = const Value.absent(),
+    this.isAutoBackupEnabled = const Value.absent(),
+    this.mediaCount = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  CloudFoldersCompanion.insert({
-    required String id,
-    this.parentPath = const Value.absent(),
+  FolderSyncSettingsCompanion.insert({
+    required String folderId,
     required String folderName,
-    this.topicId = const Value.absent(),
-    required DateTime createdAt,
+    required String folderPath,
+    this.isAutoBackupEnabled = const Value.absent(),
+    this.mediaCount = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
-  })  : id = Value(id),
+  })  : folderId = Value(folderId),
         folderName = Value(folderName),
-        createdAt = Value(createdAt);
-  static Insertable<CloudFolder> custom({
-    Expression<String>? id,
-    Expression<String>? parentPath,
+        folderPath = Value(folderPath);
+  static Insertable<FolderSyncSetting> custom({
+    Expression<String>? folderId,
     Expression<String>? folderName,
-    Expression<int>? topicId,
-    Expression<DateTime>? createdAt,
+    Expression<String>? folderPath,
+    Expression<bool>? isAutoBackupEnabled,
+    Expression<int>? mediaCount,
+    Expression<DateTime>? lastSyncedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (parentPath != null) 'parent_path': parentPath,
+      if (folderId != null) 'folder_id': folderId,
       if (folderName != null) 'folder_name': folderName,
-      if (topicId != null) 'topic_id': topicId,
-      if (createdAt != null) 'created_at': createdAt,
+      if (folderPath != null) 'folder_path': folderPath,
+      if (isAutoBackupEnabled != null)
+        'is_auto_backup_enabled': isAutoBackupEnabled,
+      if (mediaCount != null) 'media_count': mediaCount,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
-  CloudFoldersCompanion copyWith(
-      {Value<String>? id,
-      Value<String?>? parentPath,
+  FolderSyncSettingsCompanion copyWith(
+      {Value<String>? folderId,
       Value<String>? folderName,
-      Value<int?>? topicId,
-      Value<DateTime>? createdAt,
+      Value<String>? folderPath,
+      Value<bool>? isAutoBackupEnabled,
+      Value<int>? mediaCount,
+      Value<DateTime?>? lastSyncedAt,
       Value<int>? rowid}) {
-    return CloudFoldersCompanion(
-      id: id ?? this.id,
-      parentPath: parentPath ?? this.parentPath,
+    return FolderSyncSettingsCompanion(
+      folderId: folderId ?? this.folderId,
       folderName: folderName ?? this.folderName,
-      topicId: topicId ?? this.topicId,
-      createdAt: createdAt ?? this.createdAt,
+      folderPath: folderPath ?? this.folderPath,
+      isAutoBackupEnabled: isAutoBackupEnabled ?? this.isAutoBackupEnabled,
+      mediaCount: mediaCount ?? this.mediaCount,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2036,20 +1566,23 @@ class CloudFoldersCompanion extends UpdateCompanion<CloudFolder> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (parentPath.present) {
-      map['parent_path'] = Variable<String>(parentPath.value);
+    if (folderId.present) {
+      map['folder_id'] = Variable<String>(folderId.value);
     }
     if (folderName.present) {
       map['folder_name'] = Variable<String>(folderName.value);
     }
-    if (topicId.present) {
-      map['topic_id'] = Variable<int>(topicId.value);
+    if (folderPath.present) {
+      map['folder_path'] = Variable<String>(folderPath.value);
     }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
+    if (isAutoBackupEnabled.present) {
+      map['is_auto_backup_enabled'] = Variable<bool>(isAutoBackupEnabled.value);
+    }
+    if (mediaCount.present) {
+      map['media_count'] = Variable<int>(mediaCount.value);
+    }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -2059,12 +1592,13 @@ class CloudFoldersCompanion extends UpdateCompanion<CloudFolder> {
 
   @override
   String toString() {
-    return (StringBuffer('CloudFoldersCompanion(')
-          ..write('id: $id, ')
-          ..write('parentPath: $parentPath, ')
+    return (StringBuffer('FolderSyncSettingsCompanion(')
+          ..write('folderId: $folderId, ')
           ..write('folderName: $folderName, ')
-          ..write('topicId: $topicId, ')
-          ..write('createdAt: $createdAt, ')
+          ..write('folderPath: $folderPath, ')
+          ..write('isAutoBackupEnabled: $isAutoBackupEnabled, ')
+          ..write('mediaCount: $mediaCount, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2076,26 +1610,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $AlbumsTable albums = $AlbumsTable(this);
   late final $MediaItemsTable mediaItems = $MediaItemsTable(this);
-  late final $CloudFilesTable cloudFiles = $CloudFilesTable(this);
-  late final $CloudFoldersTable cloudFolders = $CloudFoldersTable(this);
+  late final $FolderSyncSettingsTable folderSyncSettings =
+      $FolderSyncSettingsTable(this);
   late final Index idxCapturedAt = Index('idx_captured_at',
       'CREATE INDEX idx_captured_at ON media_items (captured_at)');
-  late final Index idxFilesFolder = Index('idx_files_folder',
-      'CREATE INDEX idx_files_folder ON cloud_files (folder_path)');
+  late final Index idxSha256Hash = Index('idx_sha256_hash',
+      'CREATE INDEX idx_sha256_hash ON media_items (sha256_hash)');
   late final MediaDao mediaDao = MediaDao(this as AppDatabase);
-  late final FilesDao filesDao = FilesDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [
-        albums,
-        mediaItems,
-        cloudFiles,
-        cloudFolders,
-        idxCapturedAt,
-        idxFilesFolder
-      ];
+  List<DatabaseSchemaEntity> get allSchemaEntities =>
+      [albums, mediaItems, folderSyncSettings, idxCapturedAt, idxSha256Hash];
 }
 
 typedef $$AlbumsTableCreateCompanionBuilder = AlbumsCompanion Function({
@@ -2346,6 +1873,9 @@ typedef $$MediaItemsTableCreateCompanionBuilder = MediaItemsCompanion Function({
   Value<bool> isFavorite,
   Value<bool> isTrashed,
   Value<DateTime?> trashedAt,
+  Value<String?> sha256Hash,
+  Value<String?> folderName,
+  Value<String?> folderPath,
   Value<int> rowid,
 });
 typedef $$MediaItemsTableUpdateCompanionBuilder = MediaItemsCompanion Function({
@@ -2366,6 +1896,9 @@ typedef $$MediaItemsTableUpdateCompanionBuilder = MediaItemsCompanion Function({
   Value<bool> isFavorite,
   Value<bool> isTrashed,
   Value<DateTime?> trashedAt,
+  Value<String?> sha256Hash,
+  Value<String?> folderName,
+  Value<String?> folderPath,
   Value<int> rowid,
 });
 
@@ -2447,6 +1980,15 @@ class $$MediaItemsTableFilterComposer
 
   ColumnFilters<DateTime> get trashedAt => $composableBuilder(
       column: $table.trashedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sha256Hash => $composableBuilder(
+      column: $table.sha256Hash, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get folderName => $composableBuilder(
+      column: $table.folderName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get folderPath => $composableBuilder(
+      column: $table.folderPath, builder: (column) => ColumnFilters(column));
 
   $$AlbumsTableFilterComposer get albumId {
     final $$AlbumsTableFilterComposer composer = $composerBuilder(
@@ -2531,6 +2073,15 @@ class $$MediaItemsTableOrderingComposer
   ColumnOrderings<DateTime> get trashedAt => $composableBuilder(
       column: $table.trashedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get sha256Hash => $composableBuilder(
+      column: $table.sha256Hash, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get folderName => $composableBuilder(
+      column: $table.folderName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get folderPath => $composableBuilder(
+      column: $table.folderPath, builder: (column) => ColumnOrderings(column));
+
   $$AlbumsTableOrderingComposer get albumId {
     final $$AlbumsTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -2610,6 +2161,15 @@ class $$MediaItemsTableAnnotationComposer
   GeneratedColumn<DateTime> get trashedAt =>
       $composableBuilder(column: $table.trashedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get sha256Hash => $composableBuilder(
+      column: $table.sha256Hash, builder: (column) => column);
+
+  GeneratedColumn<String> get folderName => $composableBuilder(
+      column: $table.folderName, builder: (column) => column);
+
+  GeneratedColumn<String> get folderPath => $composableBuilder(
+      column: $table.folderPath, builder: (column) => column);
+
   $$AlbumsTableAnnotationComposer get albumId {
     final $$AlbumsTableAnnotationComposer composer = $composerBuilder(
         composer: this,
@@ -2671,6 +2231,9 @@ class $$MediaItemsTableTableManager extends RootTableManager<
             Value<bool> isFavorite = const Value.absent(),
             Value<bool> isTrashed = const Value.absent(),
             Value<DateTime?> trashedAt = const Value.absent(),
+            Value<String?> sha256Hash = const Value.absent(),
+            Value<String?> folderName = const Value.absent(),
+            Value<String?> folderPath = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MediaItemsCompanion(
@@ -2691,6 +2254,9 @@ class $$MediaItemsTableTableManager extends RootTableManager<
             isFavorite: isFavorite,
             isTrashed: isTrashed,
             trashedAt: trashedAt,
+            sha256Hash: sha256Hash,
+            folderName: folderName,
+            folderPath: folderPath,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -2711,6 +2277,9 @@ class $$MediaItemsTableTableManager extends RootTableManager<
             Value<bool> isFavorite = const Value.absent(),
             Value<bool> isTrashed = const Value.absent(),
             Value<DateTime?> trashedAt = const Value.absent(),
+            Value<String?> sha256Hash = const Value.absent(),
+            Value<String?> folderName = const Value.absent(),
+            Value<String?> folderPath = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               MediaItemsCompanion.insert(
@@ -2731,6 +2300,9 @@ class $$MediaItemsTableTableManager extends RootTableManager<
             isFavorite: isFavorite,
             isTrashed: isTrashed,
             trashedAt: trashedAt,
+            sha256Hash: sha256Hash,
+            folderName: folderName,
+            folderPath: folderPath,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -2789,444 +2361,175 @@ typedef $$MediaItemsTableProcessedTableManager = ProcessedTableManager<
     (MediaItem, $$MediaItemsTableReferences),
     MediaItem,
     PrefetchHooks Function({bool albumId})>;
-typedef $$CloudFilesTableCreateCompanionBuilder = CloudFilesCompanion Function({
-  Value<int> id,
-  Value<String?> localPath,
-  required String fileName,
-  required BigInt fileSizeBytes,
-  required String mimeType,
-  Value<String> folderPath,
-  Value<int?> telegramMsgId,
-  Value<String?> telegramFileId,
-  Value<int?> topicId,
-  Value<bool> isPinnedOffline,
-  required UploadStatus uploadStatus,
-  required DateTime createdAt,
-  required DateTime modifiedAt,
-});
-typedef $$CloudFilesTableUpdateCompanionBuilder = CloudFilesCompanion Function({
-  Value<int> id,
-  Value<String?> localPath,
-  Value<String> fileName,
-  Value<BigInt> fileSizeBytes,
-  Value<String> mimeType,
-  Value<String> folderPath,
-  Value<int?> telegramMsgId,
-  Value<String?> telegramFileId,
-  Value<int?> topicId,
-  Value<bool> isPinnedOffline,
-  Value<UploadStatus> uploadStatus,
-  Value<DateTime> createdAt,
-  Value<DateTime> modifiedAt,
-});
-
-class $$CloudFilesTableFilterComposer
-    extends Composer<_$AppDatabase, $CloudFilesTable> {
-  $$CloudFilesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get localPath => $composableBuilder(
-      column: $table.localPath, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get fileName => $composableBuilder(
-      column: $table.fileName, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<BigInt> get fileSizeBytes => $composableBuilder(
-      column: $table.fileSizeBytes, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get mimeType => $composableBuilder(
-      column: $table.mimeType, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get folderPath => $composableBuilder(
-      column: $table.folderPath, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get telegramMsgId => $composableBuilder(
-      column: $table.telegramMsgId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get telegramFileId => $composableBuilder(
-      column: $table.telegramFileId,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get topicId => $composableBuilder(
-      column: $table.topicId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isPinnedOffline => $composableBuilder(
-      column: $table.isPinnedOffline,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<UploadStatus, UploadStatus, int>
-      get uploadStatus => $composableBuilder(
-          column: $table.uploadStatus,
-          builder: (column) => ColumnWithTypeConverterFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get modifiedAt => $composableBuilder(
-      column: $table.modifiedAt, builder: (column) => ColumnFilters(column));
-}
-
-class $$CloudFilesTableOrderingComposer
-    extends Composer<_$AppDatabase, $CloudFilesTable> {
-  $$CloudFilesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get localPath => $composableBuilder(
-      column: $table.localPath, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get fileName => $composableBuilder(
-      column: $table.fileName, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<BigInt> get fileSizeBytes => $composableBuilder(
-      column: $table.fileSizeBytes,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get mimeType => $composableBuilder(
-      column: $table.mimeType, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get folderPath => $composableBuilder(
-      column: $table.folderPath, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get telegramMsgId => $composableBuilder(
-      column: $table.telegramMsgId,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get telegramFileId => $composableBuilder(
-      column: $table.telegramFileId,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get topicId => $composableBuilder(
-      column: $table.topicId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isPinnedOffline => $composableBuilder(
-      column: $table.isPinnedOffline,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get uploadStatus => $composableBuilder(
-      column: $table.uploadStatus,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get modifiedAt => $composableBuilder(
-      column: $table.modifiedAt, builder: (column) => ColumnOrderings(column));
-}
-
-class $$CloudFilesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CloudFilesTable> {
-  $$CloudFilesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get localPath =>
-      $composableBuilder(column: $table.localPath, builder: (column) => column);
-
-  GeneratedColumn<String> get fileName =>
-      $composableBuilder(column: $table.fileName, builder: (column) => column);
-
-  GeneratedColumn<BigInt> get fileSizeBytes => $composableBuilder(
-      column: $table.fileSizeBytes, builder: (column) => column);
-
-  GeneratedColumn<String> get mimeType =>
-      $composableBuilder(column: $table.mimeType, builder: (column) => column);
-
-  GeneratedColumn<String> get folderPath => $composableBuilder(
-      column: $table.folderPath, builder: (column) => column);
-
-  GeneratedColumn<int> get telegramMsgId => $composableBuilder(
-      column: $table.telegramMsgId, builder: (column) => column);
-
-  GeneratedColumn<String> get telegramFileId => $composableBuilder(
-      column: $table.telegramFileId, builder: (column) => column);
-
-  GeneratedColumn<int> get topicId =>
-      $composableBuilder(column: $table.topicId, builder: (column) => column);
-
-  GeneratedColumn<bool> get isPinnedOffline => $composableBuilder(
-      column: $table.isPinnedOffline, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<UploadStatus, int> get uploadStatus =>
-      $composableBuilder(
-          column: $table.uploadStatus, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get modifiedAt => $composableBuilder(
-      column: $table.modifiedAt, builder: (column) => column);
-}
-
-class $$CloudFilesTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $CloudFilesTable,
-    CloudFile,
-    $$CloudFilesTableFilterComposer,
-    $$CloudFilesTableOrderingComposer,
-    $$CloudFilesTableAnnotationComposer,
-    $$CloudFilesTableCreateCompanionBuilder,
-    $$CloudFilesTableUpdateCompanionBuilder,
-    (CloudFile, BaseReferences<_$AppDatabase, $CloudFilesTable, CloudFile>),
-    CloudFile,
-    PrefetchHooks Function()> {
-  $$CloudFilesTableTableManager(_$AppDatabase db, $CloudFilesTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$CloudFilesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$CloudFilesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$CloudFilesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String?> localPath = const Value.absent(),
-            Value<String> fileName = const Value.absent(),
-            Value<BigInt> fileSizeBytes = const Value.absent(),
-            Value<String> mimeType = const Value.absent(),
-            Value<String> folderPath = const Value.absent(),
-            Value<int?> telegramMsgId = const Value.absent(),
-            Value<String?> telegramFileId = const Value.absent(),
-            Value<int?> topicId = const Value.absent(),
-            Value<bool> isPinnedOffline = const Value.absent(),
-            Value<UploadStatus> uploadStatus = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<DateTime> modifiedAt = const Value.absent(),
-          }) =>
-              CloudFilesCompanion(
-            id: id,
-            localPath: localPath,
-            fileName: fileName,
-            fileSizeBytes: fileSizeBytes,
-            mimeType: mimeType,
-            folderPath: folderPath,
-            telegramMsgId: telegramMsgId,
-            telegramFileId: telegramFileId,
-            topicId: topicId,
-            isPinnedOffline: isPinnedOffline,
-            uploadStatus: uploadStatus,
-            createdAt: createdAt,
-            modifiedAt: modifiedAt,
-          ),
-          createCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String?> localPath = const Value.absent(),
-            required String fileName,
-            required BigInt fileSizeBytes,
-            required String mimeType,
-            Value<String> folderPath = const Value.absent(),
-            Value<int?> telegramMsgId = const Value.absent(),
-            Value<String?> telegramFileId = const Value.absent(),
-            Value<int?> topicId = const Value.absent(),
-            Value<bool> isPinnedOffline = const Value.absent(),
-            required UploadStatus uploadStatus,
-            required DateTime createdAt,
-            required DateTime modifiedAt,
-          }) =>
-              CloudFilesCompanion.insert(
-            id: id,
-            localPath: localPath,
-            fileName: fileName,
-            fileSizeBytes: fileSizeBytes,
-            mimeType: mimeType,
-            folderPath: folderPath,
-            telegramMsgId: telegramMsgId,
-            telegramFileId: telegramFileId,
-            topicId: topicId,
-            isPinnedOffline: isPinnedOffline,
-            uploadStatus: uploadStatus,
-            createdAt: createdAt,
-            modifiedAt: modifiedAt,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$CloudFilesTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $CloudFilesTable,
-    CloudFile,
-    $$CloudFilesTableFilterComposer,
-    $$CloudFilesTableOrderingComposer,
-    $$CloudFilesTableAnnotationComposer,
-    $$CloudFilesTableCreateCompanionBuilder,
-    $$CloudFilesTableUpdateCompanionBuilder,
-    (CloudFile, BaseReferences<_$AppDatabase, $CloudFilesTable, CloudFile>),
-    CloudFile,
-    PrefetchHooks Function()>;
-typedef $$CloudFoldersTableCreateCompanionBuilder = CloudFoldersCompanion
-    Function({
-  required String id,
-  Value<String?> parentPath,
+typedef $$FolderSyncSettingsTableCreateCompanionBuilder
+    = FolderSyncSettingsCompanion Function({
+  required String folderId,
   required String folderName,
-  Value<int?> topicId,
-  required DateTime createdAt,
+  required String folderPath,
+  Value<bool> isAutoBackupEnabled,
+  Value<int> mediaCount,
+  Value<DateTime?> lastSyncedAt,
   Value<int> rowid,
 });
-typedef $$CloudFoldersTableUpdateCompanionBuilder = CloudFoldersCompanion
-    Function({
-  Value<String> id,
-  Value<String?> parentPath,
+typedef $$FolderSyncSettingsTableUpdateCompanionBuilder
+    = FolderSyncSettingsCompanion Function({
+  Value<String> folderId,
   Value<String> folderName,
-  Value<int?> topicId,
-  Value<DateTime> createdAt,
+  Value<String> folderPath,
+  Value<bool> isAutoBackupEnabled,
+  Value<int> mediaCount,
+  Value<DateTime?> lastSyncedAt,
   Value<int> rowid,
 });
 
-class $$CloudFoldersTableFilterComposer
-    extends Composer<_$AppDatabase, $CloudFoldersTable> {
-  $$CloudFoldersTableFilterComposer({
+class $$FolderSyncSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $FolderSyncSettingsTable> {
+  $$FolderSyncSettingsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get parentPath => $composableBuilder(
-      column: $table.parentPath, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get folderId => $composableBuilder(
+      column: $table.folderId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get folderName => $composableBuilder(
       column: $table.folderName, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get topicId => $composableBuilder(
-      column: $table.topicId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get folderPath => $composableBuilder(
+      column: $table.folderPath, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+  ColumnFilters<bool> get isAutoBackupEnabled => $composableBuilder(
+      column: $table.isAutoBackupEnabled,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get mediaCount => $composableBuilder(
+      column: $table.mediaCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => ColumnFilters(column));
 }
 
-class $$CloudFoldersTableOrderingComposer
-    extends Composer<_$AppDatabase, $CloudFoldersTable> {
-  $$CloudFoldersTableOrderingComposer({
+class $$FolderSyncSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FolderSyncSettingsTable> {
+  $$FolderSyncSettingsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get parentPath => $composableBuilder(
-      column: $table.parentPath, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get folderId => $composableBuilder(
+      column: $table.folderId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get folderName => $composableBuilder(
       column: $table.folderName, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get topicId => $composableBuilder(
-      column: $table.topicId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get folderPath => $composableBuilder(
+      column: $table.folderPath, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<bool> get isAutoBackupEnabled => $composableBuilder(
+      column: $table.isAutoBackupEnabled,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get mediaCount => $composableBuilder(
+      column: $table.mediaCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt,
+      builder: (column) => ColumnOrderings(column));
 }
 
-class $$CloudFoldersTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CloudFoldersTable> {
-  $$CloudFoldersTableAnnotationComposer({
+class $$FolderSyncSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FolderSyncSettingsTable> {
+  $$FolderSyncSettingsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get parentPath => $composableBuilder(
-      column: $table.parentPath, builder: (column) => column);
+  GeneratedColumn<String> get folderId =>
+      $composableBuilder(column: $table.folderId, builder: (column) => column);
 
   GeneratedColumn<String> get folderName => $composableBuilder(
       column: $table.folderName, builder: (column) => column);
 
-  GeneratedColumn<int> get topicId =>
-      $composableBuilder(column: $table.topicId, builder: (column) => column);
+  GeneratedColumn<String> get folderPath => $composableBuilder(
+      column: $table.folderPath, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+  GeneratedColumn<bool> get isAutoBackupEnabled => $composableBuilder(
+      column: $table.isAutoBackupEnabled, builder: (column) => column);
+
+  GeneratedColumn<int> get mediaCount => $composableBuilder(
+      column: $table.mediaCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+      column: $table.lastSyncedAt, builder: (column) => column);
 }
 
-class $$CloudFoldersTableTableManager extends RootTableManager<
+class $$FolderSyncSettingsTableTableManager extends RootTableManager<
     _$AppDatabase,
-    $CloudFoldersTable,
-    CloudFolder,
-    $$CloudFoldersTableFilterComposer,
-    $$CloudFoldersTableOrderingComposer,
-    $$CloudFoldersTableAnnotationComposer,
-    $$CloudFoldersTableCreateCompanionBuilder,
-    $$CloudFoldersTableUpdateCompanionBuilder,
+    $FolderSyncSettingsTable,
+    FolderSyncSetting,
+    $$FolderSyncSettingsTableFilterComposer,
+    $$FolderSyncSettingsTableOrderingComposer,
+    $$FolderSyncSettingsTableAnnotationComposer,
+    $$FolderSyncSettingsTableCreateCompanionBuilder,
+    $$FolderSyncSettingsTableUpdateCompanionBuilder,
     (
-      CloudFolder,
-      BaseReferences<_$AppDatabase, $CloudFoldersTable, CloudFolder>
+      FolderSyncSetting,
+      BaseReferences<_$AppDatabase, $FolderSyncSettingsTable, FolderSyncSetting>
     ),
-    CloudFolder,
+    FolderSyncSetting,
     PrefetchHooks Function()> {
-  $$CloudFoldersTableTableManager(_$AppDatabase db, $CloudFoldersTable table)
+  $$FolderSyncSettingsTableTableManager(
+      _$AppDatabase db, $FolderSyncSettingsTable table)
       : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$CloudFoldersTableFilterComposer($db: db, $table: table),
+              $$FolderSyncSettingsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$CloudFoldersTableOrderingComposer($db: db, $table: table),
+              $$FolderSyncSettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$CloudFoldersTableAnnotationComposer($db: db, $table: table),
+              $$FolderSyncSettingsTableAnnotationComposer(
+                  $db: db, $table: table),
           updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String?> parentPath = const Value.absent(),
+            Value<String> folderId = const Value.absent(),
             Value<String> folderName = const Value.absent(),
-            Value<int?> topicId = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
+            Value<String> folderPath = const Value.absent(),
+            Value<bool> isAutoBackupEnabled = const Value.absent(),
+            Value<int> mediaCount = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
-              CloudFoldersCompanion(
-            id: id,
-            parentPath: parentPath,
+              FolderSyncSettingsCompanion(
+            folderId: folderId,
             folderName: folderName,
-            topicId: topicId,
-            createdAt: createdAt,
+            folderPath: folderPath,
+            isAutoBackupEnabled: isAutoBackupEnabled,
+            mediaCount: mediaCount,
+            lastSyncedAt: lastSyncedAt,
             rowid: rowid,
           ),
           createCompanionCallback: ({
-            required String id,
-            Value<String?> parentPath = const Value.absent(),
+            required String folderId,
             required String folderName,
-            Value<int?> topicId = const Value.absent(),
-            required DateTime createdAt,
+            required String folderPath,
+            Value<bool> isAutoBackupEnabled = const Value.absent(),
+            Value<int> mediaCount = const Value.absent(),
+            Value<DateTime?> lastSyncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
-              CloudFoldersCompanion.insert(
-            id: id,
-            parentPath: parentPath,
+              FolderSyncSettingsCompanion.insert(
+            folderId: folderId,
             folderName: folderName,
-            topicId: topicId,
-            createdAt: createdAt,
+            folderPath: folderPath,
+            isAutoBackupEnabled: isAutoBackupEnabled,
+            mediaCount: mediaCount,
+            lastSyncedAt: lastSyncedAt,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -3236,20 +2539,20 @@ class $$CloudFoldersTableTableManager extends RootTableManager<
         ));
 }
 
-typedef $$CloudFoldersTableProcessedTableManager = ProcessedTableManager<
+typedef $$FolderSyncSettingsTableProcessedTableManager = ProcessedTableManager<
     _$AppDatabase,
-    $CloudFoldersTable,
-    CloudFolder,
-    $$CloudFoldersTableFilterComposer,
-    $$CloudFoldersTableOrderingComposer,
-    $$CloudFoldersTableAnnotationComposer,
-    $$CloudFoldersTableCreateCompanionBuilder,
-    $$CloudFoldersTableUpdateCompanionBuilder,
+    $FolderSyncSettingsTable,
+    FolderSyncSetting,
+    $$FolderSyncSettingsTableFilterComposer,
+    $$FolderSyncSettingsTableOrderingComposer,
+    $$FolderSyncSettingsTableAnnotationComposer,
+    $$FolderSyncSettingsTableCreateCompanionBuilder,
+    $$FolderSyncSettingsTableUpdateCompanionBuilder,
     (
-      CloudFolder,
-      BaseReferences<_$AppDatabase, $CloudFoldersTable, CloudFolder>
+      FolderSyncSetting,
+      BaseReferences<_$AppDatabase, $FolderSyncSettingsTable, FolderSyncSetting>
     ),
-    CloudFolder,
+    FolderSyncSetting,
     PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
@@ -3259,8 +2562,6 @@ class $AppDatabaseManager {
       $$AlbumsTableTableManager(_db, _db.albums);
   $$MediaItemsTableTableManager get mediaItems =>
       $$MediaItemsTableTableManager(_db, _db.mediaItems);
-  $$CloudFilesTableTableManager get cloudFiles =>
-      $$CloudFilesTableTableManager(_db, _db.cloudFiles);
-  $$CloudFoldersTableTableManager get cloudFolders =>
-      $$CloudFoldersTableTableManager(_db, _db.cloudFolders);
+  $$FolderSyncSettingsTableTableManager get folderSyncSettings =>
+      $$FolderSyncSettingsTableTableManager(_db, _db.folderSyncSettings);
 }

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import '../constants/app_constants.dart';
 import '../utils/telecloud_logger.dart';
+import 'upload_queue.dart';
 
 enum BackupState { idle, waitingToUpload, uploading, waitingForReconnect }
 
@@ -281,6 +282,37 @@ class BackupManager {
         });
         break;
     }
+  }
+
+  /// Updates foreground notification in real-time with live speed and item counts
+  Future<void> updateUploadProgressNotification(UploadProgressState progress) async {
+    try {
+      if (!await FlutterForegroundTask.isRunningService) return;
+
+      if (progress.totalCount == 0 || progress.completedCount >= progress.totalCount) {
+        await FlutterForegroundTask.updateService(
+          notificationTitle: 'TeleCloud Backup Complete',
+          notificationText: 'All items successfully backed up to Telegram Cloud.',
+        );
+        return;
+      }
+
+      final percent = (progress.progressPercentage * 100).toStringAsFixed(0);
+      final speed = progress.speedFormatted;
+      final file = progress.currentFileName.isNotEmpty
+          ? progress.currentFileName
+          : 'photos';
+
+      final title = progress.isPaused
+          ? 'TeleCloud Backup (Paused)'
+          : 'Backing up ($percent%) • $speed';
+      final text = '[${progress.completedCount}/${progress.totalCount}] $file';
+
+      await FlutterForegroundTask.updateService(
+        notificationTitle: title,
+        notificationText: text,
+      );
+    } catch (_) {}
   }
 
   Future<void> stopService() async {

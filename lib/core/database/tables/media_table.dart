@@ -4,6 +4,7 @@ import 'albums_table.dart';
 enum UploadStatus { pending, uploading, done, failed }
 
 @TableIndex(name: 'idx_captured_at', columns: {#capturedAt})
+@TableIndex(name: 'idx_sha256_hash', columns: {#sha256Hash})
 class MediaItems extends Table {
   TextColumn get localId => text()();
   IntColumn get telegramMsgId => integer().nullable()();
@@ -22,7 +23,11 @@ class MediaItems extends Table {
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   BoolColumn get isTrashed => boolean().withDefault(const Constant(false))();
   DateTimeColumn get trashedAt => dateTime().nullable()();
+  TextColumn get sha256Hash => text().nullable()();
+  TextColumn get folderName => text().nullable()();
+  TextColumn get folderPath => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {localId};
 }
+

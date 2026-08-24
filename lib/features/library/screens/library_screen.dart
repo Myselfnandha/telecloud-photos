@@ -442,6 +442,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             child: Column(
               children: [
                 _buildMediaTypeRow(
+                  title: 'Device Folders & Sync',
+                  icon: Icons.sync_rounded,
+                  iconColor: const Color(0xFF30D158),
+                  subtitle: 'Manage selective device folder auto-sync',
+                  streamCount: mediaDao.watchFolderSyncSettings().map((l) => l.where((f) => f.isAutoBackupEnabled).length),
+                  onTap: () => context.push('/settings/folders'),
+                  isLight: isLight,
+                  primaryTextColor: primaryTextColor,
+                  secondaryTextColor: secondaryTextColor,
+                ),
+                _buildDivider(isLight),
+                _buildMediaTypeRow(
                   title: 'Imports',
                   icon: Icons.cloud_download_outlined,
                   iconColor: const Color(0xFF4285F4),

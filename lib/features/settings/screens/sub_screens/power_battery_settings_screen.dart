@@ -25,6 +25,7 @@ class _PowerBatterySettingsScreenState
   bool _chargingOnly = true;
   int _chargingDwellMins = 30;
   bool _batteryNotLow = true;
+  int _batteryThresholdPercent = 20;
   bool _autoKillWhenDone = true;
 
   @override
@@ -45,6 +46,9 @@ class _PowerBatterySettingsScreenState
       _batteryNotLow =
           prefs.getBool(AppConstants.keyBatteryNotLow) ??
           AppConstants.defaultBatteryNotLow;
+      _batteryThresholdPercent =
+          prefs.getInt(AppConstants.keyBatteryThresholdPercent) ??
+          AppConstants.defaultBatteryThresholdPercent;
       _autoKillWhenDone =
           prefs.getBool(AppConstants.keyAutoKillWhenDone) ??
           AppConstants.defaultAutoKillWhenDone;
@@ -213,7 +217,7 @@ class _PowerBatterySettingsScreenState
               children: [
                 SwitchListTile.adaptive(
                   title: Text(
-                    'Pause on Low Battery (< 20%)',
+                    'Pause on Low Battery',
                     style: TextStyle(
                       color: primaryTextColor,
                       fontWeight: FontWeight.w600,
@@ -232,6 +236,63 @@ class _PowerBatterySettingsScreenState
                     HapticFeedback.selectionClick();
                   },
                 ),
+                if (_batteryNotLow) ...[
+                  _buildDivider(isLight),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Minimum Battery Threshold',
+                              style: TextStyle(
+                                color: primaryTextColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              '$_batteryThresholdPercent%',
+                              style: const TextStyle(
+                                color: AppColors.primaryBlue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pauses sync if battery drops below this percentage on battery power',
+                          style: TextStyle(
+                            color: secondaryTextColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Slider.adaptive(
+                          value: _batteryThresholdPercent.toDouble(),
+                          min: 10,
+                          max: 50,
+                          divisions: 8,
+                          activeColor: AppColors.primaryBlue,
+                          onChanged: (v) {
+                            setState(() => _batteryThresholdPercent = v.toInt());
+                            _saveSetting(
+                              AppConstants.keyBatteryThresholdPercent,
+                              v.toInt(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 _buildDivider(isLight),
                 SwitchListTile.adaptive(
                   title: Text(

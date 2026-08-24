@@ -39,9 +39,6 @@ import 'features/library/screens/library_screen.dart';
 import 'features/library/screens/media_collection_screen.dart';
 import 'features/google_photos/screens/google_photos_hub_screen.dart';
 import 'features/google_photos/screens/google_photos_synced_screen.dart';
-import 'features/files/screens/files_explorer_screen.dart';
-import 'features/settings/screens/sub_screens/files_companion_settings_screen.dart';
-import 'core/services/launcher_service.dart';
 import 'shared/theme/app_colors.dart';
 import 'core/di/providers.dart';
 
@@ -344,20 +341,11 @@ final _router = GoRouter(
       path: '/settings/storage',
       builder: (context, state) => const StorageMaintenanceSettingsScreen(),
     ),
-    GoRoute(
-      path: '/settings/files-companion',
-      builder: (context, state) => const FilesCompanionSettingsScreen(),
-    ),
-    GoRoute(
-      path: '/files',
-      builder: (context, state) => const FilesExplorerScreen(),
-    ),
   ],
 );
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  LauncherService.initialize();
   TeleCloudLogger.log('App', 'Starting TeleCloud Photos Application...');
 
   // Unlock native 90Hz / 120Hz / 144Hz high refresh rate on Android

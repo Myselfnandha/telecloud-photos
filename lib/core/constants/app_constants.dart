@@ -107,11 +107,24 @@ class AppConstants {
   static const String keyAppTheme =
       'app_theme_mode'; // 'light', 'dark', 'system', 'pure_black'
 
+  // Advanced Sync & Storage Keys
+  static const String keyEnabledBackupFolders = 'telecloud_backup_folder_ids';
+  static const String keyDailyCellularDataLimitMb = 'daily_cellular_data_limit_mb';
+  static const String keyUsedCellularDataTodayBytes = 'used_cellular_data_today_bytes';
+  static const String keyLastDataUsageResetDay = 'last_data_usage_reset_day';
+  static const String keyBatteryThresholdPercent = 'battery_threshold_percent';
+  static const String keyPauseOnRoaming = 'pause_on_roaming';
+  static const String keyMaxConcurrentUploads = 'max_concurrent_uploads';
+
   // Defaults
   static const bool defaultAutoBackupEnabled = true;
   static const bool defaultWifiOnly = true;
   static const bool defaultAllowMobileData = false;
   static const int defaultMobileDataLimitMb = 0; // 0 = unlimited
+  static const int defaultDailyCellularDataLimitMb = 0; // 0 = unlimited / disabled
+  static const int defaultBatteryThresholdPercent = 20; // 20%
+  static const bool defaultPauseOnRoaming = true;
+  static const int defaultMaxConcurrentUploads = 2;
   static const bool defaultChargingOnly = true;
   static const int defaultChargingDwellMins = 30; // 30 mins stabilization
   static const bool defaultBatteryNotLow = true;

@@ -247,6 +247,27 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     return false;
   }
 
+  Future<void> updateMediaCapturedAt(String localId, DateTime newCapturedAt) async {
+    await (update(mediaItems)..where((t) => t.localId.equals(localId))).write(
+      MediaItemsCompanion(
+        capturedAt: Value(newCapturedAt),
+      ),
+    );
+  }
+
+  Future<void> updateMediaGpsCoordinates(
+    String localId,
+    double? latitude,
+    double? longitude,
+  ) async {
+    await (update(mediaItems)..where((t) => t.localId.equals(localId))).write(
+      MediaItemsCompanion(
+        latitude: Value(latitude),
+        longitude: Value(longitude),
+      ),
+    );
+  }
+
   Stream<List<MediaItem>> searchMedia(String query) {
     final cleanQuery = '%${query.trim().toLowerCase()}%';
     return (select(mediaItems)

@@ -4,19 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/database/app_database.dart';
-import '../../../core/database/tables/media_table.dart';
 import '../../../core/cache/thumbnail_cache_service.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_radii.dart';
-import '../../../shared/theme/app_spacing.dart';
-import '../../../shared/theme/app_typography.dart';
 import '../../../shared/theme/app_icons.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../widgets/add_to_album_sheet.dart';
+import '../widgets/exif_info_sheet.dart';
+import '../widgets/video_gesture_overlay.dart';
 
 class MediaViewerScreen extends ConsumerStatefulWidget {
   final String mediaId;
@@ -72,342 +70,19 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     return '$width×$height';
   }
 
-  void _showInfoSheet(BuildContext context, MediaItem item) {
+  void _showInfoSheet(BuildContext context, MediaItem item) async {
+    AssetEntity? asset;
+    try {
+      asset = await AssetEntity.fromId(item.localId);
+    } catch (_) {}
+
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadii.borderTopXL),
-      builder: (context) {
-        final sizeMb = item.fileSizeBytes != null
-            ? (item.fileSizeBytes! / (1024 * 1024)).toStringAsFixed(2)
-            : 'Unknown';
-
-        final isVideo =
-            item.mimeType.startsWith('video') ||
-            item.filename.toLowerCase().endsWith('.mp4') ||
-            item.filename.toLowerCase().endsWith('.mov');
-
-        final mpStr = (item.width != null && item.height != null)
-            ? '${((item.width! * item.height!) / 1000000).toStringAsFixed(1)} MP'
-            : null;
-
-        return DraggableScrollableSheet(
-          initialChildSize: 0.65,
-          minChildSize: 0.40,
-          maxChildSize: 0.90,
-          expand: false,
-          builder: (ctx, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              padding: AppSpacing.dialogPadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle Bar
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 5,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2.5),
-                      ),
-                    ),
-                  ),
-
-                  // Header with Status Badge
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.filename,
-                          style: AppTypography.titleMedium(
-                            color: Colors.white,
-                          ).copyWith(fontWeight: AppTypography.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.s,
-                          vertical: AppSpacing.xs - 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: item.uploadStatus == UploadStatus.done
-                              ? AppColors.systemGreen.withValues(alpha: 0.2)
-                              : AppColors.primaryBlue.withValues(alpha: 0.2),
-                          borderRadius: AppRadii.borderS,
-                        ),
-                        child: Text(
-                          item.uploadStatus == UploadStatus.done
-                              ? 'Backed Up'
-                              : 'Pending Sync',
-                          style: AppTypography.labelSmall(
-                            color: item.uploadStatus == UploadStatus.done
-                                ? AppColors.systemGreen
-                                : AppColors.primaryBlue,
-                          ).copyWith(fontWeight: AppTypography.semiBold),
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSpacing.gapVerticalL,
-
-                  // Photographic EXIF Details Card
-                  Container(
-                    padding: AppSpacing.cardPadding,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: AppRadii.borderL,
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.camera_alt_rounded,
-                              color: AppColors.primaryBlue,
-                              size: AppIcons.m,
-                            ),
-                            AppSpacing.gapHorizontalS,
-                            Text(
-                              'Photo Details',
-                              style: AppTypography.labelLarge(
-                                color: Colors.white,
-                              ).copyWith(fontWeight: AppTypography.bold),
-                            ),
-                          ],
-                        ),
-                        AppSpacing.gapVerticalM,
-                        _infoRow(
-                          Icons.calendar_today,
-                          'Captured Date',
-                          item.capturedAt.toLocal().toString().split('.')[0],
-                        ),
-                        AppSpacing.gapVerticalS,
-                        _infoRow(
-                          Icons.aspect_ratio,
-                          'Resolution',
-                          '${item.width ?? 0} × ${item.height ?? 0} ${mpStr != null ? '($mpStr • ${_getResolutionLabel(item.width, item.height)})' : ''}',
-                        ),
-                        AppSpacing.gapVerticalS,
-                        _infoRow(Icons.storage, 'File Size', '$sizeMb MB'),
-                        AppSpacing.gapVerticalS,
-                        _infoRow(
-                          isVideo ? Icons.videocam : Icons.image,
-                          'Format',
-                          item.mimeType,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // GPS Location Map Tile
-                  if (item.latitude != null && item.longitude != null) ...[
-                    AppSpacing.gapVerticalL,
-                    Container(
-                      padding: AppSpacing.cardPadding,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: AppRadii.borderL,
-                        border: Border.all(color: Colors.white10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.location_on_rounded,
-                                    color: AppColors.systemRed,
-                                    size: AppIcons.m,
-                                  ),
-                                  AppSpacing.gapHorizontalS,
-                                  Text(
-                                    'Location',
-                                    style: AppTypography.labelLarge(
-                                      color: Colors.white,
-                                    ).copyWith(fontWeight: AppTypography.bold),
-                                  ),
-                                ],
-                              ),
-                              TextButton(
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                ),
-                                onPressed: () {
-                                  final uri = Uri.parse(
-                                    'geo:${item.latitude},${item.longitude}?q=${item.latitude},${item.longitude}',
-                                  );
-                                  launchUrl(
-                                    uri,
-                                    mode: LaunchMode.externalApplication,
-                                  );
-                                },
-                                child: Text(
-                                  'Open in Maps',
-                                  style: AppTypography.labelMedium(
-                                    color: AppColors.primaryBlue,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          AppSpacing.gapVerticalS,
-                          Text(
-                            '${item.latitude!.toStringAsFixed(5)}°, ${item.longitude!.toStringAsFixed(5)}°',
-                            style: AppTypography.bodyMedium(
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  // Cloud Metadata
-                  if (item.telegramMsgId != null) ...[
-                    AppSpacing.gapVerticalL,
-                    Container(
-                      padding: AppSpacing.cardPadding,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: AppRadii.borderL,
-                        border: Border.all(color: Colors.white10),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.cloud_done_rounded,
-                            color: AppColors.systemGreen,
-                            size: AppIcons.m,
-                          ),
-                          AppSpacing.gapHorizontalM,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Telegram Cloud Message',
-                                  style: AppTypography.labelMedium(
-                                    color: Colors.white,
-                                  ).copyWith(fontWeight: AppTypography.bold),
-                                ),
-                                Text(
-                                  'Message #${item.telegramMsgId}',
-                                  style: AppTypography.labelSmall(
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  AppSpacing.gapVerticalXL,
-
-                  // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white24),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: AppRadii.borderM,
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          icon: const Icon(
-                            Icons.add_to_photos_rounded,
-                            color: Colors.white,
-                            size: AppIcons.m,
-                          ),
-                          label: Text(
-                            'Add to Album',
-                            style: AppTypography.labelLarge(
-                              color: Colors.white,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            AddToAlbumSheet.show(context, item);
-                          },
-                        ),
-                      ),
-                      AppSpacing.gapHorizontalM,
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: AppRadii.borderM,
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          icon: const Icon(
-                            Icons.download_rounded,
-                            color: Colors.white,
-                            size: AppIcons.m,
-                          ),
-                          label: Text(
-                            'Save Original',
-                            style: AppTypography.labelLarge(
-                              color: Colors.white,
-                            ).copyWith(fontWeight: AppTypography.bold),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Saved to device gallery'),
-                                backgroundColor: AppColors.systemGreen,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _infoRow(IconData icon, String title, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: AppIcons.s + 2, color: Colors.grey.shade400),
-        AppSpacing.gapHorizontalM,
-        Text(
-          '$title: ',
-          style: AppTypography.bodyMedium(color: Colors.grey.shade400),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: AppTypography.bodyMedium(
-              color: Colors.white,
-            ).copyWith(fontWeight: AppTypography.medium),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+      builder: (context) => ExifInfoSheet(item: item, asset: asset),
     );
   }
 
@@ -1049,31 +724,45 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            GestureDetector(
-              onTap: () {
-                widget.onTap();
-                if (!widget.showControls) {
-                  _resetAutoHideTimer();
-                }
-              },
-              child: Center(
-                child: RotatedBox(
-                  quarterTurns: widget.rotationQuarterTurns,
-                  child: _isVideoInitialized && _videoPlayerController != null
-                      ? AspectRatio(
-                          aspectRatio:
-                              _videoPlayerController!.value.aspectRatio,
-                          child: VideoPlayer(_videoPlayerController!),
-                        )
-                      : (hasThumb
-                            ? Image.file(File(thumbPath), fit: BoxFit.contain)
-                            : const ShimmerLoading(
-                                width: double.infinity,
-                                height: 380,
-                              )),
+            if (_isVideoInitialized && _videoPlayerController != null)
+              VideoGestureOverlay(
+                controller: _videoPlayerController!,
+                onTap: () {
+                  widget.onTap();
+                  if (!widget.showControls) {
+                    _resetAutoHideTimer();
+                  }
+                },
+                child: Center(
+                  child: RotatedBox(
+                    quarterTurns: widget.rotationQuarterTurns,
+                    child: AspectRatio(
+                      aspectRatio: _videoPlayerController!.value.aspectRatio,
+                      child: VideoPlayer(_videoPlayerController!),
+                    ),
+                  ),
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: () {
+                  widget.onTap();
+                  if (!widget.showControls) {
+                    _resetAutoHideTimer();
+                  }
+                },
+                child: Center(
+                  child: RotatedBox(
+                    quarterTurns: widget.rotationQuarterTurns,
+                    child: hasThumb
+                        ? Image.file(File(thumbPath), fit: BoxFit.contain)
+                        : const ShimmerLoading(
+                            width: double.infinity,
+                            height: 380,
+                          ),
+                  ),
                 ),
               ),
-            ),
 
             // Loading Spinner
             if (_isLoadingCloudStream || (!_isVideoInitialized && !_isVideo))

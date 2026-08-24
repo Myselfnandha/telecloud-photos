@@ -234,52 +234,65 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              IntlPhoneField(
-                style: const TextStyle(color: Colors.white),
-                dropdownTextStyle: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  labelStyle: TextStyle(color: Colors.grey.shade400),
-                  errorText:
-                      (_rawController.text.isNotEmpty &&
-                          _rawController.text
-                                  .replaceAll(RegExp(r'\D'), '')
-                                  .length <
-                              10)
-                      ? 'Invalid number (minimum 10 digits)'
-                      : null,
-                  errorStyle: const TextStyle(
-                    color: Color(0xFFFF453A),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF1C1C1E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFFF453A),
-                      width: 1.5,
+              Builder(
+                builder: (context) {
+                  final rawDigits = _rawController.text.replaceAll(RegExp(r'\D'), '');
+                  final hasEnteredEnoughDigits = rawDigits.length >= 10;
+                  final isNumberTooLong = rawDigits.length > 15;
+                  final String? errorMsg = hasEnteredEnoughDigits && isNumberTooLong
+                      ? 'Phone number is too long (max 15 digits)'
+                      : null;
+
+                  return IntlPhoneField(
+                    style: const TextStyle(color: Colors.white),
+                    dropdownTextStyle: const TextStyle(color: Colors.white),
+                    disableLengthCheck: true,
+                    autovalidateMode: AutovalidateMode.disabled,
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number',
+                      labelStyle: TextStyle(color: Colors.grey.shade400),
+                      suffixIcon: hasEnteredEnoughDigits && !isNumberTooLong
+                          ? const Icon(
+                              Icons.check_circle_rounded,
+                              color: Color(0xFF30D158),
+                              size: 20,
+                            )
+                          : null,
+                      errorText: errorMsg,
+                      errorStyle: const TextStyle(
+                        color: Color(0xFFFF453A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF1C1C1E),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFFF453A),
+                          width: 1.5,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFFF453A),
+                          width: 1,
+                        ),
+                      ),
                     ),
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFFF453A),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                initialCountryCode: 'IN',
-                onChanged: (phone) {
-                  setState(() {
-                    _phoneNumber = phone.completeNumber;
-                    _rawController.text = phone.number;
-                  });
+                    initialCountryCode: 'IN',
+                    onChanged: (phone) {
+                      setState(() {
+                        _phoneNumber = phone.completeNumber;
+                        _rawController.text = phone.number;
+                      });
+                    },
+                  );
                 },
               ),
               const Spacer(),
@@ -301,7 +314,11 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                           _rawController.text
                                   .replaceAll(RegExp(r'\D'), '')
                                   .length <
-                              10)
+                              10 ||
+                          _rawController.text
+                                  .replaceAll(RegExp(r'\D'), '')
+                                  .length >
+                              15)
                       ? null
                       : () {
                           final targetNumber = _phoneNumber.isNotEmpty

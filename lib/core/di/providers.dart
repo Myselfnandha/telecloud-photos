@@ -259,13 +259,11 @@ final telegramAuthManagerProvider = ChangeNotifierProvider<TelegramAuthManager>(
     final client = ref.watch(tdlibClientProvider);
     final accountService = ref.watch(telegramAccountServiceProvider);
     final channelManager = ref.watch(channelManagerProvider);
-    final manager = TelegramAuthManager(
+    return TelegramAuthManager(
       client: client,
       accountService: accountService,
       channelManager: channelManager,
     );
-    ref.onDispose(() => manager.dispose());
-    return manager;
   },
 );
 

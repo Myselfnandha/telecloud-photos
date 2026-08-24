@@ -437,6 +437,7 @@ class TelegramAuthManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_isDisposed) return;
     _isDisposed = true;
     _sub?.cancel();
     _connSub?.cancel();

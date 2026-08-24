@@ -69,8 +69,14 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
           if (i.isTrashed) return false;
           final fn = i.filename.toUpperCase();
           final isMotion = fn.startsWith('MVIMG_') ||
-              fn.contains('MOTION') ||
-              fn.contains('LIVE');
+              fn.startsWith('LIVE_') ||
+              fn.contains('_MOTION_PHOTO') ||
+              fn.contains('_LIVEPHOTO') ||
+              fn.contains('_MP.JPG') ||
+              fn.contains('_MP.JPEG') ||
+              fn.contains('.MOTION.') ||
+              i.mimeType == 'image/x-motion-photo' ||
+              i.mimeType == 'image/x-livephoto';
           final isImage = i.mimeType.startsWith('image') ||
               fn.endsWith('.JPG') ||
               fn.endsWith('.JPEG') ||
@@ -96,11 +102,16 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
         return allItems.where((i) {
           if (i.isTrashed) return false;
           final fn = i.filename.toUpperCase();
-          return fn.startsWith('MVIMG_') ||
+          final isMotionName = fn.startsWith('MVIMG_') ||
               fn.startsWith('LIVE_') ||
               fn.contains('_MOTION_PHOTO') ||
               fn.contains('_LIVEPHOTO') ||
-              i.mimeType == 'image/x-motion-photo';
+              fn.contains('_MP.JPG') ||
+              fn.contains('_MP.JPEG') ||
+              fn.contains('.MOTION.');
+          final isMotionMime = i.mimeType == 'image/x-motion-photo' ||
+              i.mimeType == 'image/x-livephoto';
+          return isMotionName || isMotionMime;
         }).toList();
       case 'screenshots':
         return allItems.where((i) {

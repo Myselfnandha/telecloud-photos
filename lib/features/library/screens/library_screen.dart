@@ -71,10 +71,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 final topicId = await channelMgr.createAlbumTopic(name);
                 await mediaDao.createAlbum(name, topicId: topicId);
 
+                messenger.clearSnackBars();
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text('Album "$name" created in TeleCloud!'),
                     backgroundColor: const Color(0xFF30D158),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               }
@@ -320,11 +322,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
                     if (i.isTrashed) return false;
                     final fn = i.filename.toUpperCase();
-                    return fn.startsWith('MVIMG_') ||
+                    final isMotionName = fn.startsWith('MVIMG_') ||
                         fn.startsWith('LIVE_') ||
                         fn.contains('_MOTION_PHOTO') ||
                         fn.contains('_LIVEPHOTO') ||
-                        i.mimeType == 'image/x-motion-photo';
+                        fn.contains('_MP.JPG') ||
+                        fn.contains('_MP.JPEG') ||
+                        fn.contains('.MOTION.');
+                    final isMotionMime = i.mimeType == 'image/x-motion-photo' ||
+                        i.mimeType == 'image/x-livephoto';
+                    return isMotionName || isMotionMime;
                   }).length),
                   onTap: () => context.push('/collection/live_photos', extra: 'Live Photos'),
                   isLight: isLight,
@@ -819,6 +826,10 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
       );
       final List<({AssetPathEntity folder, int count})> loaded = [];
       for (final f in rawFolders) {
+        final nameLower = f.name.trim().toLowerCase();
+        if (f.isAll || nameLower == 'recent' || nameLower == 'all') {
+          continue;
+        }
         final count = await f.assetCountAsync;
         if (count > 0) {
           loaded.add((folder: f, count: count));

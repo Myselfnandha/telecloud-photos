@@ -227,10 +227,13 @@ class AccountSwitcherSheet extends ConsumerWidget {
           await accountService.setActiveAccount(account.id);
           if (context.mounted) {
             Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
+            messenger.showSnackBar(
               SnackBar(
                 content: Text('Switched to ${account.displayName}'),
                 backgroundColor: AppColors.primaryBlue,
+                duration: const Duration(seconds: 2),
               ),
             );
           }

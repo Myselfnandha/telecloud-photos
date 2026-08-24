@@ -43,10 +43,13 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
     final mediaDao = ref.read(mediaDaoProvider);
     final count = await mediaDao.restoreFromTrash(_selectedIds.toList());
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text('$count items restored to timeline'),
           backgroundColor: AppColors.systemGreen,
+          duration: const Duration(seconds: 2),
         ),
       );
       setState(() {
@@ -140,10 +143,13 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
       await mediaDao.purgeTrashItems(idsToPurge);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           SnackBar(
             content: Text('${idsToPurge.length} items permanently deleted'),
             backgroundColor: AppColors.systemRed,
+            duration: const Duration(seconds: 2),
           ),
         );
         setState(() {

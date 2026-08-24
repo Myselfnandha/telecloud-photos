@@ -137,6 +137,18 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     return count > 0;
   }
 
+  Future<int> cancelPendingUploads() async {
+    return (update(mediaItems)
+          ..where((t) =>
+              t.uploadStatus.equals(UploadStatus.pending.index) |
+              t.uploadStatus.equals(UploadStatus.uploading.index)))
+        .write(
+      const MediaItemsCompanion(
+        uploadStatus: Value(UploadStatus.failed),
+      ),
+    );
+  }
+
   Future<bool> toggleFavorite(String localId, bool isFavorite) async {
     final count =
         await (update(mediaItems)..where((t) => t.localId.equals(localId)))

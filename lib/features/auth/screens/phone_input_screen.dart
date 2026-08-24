@@ -110,13 +110,14 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
             next.errorMessage != prev?.errorMessage) {
           setState(() => _isLoading = false);
           final errorMsg = next.errorMessage!;
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars();
 
           final isApiError = errorMsg.toUpperCase().contains('API_ID') ||
               errorMsg.toUpperCase().contains('API_HASH') ||
               errorMsg.toUpperCase().contains('SETTDLIBPARAMETERS');
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(
                 isApiError
@@ -124,7 +125,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                     : errorMsg,
               ),
               backgroundColor: const Color(0xFFFF453A),
-              duration: const Duration(seconds: 8),
+              duration: const Duration(seconds: 3),
               action: SnackBarAction(
                 label: isApiError ? 'Setup API' : 'Diagnostics',
                 textColor: Colors.white,

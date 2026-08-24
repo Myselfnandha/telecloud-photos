@@ -79,8 +79,13 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text == null || data!.text!.trim().isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Clipboard is empty')),
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Clipboard is empty'),
+            duration: Duration(seconds: 2),
+          ),
         );
       }
       return;
@@ -95,15 +100,23 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
     }
 
     if (parsed.isValid && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Pasted API ID: ${parsed.apiId} & Hash!'),
           backgroundColor: const Color(0xFF30D158),
+          duration: const Duration(seconds: 2),
         ),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not detect full Telegram API credentials in clipboard')),
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Could not detect full Telegram API credentials in clipboard'),
+          duration: Duration(seconds: 2),
+        ),
       );
     }
   }

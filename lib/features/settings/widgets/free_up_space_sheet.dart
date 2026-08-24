@@ -59,7 +59,9 @@ class _FreeUpSpaceSheetState extends ConsumerState<FreeUpSpaceSheet> {
 
     if (mounted) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -73,6 +75,7 @@ class _FreeUpSpaceSheetState extends ConsumerState<FreeUpSpaceSheet> {
           ),
           backgroundColor: const Color(0xFF30D158),
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
         ),
       );
     }

@@ -270,41 +270,38 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
       _selectedLocalIds.clear();
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Moved $count items to Trash'),
           backgroundColor: AppColors.systemRed,
+          duration: const Duration(seconds: 2),
         ),
       );
     }
   }
 
   void _performBatchUpload(List<MediaItem> allItems) async {
-    final count = _selectedLocalIds.length;
     final backupMgr = ref.read(backupManagerProvider);
     backupMgr.onStartUploading?.call();
-    HapticFeedback.mediumImpact();
+    HapticFeedback.heavyImpact();
     setState(() {
       _isSelectionMode = false;
       _selectedLocalIds.clear();
     });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Queued $count items for Cloud Backup'),
-          backgroundColor: AppColors.primaryBlue,
-        ),
-      );
-    }
   }
 
   void _performBatchShare(List<MediaItem> allItems) {
     final count = _selectedLocalIds.length;
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Sharing $count items...'),
         backgroundColor: AppColors.primaryBlue,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -410,22 +407,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                 ),
               ),
               orElse: () => const SizedBox.shrink(),
-            )
-          else ...[
-            IconButton(
-              icon: Icon(
-                Icons.search_rounded,
-                color: isLight ? Colors.black87 : Colors.white70,
-                size: 22,
-              ),
-              tooltip: 'Search Photos & Videos',
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                context.push('/search');
-              },
             ),
-            const SizedBox(width: 8),
-          ],
         ],
       ),
       body: Stack(

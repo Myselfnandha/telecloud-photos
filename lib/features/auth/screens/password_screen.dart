@@ -49,11 +49,13 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
     _timeoutTimer = Timer(const Duration(seconds: 12), () {
       if (mounted && _isLoading) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Verification taking longer than usual. Please check your password and try again.'),
             backgroundColor: Color(0xFFFF9F0A),
-            duration: Duration(seconds: 4),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -72,11 +74,13 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
         } else if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
           _timeoutTimer?.cancel();
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars();
+          messenger.showSnackBar(
             SnackBar(
               content: Text(next.errorMessage!),
               backgroundColor: const Color(0xFFFF453A),
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 2),
             ),
           );
         }

@@ -87,10 +87,12 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                 final topicId = await channelMgr.createAlbumTopic(name);
                 await mediaDao.createAlbum(name, topicId: topicId);
 
+                messenger.clearSnackBars();
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text('Album "$name" created in TeleCloud!'),
                     backgroundColor: AppColors.systemGreen,
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               }

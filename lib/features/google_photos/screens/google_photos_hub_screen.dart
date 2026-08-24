@@ -36,11 +36,13 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
     final dir = Directory(folderPath);
     if (!await dir.exists()) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Directory "$folderPath" does not exist.'),
             backgroundColor: AppColors.systemRed,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -110,11 +112,13 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
           _importStatus = 'Import complete! $count items added.';
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Successfully imported $count photos from Takeout!'),
             backgroundColor: const Color(0xFF30D158),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -148,13 +152,15 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           const SnackBar(
             content: Text(
               'No Takeout directory found in default locations. Please enter folder path below.',
             ),
             backgroundColor: Color(0xFFFF9F0A),
-            duration: Duration(seconds: 4),
+            duration: Duration(seconds: 2),
           ),
         );
       }

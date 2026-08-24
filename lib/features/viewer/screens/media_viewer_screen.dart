@@ -163,9 +163,11 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     if (confirmed == true && mounted) {
       await ref.read(mediaDaoProvider).moveToTrash([item.localId]);
       navigator.pop();
+      messenger.clearSnackBars();
       messenger.showSnackBar(
         SnackBar(
           content: const Text('Moved to Trash'),
+          duration: const Duration(seconds: 2),
           action: SnackBarAction(
             label: 'Undo',
             textColor: AppColors.primaryBlue,

@@ -122,20 +122,16 @@ class _ManualFolderUploadSheetState
     final dao = ref.read(mediaDaoProvider);
     final backupManager = ref.read(backupManagerProvider);
 
-    int totalQueued = 0;
-
     // 1. Queue Device Folders
     for (final folderData in _deviceFolders) {
       if (_selectedFolderIds.contains(folderData.folder.id)) {
-        final count = await scanner.queueFolderForUpload(folderData.folder);
-        totalQueued += count;
+        await scanner.queueFolderForUpload(folderData.folder);
       }
     }
 
     // 2. Queue In-App Custom Albums
     for (final albumId in _selectedAlbumIds) {
-      final count = await dao.queueAlbumForUpload(albumId);
-      totalQueued += count;
+      await dao.queueAlbumForUpload(albumId);
     }
 
     // 3. Immediately trigger upload engine
@@ -144,13 +140,6 @@ class _ManualFolderUploadSheetState
     if (mounted) {
       setState(() => _isQueueing = false);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Queued $totalQueued items for Telegram Cloud upload'),
-          backgroundColor: AppColors.primaryBlue,
-          duration: const Duration(seconds: 3),
-        ),
-      );
     }
   }
 
@@ -406,7 +395,7 @@ class _ManualFolderUploadSheetState
                                     final channelMgr = ref.read(
                                       channelManagerProvider,
                                     );
-                                    final count = await scanner
+                                    await scanner
                                         .queueFolderForUpload(item.folder);
                                     await channelMgr.ensureAlbumTopic(
                                       item.folder.name,
@@ -414,17 +403,6 @@ class _ManualFolderUploadSheetState
                                     backupManager.onStartUploading?.call();
                                     if (context.mounted) {
                                       Navigator.pop(context);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Queued ${item.folder.name} ($count items) for upload',
-                                          ),
-                                          backgroundColor:
-                                              AppColors.primaryBlue,
-                                        ),
-                                      );
                                     }
                                   },
                                 ),
@@ -602,23 +580,13 @@ class _ManualFolderUploadSheetState
                                   final channelMgr = ref.read(
                                     channelManagerProvider,
                                   );
-                                  final count = await dao.queueAlbumForUpload(
-                                    album.id,
-                                  );
+                                   await dao.queueAlbumForUpload(
+                                     album.id,
+                                   );
                                   await channelMgr.ensureAlbumTopic(album.name);
                                   backupManager.onStartUploading?.call();
                                   if (context.mounted) {
                                     Navigator.pop(context);
-                                    ScaffoldMessenger.of(
-                                      context,
-                                    ).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Queued album "${album.name}" ($count items) for upload',
-                                        ),
-                                        backgroundColor: AppColors.primaryBlue,
-                                      ),
-                                    );
                                   }
                                 },
                               ),

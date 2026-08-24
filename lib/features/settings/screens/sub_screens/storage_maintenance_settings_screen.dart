@@ -71,18 +71,26 @@ class _StorageMaintenanceSettingsScreenState
       }
       await _calculateCacheSize();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Thumbnail cache cleared successfully.'),
             backgroundColor: Color(0xFF30D158),
+            duration: Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to clear cache: $e')));
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Failed to clear cache: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
     }
   }

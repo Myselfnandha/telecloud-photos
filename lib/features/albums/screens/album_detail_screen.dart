@@ -179,10 +179,13 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                   await mediaDao.deleteAlbum(widget.albumId);
                   if (context.mounted) {
                     context.pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.clearSnackBars();
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text('Album "${widget.albumName}" deleted'),
                         backgroundColor: AppColors.primaryBlue,
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }

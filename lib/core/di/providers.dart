@@ -235,6 +235,8 @@ final backupManagerProvider = Provider<BackupManager>((ref) {
 
   manager.onStopUploading = () {
     queue.stop();
+    telemetryNotifier.stopUploading();
+    manager.stopService();
   };
 
   return manager;

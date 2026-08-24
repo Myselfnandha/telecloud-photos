@@ -48,20 +48,24 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   void _resendCode({bool viaSms = false}) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
     if (viaSms) {
       ref.read(telegramAuthManagerProvider).resendAuthenticationCode();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('📱 Requested verification code via SMS...'),
           backgroundColor: Color(0xFF0A84FF),
+          duration: Duration(seconds: 2),
         ),
       );
     } else {
       ref.read(telegramAuthManagerProvider).sendPhoneNumber(widget.phoneNumber);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('💬 Verification code re-sent to Telegram chat'),
           backgroundColor: Color(0xFF0A84FF),
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -84,10 +88,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             _isLoading = false;
             _pinController.clear();
           });
-          ScaffoldMessenger.of(context).showSnackBar(
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars();
+          messenger.showSnackBar(
             SnackBar(
               content: Text(next.errorMessage!),
               backgroundColor: const Color(0xFFFF453A),
+              duration: const Duration(seconds: 2),
             ),
           );
         }

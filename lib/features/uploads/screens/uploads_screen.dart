@@ -45,6 +45,10 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
       );
       final monitored = <({String name, int count, String id})>[];
       for (final folder in rawFolders) {
+        final nameLower = folder.name.trim().toLowerCase();
+        if (folder.isAll || nameLower == 'recent' || nameLower == 'all') {
+          continue;
+        }
         if (savedIds == null ||
             savedIds.isEmpty ||
             savedIds.contains(folder.id) ||
@@ -513,95 +517,112 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
                           ),
                         ),
                         onPressed: () {
+                          final messenger = ScaffoldMessenger.of(context);
                           backupManager.onStopUploading?.call();
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.clearSnackBars();
+                          messenger.showSnackBar(
                             const SnackBar(
-                              content: Text('Upload paused.'),
+                              content: Text('Upload stopped.'),
                               backgroundColor: Color(0xFF2C2C2E),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         },
                       ),
                     )
-                  : (telemetry.pendingCount > 0
-                        ? SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0A84FF),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              label: Text(
-                                'Upload Now (${telemetry.pendingCount})',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                  : telemetry.pendingCount > 0
+                      ? Column(
+                          children: [
+                            _AnimatedStartUploadButton(
+                              pendingCount: telemetry.pendingCount,
                               onPressed: () async {
-                                final messenger = ScaffoldMessenger.of(context);
                                 await mediaScanner.scanCameraRoll();
                                 backupManager.onStartUploading?.call();
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Starting Telegram cloud upload...',
-                                    ),
-                                    backgroundColor: Color(0xFF0A84FF),
-                                  ),
-                                );
                               },
                             ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF30D158,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(
-                                  0xFF30D158,
-                                ).withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline_rounded,
-                                  color: Color(0xFF30D158),
-                                  size: 18,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'All Photos & Videos Synced',
-                                  style: TextStyle(
-                                    color: Color(0xFF30D158),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2C2C2E),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                              ],
+                                icon: const Icon(
+                                  Icons.stop_rounded,
+                                  color: Color(0xFFFF453A),
+                                  size: 20,
+                                ),
+                                label: const Text(
+                                  'Stop Upload',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF453A),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  backupManager.onStopUploading?.call();
+                                  await mediaDao.cancelPendingUploads();
+                                  messenger.clearSnackBars();
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Upload stopped and queue cleared.',
+                                      ),
+                                      backgroundColor: Color(0xFF2C2C2E),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          )),
+                          ],
+                        )
+                      : Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF30D158,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF30D158,
+                              ).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline_rounded,
+                                color: Color(0xFF30D158),
+                                size: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'All Photos & Videos Synced',
+                                style: TextStyle(
+                                  color: Color(0xFF30D158),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+              ),
             ),
-          ),
 
           // 4. Live Self-Healing & Activity Feed (if available)
           if (telemetry.activityLogs.isNotEmpty) ...[
@@ -1313,20 +1334,6 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
                                             );
                                             backupManager.onStartUploading
                                                 ?.call();
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Uploading folder "$folderLeaf" ($pendingInDir items)...',
-                                                  ),
-                                                  backgroundColor: const Color(
-                                                    0xFF0A84FF,
-                                                  ),
-                                                ),
-                                              );
-                                            }
                                           },
                                         ),
                                       ],
@@ -1554,3 +1561,102 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
     );
   }
 }
+
+class _AnimatedStartUploadButton extends StatefulWidget {
+  final int pendingCount;
+  final VoidCallback onPressed;
+
+  const _AnimatedStartUploadButton({
+    required this.pendingCount,
+    required this.onPressed,
+  });
+
+  @override
+  State<_AnimatedStartUploadButton> createState() =>
+      _AnimatedStartUploadButtonState();
+}
+
+class _AnimatedStartUploadButtonState extends State<_AnimatedStartUploadButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.96).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnim,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0A84FF), Color(0xFF0066CC)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0A84FF).withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTapDown: (_) => _animController.forward(),
+            onTapUp: (_) => _animController.reverse(),
+            onTapCancel: () => _animController.reverse(),
+            onTap: () {
+              HapticFeedback.heavyImpact();
+              widget.onPressed();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.cloud_upload_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Resume Upload (${widget.pendingCount})',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

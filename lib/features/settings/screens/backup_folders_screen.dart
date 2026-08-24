@@ -85,9 +85,13 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
     final prefs = await SharedPreferences.getInstance();
     final savedIds = prefs.getStringList('telecloud_backup_folder_ids');
 
-    final rawFolders = await PhotoManager.getAssetPathList(
+    final allRawFolders = await PhotoManager.getAssetPathList(
       type: RequestType.common,
     );
+    final rawFolders = allRawFolders.where((f) {
+      final nameLower = f.name.trim().toLowerCase();
+      return !f.isAll && nameLower != 'recent' && nameLower != 'all';
+    }).toList();
 
     // Parallel instant count resolution
     final loadedList = await Future.wait(
@@ -138,10 +142,12 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
     ref.read(mediaScannerProvider).scanCameraRoll();
 
     if (isSelected && mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Auto-backup enabled for "${folder.name}".'),
+          duration: const Duration(seconds: 2),
           action: SnackBarAction(
             label: 'Back up All',
             textColor: AppColors.primaryBlue,
@@ -150,17 +156,19 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
                   .read(folderSyncManagerProvider)
                   .queueFolderHistoricalMedia(folder.name);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                final m = ScaffoldMessenger.of(context);
+                m.clearSnackBars();
+                m.showSnackBar(
                   SnackBar(
                     content: Text(
                       'Queued $count historical items in "${folder.name}" for backup.',
                     ),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               }
             },
           ),
-          duration: const Duration(seconds: 4),
         ),
       );
     }

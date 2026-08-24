@@ -167,7 +167,9 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                   );
                   if (mounted) {
                     ref.invalidate(supergroupTopicsProvider);
-                    ScaffoldMessenger.of(this.context).showSnackBar(
+                    final messenger = ScaffoldMessenger.of(this.context);
+                    messenger.clearSnackBars();
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           newId != null
@@ -177,6 +179,7 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                         backgroundColor: newId != null
                             ? const Color(0xFF30D158)
                             : Colors.redAccent,
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }
@@ -250,7 +253,9 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                 );
                 if (mounted) {
                   ref.invalidate(supergroupTopicsProvider);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.clearSnackBars();
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(
                         ok
@@ -260,6 +265,7 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                       backgroundColor: ok
                           ? const Color(0xFF30D158)
                           : Colors.redAccent,
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 }
@@ -315,7 +321,9 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
               );
               if (mounted) {
                 ref.invalidate(supergroupTopicsProvider);
-                ScaffoldMessenger.of(context).showSnackBar(
+                final messenger = ScaffoldMessenger.of(context);
+                messenger.clearSnackBars();
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(
                       ok
@@ -325,6 +333,7 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                     backgroundColor: ok
                         ? const Color(0xFF30D158)
                         : Colors.redAccent,
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               }

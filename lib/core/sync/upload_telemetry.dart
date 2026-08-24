@@ -227,6 +227,16 @@ class UploadTelemetryNotifier extends StateNotifier<UploadTelemetryState> {
     );
   }
 
+  void stopUploading() {
+    state = state.copyWith(
+      clearCurrentItem: true,
+      isUploading: false,
+      progress: 0.0,
+      speedMBps: 0.0,
+      estimatedTimeRemaining: Duration.zero,
+    );
+  }
+
   void logRecoveryEvent(String message) {
     final timeStr = DateTime.now()
         .toLocal()

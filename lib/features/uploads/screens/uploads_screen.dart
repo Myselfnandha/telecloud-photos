@@ -37,10 +37,6 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
     super.initState();
     _loadAutoBackupPref();
     _loadBackupFoldersPref();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final dao = ref.read(mediaDaoProvider);
-      ref.read(channelManagerProvider).syncFromCloud(dao);
-    });
   }
 
   Future<void> _loadBackupFoldersPref() async {
@@ -319,16 +315,16 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
               ),
               child: UploadActionControls(
                 telemetry: telemetry,
-                onStartUpload: () async {
-                  await mediaScanner.scanCameraRoll();
+                onStartUpload: () {
+                  mediaScanner.scanCameraRoll();
                   backupManager.onStartUploading?.call();
                 },
                 onStopUpload: () {
                   backupManager.onStopUploading?.call();
                 },
-                onCancelAndClearQueue: () async {
+                onCancelAndClearQueue: () {
                   backupManager.onStopUploading?.call();
-                  await mediaDao.cancelPendingUploads();
+                  mediaDao.cancelPendingUploads();
                 },
               ),
             ),
@@ -579,24 +575,21 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
                           }
                         });
                       },
-                      onUploadFolder: () async {
+                      onUploadFolder: () {
                         final pendingIds = dirItems
                             .where(
                               (i) => i.uploadStatus != UploadStatus.done,
                             )
                             .map((i) => i.localId)
                             .toList();
-                        await mediaDao.queueLocalIdsForUpload(pendingIds);
-                        final folderLeaf = _parseLeafFolderName(dirPath);
-                        final channelMgr = ref.read(channelManagerProvider);
-                        await channelMgr.ensureAlbumTopic(folderLeaf);
+                        mediaDao.queueLocalIdsForUpload(pendingIds);
                         backupManager.onStartUploading?.call();
                       },
                       onItemTap: (item) {
                         context.push('/viewer/${item.localId}');
                       },
-                      onItemRetry: (item) async {
-                        await mediaDao.retryFailedItem(item.localId);
+                      onItemRetry: (item) {
+                        mediaDao.retryFailedItem(item.localId);
                         backupManager.onStartUploading?.call();
                       },
                     );

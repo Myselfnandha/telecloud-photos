@@ -361,8 +361,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 _buildDivider(isLight),
                 _buildMediaTypeRow(
                   title: 'Favorites',
-                  icon: Icons.favorite_rounded,
-                  iconColor: const Color(0xFFFF453A),
+                  icon: Icons.star_rounded,
+                  iconColor: const Color(0xFFFFB800),
                   streamCount: mediaDao.watchFavorites().map((l) => l.length),
                   onTap: () => context.push('/favorites'),
                   isLight: isLight,

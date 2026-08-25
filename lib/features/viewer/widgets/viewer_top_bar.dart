@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/database/app_database.dart';
-import '../../../../shared/theme/app_colors.dart';
 
 class ViewerTopBar extends StatelessWidget implements PreferredSizeWidget {
   final MediaItem? currentItem;
@@ -72,9 +71,9 @@ class ViewerTopBar extends StatelessWidget implements PreferredSizeWidget {
           IconButton(
             icon: Icon(
               isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_outline_rounded,
-              color: isFavorite ? AppColors.errorRed : Colors.white,
+                  ? Icons.star_rounded
+                  : Icons.star_outline_rounded,
+              color: isFavorite ? const Color(0xFFFFB800) : Colors.white,
             ),
             onPressed: onToggleFavorite,
           ),

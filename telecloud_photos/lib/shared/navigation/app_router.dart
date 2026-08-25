@@ -161,12 +161,51 @@ final appRouter = GoRouter(
 
     GoRoute(
       path: '/collection/:type',
+      pageBuilder: (context, state) {
+        final rawType = state.pathParameters['type'] ?? 'photos';
+        final type = Uri.decodeComponent(rawType);
+        final title = state.extra as String? ?? type;
+        return buildTransitionPage(
+          context: context,
+          state: state,
+          child: MediaCollectionScreen(
+            categoryKey: type,
+            categoryTitle: title,
+          ),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/library/collection',
+      pageBuilder: (context, state) {
+        String categoryKey = 'photos';
+        String categoryTitle = 'Media Collection';
+        if (state.extra is Map<String, dynamic>) {
+          final map = state.extra as Map<String, dynamic>;
+          categoryKey = map['categoryKey'] as String? ?? 'photos';
+          categoryTitle = map['categoryTitle'] as String? ?? categoryKey;
+        } else if (state.extra is String) {
+          categoryKey = state.extra as String;
+          categoryTitle = categoryKey;
+        }
+        return buildTransitionPage(
+          context: context,
+          state: state,
+          child: MediaCollectionScreen(
+            categoryKey: categoryKey,
+            categoryTitle: categoryTitle,
+          ),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/google-photos/synced',
       pageBuilder: (context, state) => buildTransitionPage(
         context: context,
         state: state,
-        child: MediaCollectionScreen(
-          categoryKey: state.pathParameters['type'] ?? 'photos',
-          categoryTitle: state.extra as String? ?? 'Media Collection',
+        child: const MediaCollectionScreen(
+          categoryKey: 'imports',
+          categoryTitle: 'Imports',
         ),
       ),
     ),

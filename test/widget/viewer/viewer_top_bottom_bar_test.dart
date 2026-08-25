@@ -43,13 +43,13 @@ void main() {
 
       expect(find.text('2026-08-25'), findsOneWidget);
       expect(find.text('4K UHD'), findsOneWidget);
-      expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
       expect(find.byIcon(Icons.info_outline), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
       expect(backCalled, isTrue);
 
-      await tester.tap(find.byIcon(Icons.favorite_rounded));
+      await tester.tap(find.byIcon(Icons.star_rounded));
       expect(favCalled, isTrue);
 
       await tester.tap(find.byIcon(Icons.info_outline));

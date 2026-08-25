@@ -8,7 +8,6 @@ import '../../../core/database/app_database.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/theme/app_colors.dart';
-import '../../../shared/theme/app_radii.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../../../shared/theme/app_elevation.dart';
@@ -75,69 +74,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           ),
           onPressed: () => context.pop(),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.favorite_rounded,
-              color: AppColors.systemRed,
-              size: AppIcons.l,
-            ),
-            AppSpacing.gapHorizontalS,
-            Text(
-              'Favorites',
-              style: AppTypography.titleLarge(
-                color: primaryTextColor,
-              ).copyWith(fontWeight: AppTypography.bold),
-            ),
-          ],
+        title: Text(
+          'Favorites',
+          style: AppTypography.titleLarge(
+            color: primaryTextColor,
+          ).copyWith(fontWeight: AppTypography.bold),
         ),
-        actions: [
-          PopupMenuButton<GridDensity>(
-            icon: Icon(
-              density.icon,
-              color: AppColors.primaryBlue,
-              size: AppIcons.m,
-            ),
-            tooltip: 'Grid Density',
-            color: isLight ? Colors.white : AppColors.darkSurface,
-            shape: const RoundedRectangleBorder(borderRadius: AppRadii.borderL),
-            onSelected: (d) {
-              HapticFeedback.selectionClick();
-              ref.read(gridDensityProvider.notifier).setDensity(d);
-            },
-            itemBuilder: (context) => [
-              for (final d in GridDensity.values)
-                PopupMenuItem(
-                  value: d,
-                  child: Row(
-                    children: [
-                      Icon(
-                        d.icon,
-                        color: density == d
-                            ? AppColors.primaryBlue
-                            : secondaryTextColor,
-                        size: AppIcons.s + 2,
-                      ),
-                      AppSpacing.gapHorizontalM,
-                      Text(
-                        d.label,
-                        style: AppTypography.bodyMedium(
-                          color: density == d
-                              ? AppColors.primaryBlue
-                              : primaryTextColor,
-                        ).copyWith(
-                          fontWeight: density == d
-                              ? AppTypography.bold
-                              : AppTypography.regular,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ],
       ),
       body: StreamBuilder<List<MediaItem>>(
         stream: mediaDao.watchFavorites(),
@@ -159,13 +101,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     Container(
                       padding: AppSpacing.paddingXL,
                       decoration: BoxDecoration(
-                        color: AppColors.systemRed.withValues(alpha: 0.12),
+                        color: AppColors.surface(context),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.favorite_border_rounded,
+                      child: Icon(
+                        Icons.star_outline_rounded,
                         size: 54,
-                        color: AppColors.systemRed,
+                        color: secondaryTextColor,
                       ),
                     ),
                     AppSpacing.gapVerticalL,
@@ -177,7 +119,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     ),
                     AppSpacing.gapVerticalS,
                     Text(
-                      'Tap the heart icon on any photo to add it here',
+                      'Photos and videos marked as favorites will appear here',
                       style: AppTypography.bodyMedium(
                         color: secondaryTextColor,
                       ),
@@ -196,11 +138,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               duration: const Duration(milliseconds: 240),
               child: GridView.builder(
                 key: ValueKey('fav_grid_${density.crossAxisCount}'),
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.all(2),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: density.crossAxisCount,
-                  crossAxisSpacing: 3,
-                  mainAxisSpacing: 3,
+                  crossAxisSpacing: 2,
+                  mainAxisSpacing: 2,
                   childAspectRatio: density.childAspectRatio,
                 ),
                 itemCount: items.length,
@@ -276,47 +218,26 @@ class _FavoriteTileState extends State<_FavoriteTile>
       child: Hero(
         tag: 'media_${widget.item.localId}',
         child: ClipRRect(
-          borderRadius: AppRadii.borderS,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(
-                color: const Color(0xFF141416),
-                child: _bytes != null
-                    ? Image.memory(
-                        _bytes!,
+          borderRadius: BorderRadius.zero,
+          child: Container(
+            color: const Color(0xFF141416),
+            child: _bytes != null
+                ? Image.memory(
+                    _bytes!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const ShimmerLoading(),
+                  )
+                : (hasValidDiskThumb
+                    ? Image.file(
+                        File(thumbPath),
                         fit: BoxFit.cover,
+                        cacheWidth: 256,
+                        cacheHeight: 256,
                         errorBuilder: (context, error, stackTrace) =>
                             const ShimmerLoading(),
                       )
-                    : (hasValidDiskThumb
-                        ? Image.file(
-                            File(thumbPath),
-                            fit: BoxFit.cover,
-                            cacheWidth: 256,
-                            cacheHeight: 256,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const ShimmerLoading(),
-                          )
-                        : const ShimmerLoading()),
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.favorite_rounded,
-                    color: AppColors.systemRed,
-                    size: 12,
-                  ),
-                ),
-              ),
-            ],
+                    : const ShimmerLoading()),
           ),
         ),
       ),

@@ -187,10 +187,10 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                             return _smartCollectionCard(
                               title: 'Favorites',
                               count: count,
-                              icon: Icons.favorite_rounded,
-                              iconColor: AppColors.systemRed,
-                              bgColor: AppColors.systemRed.withValues(
-                                alpha: 0.12,
+                              icon: Icons.star_rounded,
+                              iconColor: const Color(0xFFFFB800),
+                              bgColor: const Color(0xFFFFB800).withValues(
+                                alpha: 0.15,
                               ),
                               onTap: () => context.push('/favorites'),
                               cardBg: cardBg,

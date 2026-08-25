@@ -89,50 +89,6 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
           ).copyWith(fontWeight: AppTypography.bold),
         ),
         actions: [
-          PopupMenuButton<GridDensity>(
-            icon: Icon(
-              density.icon,
-              color: AppColors.primaryBlue,
-              size: AppIcons.m,
-            ),
-            tooltip: 'Grid Density',
-            color: isLight ? Colors.white : AppColors.darkSurface,
-            shape: const RoundedRectangleBorder(borderRadius: AppRadii.borderL),
-            onSelected: (d) {
-              HapticFeedback.selectionClick();
-              ref.read(gridDensityProvider.notifier).setDensity(d);
-            },
-            itemBuilder: (context) => [
-              for (final d in GridDensity.values)
-                PopupMenuItem(
-                  value: d,
-                  child: Row(
-                    children: [
-                      Icon(
-                        d.icon,
-                        color: density == d
-                            ? AppColors.primaryBlue
-                            : secondaryTextColor,
-                        size: AppIcons.s + 2,
-                      ),
-                      AppSpacing.gapHorizontalM,
-                      Text(
-                        d.label,
-                        style: AppTypography.bodyMedium(
-                          color: density == d
-                              ? AppColors.primaryBlue
-                              : primaryTextColor,
-                        ).copyWith(
-                          fontWeight: density == d
-                              ? AppTypography.bold
-                              : AppTypography.regular,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
           PopupMenuButton<String>(
             icon: Icon(
               Icons.more_vert_rounded,

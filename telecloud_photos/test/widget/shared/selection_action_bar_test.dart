@@ -31,7 +31,7 @@ void main() {
       expect(find.byIcon(Icons.ios_share_rounded), findsOneWidget);
       expect(find.byIcon(Icons.add_to_photos_rounded), findsOneWidget);
       expect(find.byIcon(Icons.cloud_download_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.favorite_outline_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.star_outline_rounded), findsOneWidget);
       expect(find.byIcon(Icons.drive_folder_upload_rounded), findsOneWidget);
       expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
       expect(find.byIcon(Icons.close_rounded), findsOneWidget);

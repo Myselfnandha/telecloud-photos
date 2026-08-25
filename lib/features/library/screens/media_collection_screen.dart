@@ -62,7 +62,7 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
   }
 
   List<MediaItem> _filterItems(List<MediaItem> allItems) {
-    final key = widget.categoryKey.toLowerCase();
+    final key = widget.categoryKey.toLowerCase().trim();
     switch (key) {
       case 'photos':
         return allItems.where((i) {
@@ -117,7 +117,10 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
         return allItems.where((i) {
           if (i.isTrashed) return false;
           final fn = i.filename.toLowerCase();
-          return fn.contains('screenshot') || fn.contains('screen_shot');
+          final fName = i.folderName?.toLowerCase() ?? '';
+          return fn.contains('screenshot') ||
+              fn.contains('screen_shot') ||
+              fName.contains('screenshot');
         }).toList();
       case 'favorites':
         return allItems.where((i) => i.isFavorite && !i.isTrashed).toList();
@@ -155,11 +158,27 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
               fn.endsWith('.rw2');
         }).toList();
       case 'imports':
-        return allItems
-            .where((i) => i.localId.startsWith('gp_') && !i.isTrashed)
-            .toList();
+        return allItems.where((i) {
+          if (i.isTrashed) return false;
+          final fName = i.folderName?.toLowerCase() ?? '';
+          return i.localId.startsWith('gp_') ||
+              fName == 'imports' ||
+              fName.contains('import') ||
+              fName.contains('google photos') ||
+              i.telegramFileId != null;
+        }).toList();
       default:
-        return allItems.where((i) => !i.isTrashed).toList();
+        // Match custom device folder name or path
+        return allItems.where((i) {
+          if (i.isTrashed) return false;
+          final fName = i.folderName?.toLowerCase() ?? '';
+          final fPath = i.folderPath?.toLowerCase() ?? '';
+          return fName == key ||
+              fName.contains(key) ||
+              key.contains(fName) && fName.isNotEmpty ||
+              fPath.toLowerCase().contains('/$key') ||
+              fPath.toLowerCase().endsWith(key);
+        }).toList();
     }
   }
 
@@ -247,7 +266,7 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Photos matching this media type will appear here',
+                    'Photos matching this category will appear here',
                     style: TextStyle(
                       color: secondaryTextColor,
                       fontSize: 13,
@@ -262,11 +281,11 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
             onScaleUpdate: _handleScaleUpdate,
             onScaleEnd: _handleScaleEnd,
             child: GridView.builder(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(2),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: _crossAxisCount,
-                crossAxisSpacing: 3,
-                mainAxisSpacing: 3,
+                crossAxisSpacing: 2,
+                mainAxisSpacing: 2,
                 childAspectRatio: 1.0,
               ),
               itemCount: items.length,
@@ -386,7 +405,7 @@ class _CollectionMediaTileState extends State<_CollectionMediaTile>
       child: Hero(
         tag: 'media_${item.localId}',
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.zero,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -422,23 +441,6 @@ class _CollectionMediaTileState extends State<_CollectionMediaTile>
                     child: const Icon(
                       Icons.motion_photos_on_rounded,
                       color: Colors.white,
-                      size: 12,
-                    ),
-                  ),
-                ),
-              if (item.isFavorite)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.favorite_rounded,
-                      color: Color(0xFFFF453A),
                       size: 12,
                     ),
                   ),

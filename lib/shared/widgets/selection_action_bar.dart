@@ -98,7 +98,7 @@ class SelectionActionBar extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.favorite_outline_rounded),
+            icon: const Icon(Icons.star_outline_rounded),
             color: AppColors.primaryBlue,
             iconSize: 21,
             tooltip: 'Favorite / Unfavorite',

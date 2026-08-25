@@ -27,12 +27,10 @@ class AccountSwitcherSheet extends ConsumerWidget {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
     final sheetBg = isLight ? Colors.white : AppColors.darkSurface;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
     return Container(
@@ -319,8 +317,8 @@ class AccountSwitcherSheet extends ConsumerWidget {
                     account.phoneNumber.isNotEmpty
                         ? account.phoneNumber
                         : (account.username != null
-                              ? '@${account.username}'
-                              : 'Telegram User'),
+                            ? '@${account.username}'
+                            : 'Telegram User'),
                     style: TextStyle(color: secondaryTextColor, fontSize: 12),
                   ),
                 ],

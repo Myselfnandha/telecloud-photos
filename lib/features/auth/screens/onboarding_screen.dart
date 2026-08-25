@@ -113,7 +113,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     child: const Text(
                       'Skip',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -151,12 +152,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               end: Alignment.bottomRight,
                             ),
                             border: Border.all(
-                              color: page.gradientColors[0].withValues(alpha: 0.4),
+                              color:
+                                  page.gradientColors[0].withValues(alpha: 0.4),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: page.gradientColors[0].withValues(alpha: 0.2),
+                                color: page.gradientColors[0]
+                                    .withValues(alpha: 0.2),
                                 blurRadius: 36,
                                 spreadRadius: 4,
                               ),
@@ -179,10 +182,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: page.gradientColors[0].withValues(alpha: 0.15),
+                            color:
+                                page.gradientColors[0].withValues(alpha: 0.15),
                             borderRadius: AppRadii.borderPill,
                             border: Border.all(
-                              color: page.gradientColors[0].withValues(alpha: 0.3),
+                              color:
+                                  page.gradientColors[0].withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(

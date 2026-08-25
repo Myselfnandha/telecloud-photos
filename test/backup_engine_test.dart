@@ -22,14 +22,14 @@ void main() {
     // Mock flutter_foreground_task method channel
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-          const MethodChannel('flutter_foreground_task/methods'),
-          (MethodCall methodCall) async {
-            if (methodCall.method == 'isRunningService') {
-              return false;
-            }
-            return true;
-          },
-        );
+      const MethodChannel('flutter_foreground_task/methods'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'isRunningService') {
+          return false;
+        }
+        return true;
+      },
+    );
 
     db = AppDatabase.forTesting(NativeDatabase.memory());
     dao = MediaDao(db);

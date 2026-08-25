@@ -165,12 +165,10 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
     final mediaDao = ref.watch(mediaDaoProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -318,8 +316,7 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
                           children: [
                             Container(
                               color: const Color(0xFF1C1C1E),
-                              child:
-                                  item.thumbnailPath != null &&
+                              child: item.thumbnailPath != null &&
                                       item.thumbnailPath!.isNotEmpty
                                   ? Image.file(
                                       File(item.thumbnailPath!),
@@ -329,12 +326,12 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
                                       errorBuilder:
                                           (context, error, stackTrace) =>
                                               const Center(
-                                                child: Icon(
-                                                  Icons.image,
-                                                  color: Colors.white24,
-                                                  size: 28,
-                                                ),
-                                              ),
+                                        child: Icon(
+                                          Icons.image,
+                                          color: Colors.white24,
+                                          size: 28,
+                                        ),
+                                      ),
                                     )
                                   : const Center(
                                       child: Icon(
@@ -389,9 +386,8 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
               Container(
                 padding: AppSpacing.screenPadding,
                 decoration: BoxDecoration(
-                  color: isLight
-                      ? AppColors.lightCard
-                      : const Color(0xFF161618),
+                  color:
+                      isLight ? AppColors.lightCard : const Color(0xFF161618),
                   border: Border(top: BorderSide(color: cardBorder)),
                 ),
                 child: SafeArea(
@@ -424,9 +420,8 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
                           onPressed: _isSelectionMode
                               ? _restoreSelected
                               : () async {
-                                  final allIds = items
-                                      .map((e) => e.localId)
-                                      .toList();
+                                  final allIds =
+                                      items.map((e) => e.localId).toList();
                                   await mediaDao.restoreFromTrash(allIds);
                                 },
                         ),

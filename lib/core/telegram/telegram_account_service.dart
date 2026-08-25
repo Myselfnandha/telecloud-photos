@@ -21,7 +21,7 @@ class TelegramAccountService extends ChangeNotifier {
   Completer<void>? _initCompleter;
 
   TelegramAccountService({FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage() {
+      : _storage = storage ?? const FlutterSecureStorage() {
     init();
   }
 

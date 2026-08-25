@@ -17,12 +17,10 @@ class CloudMigrationSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -138,9 +136,7 @@ class CloudMigrationSettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'ARCHIVES & TAKE-OUT',
             style: AppTypography.labelSmall(
@@ -193,9 +189,7 @@ class CloudMigrationSettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'TELEGRAM ACCOUNTS',
             style: AppTypography.labelSmall(

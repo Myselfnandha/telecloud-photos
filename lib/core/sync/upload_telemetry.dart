@@ -102,7 +102,7 @@ class UploadTelemetryNotifier extends StateNotifier<UploadTelemetryState> {
   int _uploadedBytes = 0;
 
   UploadTelemetryNotifier(this._mediaDao, this._client)
-    : super(const UploadTelemetryState()) {
+      : super(const UploadTelemetryState()) {
     _init();
   }
 
@@ -142,7 +142,7 @@ class UploadTelemetryNotifier extends StateNotifier<UploadTelemetryState> {
           if (_uploadStartTime != null && uploaded > _uploadedBytes) {
             final elapsedSecs =
                 DateTime.now().difference(_uploadStartTime!).inMilliseconds /
-                1000.0;
+                    1000.0;
             if (elapsedSecs > 0.5) {
               final bytesDiff = uploaded - _uploadedBytes;
               speed = (bytesDiff / (1024 * 1024)) / elapsedSecs;
@@ -238,11 +238,8 @@ class UploadTelemetryNotifier extends StateNotifier<UploadTelemetryState> {
   }
 
   void logRecoveryEvent(String message) {
-    final timeStr = DateTime.now()
-        .toLocal()
-        .toString()
-        .split(' ')[1]
-        .substring(0, 5);
+    final timeStr =
+        DateTime.now().toLocal().toString().split(' ')[1].substring(0, 5);
     final logEntry = '[$timeStr] $message';
     final updatedLogs = [logEntry, ...state.activityLogs].take(20).toList();
     state = state.copyWith(

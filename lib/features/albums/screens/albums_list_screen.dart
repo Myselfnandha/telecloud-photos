@@ -52,9 +52,8 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
               color: isLight ? Colors.grey.shade500 : Colors.grey.shade600,
             ),
             filled: true,
-            fillColor: isLight
-                ? const Color(0xFFE5E5EA)
-                : const Color(0xFF2C2C2E),
+            fillColor:
+                isLight ? const Color(0xFFE5E5EA) : const Color(0xFF2C2C2E),
             border: OutlineInputBorder(
               borderRadius: AppRadii.borderM,
               borderSide: BorderSide.none,
@@ -120,12 +119,10 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
     final mediaDao = ref.watch(mediaDaoProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -175,9 +172,9 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                     'COLLECTIONS',
                     style: AppTypography.labelSmall(color: secondaryTextColor)
                         .copyWith(
-                          fontWeight: AppTypography.bold,
-                          letterSpacing: 0.8,
-                        ),
+                      fontWeight: AppTypography.bold,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                   AppSpacing.gapVerticalS,
                   Row(
@@ -235,13 +232,12 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                     children: [
                       Text(
                         'MY ALBUMS',
-                        style:
-                            AppTypography.labelSmall(
-                              color: secondaryTextColor,
-                            ).copyWith(
-                              fontWeight: AppTypography.bold,
-                              letterSpacing: 0.8,
-                            ),
+                        style: AppTypography.labelSmall(
+                          color: secondaryTextColor,
+                        ).copyWith(
+                          fontWeight: AppTypography.bold,
+                          letterSpacing: 0.8,
+                        ),
                       ),
                       TextButton.icon(
                         onPressed: _showCreateAlbumDialog,
@@ -326,9 +322,8 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                       stream: mediaDao.watchMediaInAlbum(album.id),
                       builder: (context, mediaSnap) {
                         final items = mediaSnap.data ?? [];
-                        final coverPath = items.isNotEmpty
-                            ? items.first.thumbnailPath
-                            : null;
+                        final coverPath =
+                            items.isNotEmpty ? items.first.thumbnailPath : null;
 
                         return GestureDetector(
                           onTap: () {
@@ -349,8 +344,7 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                                   ),
                                   child: ClipRRect(
                                     borderRadius: AppRadii.borderXL,
-                                    child:
-                                        coverPath != null &&
+                                    child: coverPath != null &&
                                             coverPath.isNotEmpty
                                         ? Image.file(
                                             File(coverPath),
@@ -362,13 +356,12 @@ class _AlbumsListScreenState extends ConsumerState<AlbumsListScreen> {
                                             errorBuilder:
                                                 (context, error, stackTrace) =>
                                                     Center(
-                                                      child: Icon(
-                                                        Icons.photo_album,
-                                                        size: 40,
-                                                        color:
-                                                            secondaryTextColor,
-                                                      ),
-                                                    ),
+                                              child: Icon(
+                                                Icons.photo_album,
+                                                size: 40,
+                                                color: secondaryTextColor,
+                                              ),
+                                            ),
                                           )
                                         : Center(
                                             child: Icon(

@@ -21,12 +21,10 @@ class SettingsScreen extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -72,7 +70,8 @@ class SettingsScreen extends ConsumerWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0088CC).withValues(alpha: 0.4),
+                            color:
+                                const Color(0xFF0088CC).withValues(alpha: 0.4),
                             blurRadius: 10,
                             spreadRadius: 2,
                           ),
@@ -81,7 +80,8 @@ class SettingsScreen extends ConsumerWidget {
                       child: ClipOval(
                         child: (activeAccount?.profilePhotoPath != null &&
                                 activeAccount!.profilePhotoPath!.isNotEmpty &&
-                                File(activeAccount.profilePhotoPath!).existsSync())
+                                File(activeAccount.profilePhotoPath!)
+                                    .existsSync())
                             ? Image.file(
                                 File(activeAccount.profilePhotoPath!),
                                 width: 52,
@@ -89,9 +89,11 @@ class SettingsScreen extends ConsumerWidget {
                                 fit: BoxFit.cover,
                               )
                             : Center(
-                                child: (activeAccount?.displayName.isNotEmpty == true)
+                                child: (activeAccount?.displayName.isNotEmpty ==
+                                        true)
                                     ? Text(
-                                        activeAccount!.displayName[0].toUpperCase(),
+                                        activeAccount!.displayName[0]
+                                            .toUpperCase(),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 22,
@@ -114,7 +116,8 @@ class SettingsScreen extends ConsumerWidget {
                           Row(
                             children: [
                               Text(
-                                activeAccount?.displayName ?? 'Telegram Cloud User',
+                                activeAccount?.displayName ??
+                                    'Telegram Cloud User',
                                 style: TextStyle(
                                   color: primaryTextColor,
                                   fontSize: 16,
@@ -131,7 +134,8 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            activeAccount?.phoneNumber ?? 'Unlimited Cloud Storage',
+                            activeAccount?.phoneNumber ??
+                                'Unlimited Cloud Storage',
                             style: TextStyle(
                               color: secondaryTextColor,
                               fontSize: 12,
@@ -181,7 +185,8 @@ class SettingsScreen extends ConsumerWidget {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF30D158).withValues(alpha: 0.6),
+                                    color: const Color(0xFF30D158)
+                                        .withValues(alpha: 0.6),
                                     blurRadius: 4,
                                   ),
                                 ],
@@ -191,7 +196,8 @@ class SettingsScreen extends ConsumerWidget {
                             Text(
                               telemetry.telegramStatus,
                               style: TextStyle(
-                                color: isLight ? Colors.black87 : Colors.white70,
+                                color:
+                                    isLight ? Colors.black87 : Colors.white70,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -272,7 +278,8 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.sync_rounded,
                   iconColor: const Color(0xFF30D158),
                   title: 'Backup Engine & Rules',
-                  subtitle: 'Auto-backup, Wi-Fi only, Backup folders, Media types',
+                  subtitle:
+                      'Auto-backup, Wi-Fi only, Backup folders, Media types',
                   route: '/settings/backup',
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
@@ -284,7 +291,8 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.bolt_rounded,
                   iconColor: const Color(0xFFFF9F0A),
                   title: 'Power & Battery Constraints',
-                  subtitle: 'Charging only, Thermal dwell delay, Auto-kill worker',
+                  subtitle:
+                      'Charging only, Thermal dwell delay, Auto-kill worker',
                   route: '/settings/power',
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,

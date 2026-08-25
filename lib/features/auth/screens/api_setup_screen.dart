@@ -14,7 +14,8 @@ class ApiSetupScreen extends ConsumerStatefulWidget {
   ConsumerState<ApiSetupScreen> createState() => _ApiSetupScreenState();
 }
 
-class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBindingObserver {
+class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _apiIdController = TextEditingController();
   final _apiHashController = TextEditingController();
@@ -114,7 +115,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
       messenger.clearSnackBars();
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Could not detect full Telegram API credentials in clipboard'),
+          content: Text(
+              'Could not detect full Telegram API credentials in clipboard'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -145,7 +147,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
 
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('✓ API credentials configured! Proceeding to phone verification...'),
+          content: Text(
+              '✓ API credentials configured! Proceeding to phone verification...'),
           backgroundColor: Color(0xFF30D158),
           duration: Duration(seconds: 2),
         ),
@@ -193,16 +196,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
               children: [
                 // Step Progress Indicator
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF0A84FF).withValues(alpha: 0.4)),
+                    border: Border.all(
+                        color: const Color(0xFF0A84FF).withValues(alpha: 0.4)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.vpn_key_rounded, color: Color(0xFF0A84FF), size: 14),
+                      Icon(Icons.vpn_key_rounded,
+                          color: Color(0xFF0A84FF), size: 14),
                       SizedBox(width: 6),
                       Text(
                         'STEP 1 OF 3 · API CREDENTIALS',
@@ -245,12 +251,14 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: Color(0xFFFF453A), size: 20),
+                        const Icon(Icons.error_outline_rounded,
+                            color: Color(0xFFFF453A), size: 20),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             _errorMessage!,
-                            style: const TextStyle(color: Color(0xFFFF453A), fontSize: 13),
+                            style: const TextStyle(
+                                color: Color(0xFFFF453A), fontSize: 13),
                           ),
                         ),
                       ],
@@ -270,7 +278,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0A84FF).withValues(alpha: 0.35),
+                          color:
+                              const Color(0xFF0A84FF).withValues(alpha: 0.35),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
@@ -278,7 +287,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+                        const Icon(Icons.auto_awesome,
+                            color: Colors.white, size: 24),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -286,12 +296,16 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                             children: [
                               const Text(
                                 'Credentials Detected in Clipboard!',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'App ID: ${_detectedClipboardCredentials!.apiId}',
-                                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 11),
                               ),
                             ],
                           ),
@@ -300,18 +314,24 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF0051A8),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () {
-                            _apiIdController.text = _detectedClipboardCredentials!.apiId.toString();
-                            _apiHashController.text = _detectedClipboardCredentials!.apiHash!;
+                            _apiIdController.text =
+                                _detectedClipboardCredentials!.apiId.toString();
+                            _apiHashController.text =
+                                _detectedClipboardCredentials!.apiHash!;
                             _validateAndProceed(
                               _detectedClipboardCredentials!.apiId!,
                               _detectedClipboardCredentials!.apiHash!,
                             );
                           },
-                          child: const Text('1-Tap Apply', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          child: const Text('1-Tap Apply',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                       ],
                     ),
@@ -325,7 +345,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F172A),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
+                    border: Border.all(
+                        color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,10 +356,12 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                              color: const Color(0xFF38BDF8)
+                                  .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF38BDF8), size: 20),
+                            child: const Icon(Icons.auto_awesome_rounded,
+                                color: Color(0xFF38BDF8), size: 20),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -347,11 +370,15 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                               children: [
                                 Text(
                                   'Automated In-App Setup',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15),
                                 ),
                                 Text(
                                   'Zero typing: auto-extracts credentials & auto-closes browser',
-                                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                                  style: TextStyle(
+                                      color: Colors.white60, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -366,14 +393,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0284C7),
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.rocket_launch_rounded, size: 18),
+                          icon:
+                              const Icon(Icons.rocket_launch_rounded, size: 18),
                           label: const Text(
                             'Launch In-App Web Assistant',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 14),
                           ),
-                          onPressed: _isTestingCredentials ? null : _launchWebAssistant,
+                          onPressed: _isTestingCredentials
+                              ? null
+                              : _launchWebAssistant,
                         ),
                       ),
                     ],
@@ -387,14 +419,21 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                   height: 48,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF0A84FF), width: 1.2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      backgroundColor: const Color(0xFF0A84FF).withValues(alpha: 0.08),
+                      side: const BorderSide(
+                          color: Color(0xFF0A84FF), width: 1.2),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      backgroundColor:
+                          const Color(0xFF0A84FF).withValues(alpha: 0.08),
                     ),
-                    icon: const Icon(Icons.content_paste_go_rounded, color: Color(0xFF0A84FF), size: 20),
+                    icon: const Icon(Icons.content_paste_go_rounded,
+                        color: Color(0xFF0A84FF), size: 20),
                     label: const Text(
                       '📋 1-Tap Auto-Paste from Clipboard',
-                      style: TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(
+                          color: Color(0xFF0A84FF),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
                     ),
                     onPressed: _pasteFromClipboard,
                   ),
@@ -404,7 +443,11 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                 // CARD 3: Manual Credentials (Empty by default)
                 const Text(
                   'MANUAL CREDENTIALS',
-                  style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                  style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 12),
 
@@ -412,16 +455,30 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('API ID (App ID)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                    const Text('API ID (App ID)',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14)),
                     TextButton.icon(
-                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                      icon: const Icon(Icons.content_paste_rounded, size: 14, color: Color(0xFF0A84FF)),
-                      label: const Text('Paste ID', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 12)),
+                      style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4)),
+                      icon: const Icon(Icons.content_paste_rounded,
+                          size: 14, color: Color(0xFF0A84FF)),
+                      label: const Text('Paste ID',
+                          style: TextStyle(
+                              color: Color(0xFF0A84FF), fontSize: 12)),
                       onPressed: () async {
-                        final data = await Clipboard.getData(Clipboard.kTextPlain);
+                        final data =
+                            await Clipboard.getData(Clipboard.kTextPlain);
                         if (data?.text != null) {
-                          final parsed = TelegramCredentialParser.parse(data!.text!);
-                          _apiIdController.text = (parsed.apiId ?? int.tryParse(data.text!.trim()) ?? '').toString();
+                          final parsed =
+                              TelegramCredentialParser.parse(data!.text!);
+                          _apiIdController.text = (parsed.apiId ??
+                                  int.tryParse(data.text!.trim()) ??
+                                  '')
+                              .toString();
                         }
                       },
                     ),
@@ -438,16 +495,23 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                     hintStyle: TextStyle(color: Colors.grey.shade600),
                     filled: true,
                     fillColor: const Color(0xFF1C1C1E),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF0A84FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF0A84FF), width: 1.5),
                     ),
                     prefixIcon: const Icon(Icons.tag, color: Colors.grey),
                   ),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Please enter your Telegram API ID';
-                    if (int.tryParse(val.trim()) == null) return 'API ID must be a valid number';
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter your Telegram API ID';
+                    }
+                    if (int.tryParse(val.trim()) == null) {
+                      return 'API ID must be a valid number';
+                    }
                     return null;
                   },
                 ),
@@ -457,16 +521,28 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('API HASH', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                    const Text('API HASH',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14)),
                     TextButton.icon(
-                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                      icon: const Icon(Icons.content_paste_rounded, size: 14, color: Color(0xFF0A84FF)),
-                      label: const Text('Paste Hash', style: TextStyle(color: Color(0xFF0A84FF), fontSize: 12)),
+                      style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4)),
+                      icon: const Icon(Icons.content_paste_rounded,
+                          size: 14, color: Color(0xFF0A84FF)),
+                      label: const Text('Paste Hash',
+                          style: TextStyle(
+                              color: Color(0xFF0A84FF), fontSize: 12)),
                       onPressed: () async {
-                        final data = await Clipboard.getData(Clipboard.kTextPlain);
+                        final data =
+                            await Clipboard.getData(Clipboard.kTextPlain);
                         if (data?.text != null) {
-                          final parsed = TelegramCredentialParser.parse(data!.text!);
-                          _apiHashController.text = parsed.apiHash ?? data.text!.trim();
+                          final parsed =
+                              TelegramCredentialParser.parse(data!.text!);
+                          _apiHashController.text =
+                              parsed.apiHash ?? data.text!.trim();
                         }
                       },
                     ),
@@ -482,20 +558,32 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                     hintStyle: TextStyle(color: Colors.grey.shade600),
                     filled: true,
                     fillColor: const Color(0xFF1C1C1E),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF0A84FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF0A84FF), width: 1.5),
                     ),
                     prefixIcon: const Icon(Icons.key, color: Colors.grey),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureHash ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
-                      onPressed: () => setState(() => _obscureHash = !_obscureHash),
+                      icon: Icon(
+                          _obscureHash
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey),
+                      onPressed: () =>
+                          setState(() => _obscureHash = !_obscureHash),
                     ),
                   ),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Please enter your Telegram API Hash';
-                    if (val.trim().length < 16) return 'API Hash is too short (usually 32 hex characters)';
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Please enter your Telegram API Hash';
+                    }
+                    if (val.trim().length < 16) {
+                      return 'API Hash is too short (usually 32 hex characters)';
+                    }
                     return null;
                   },
                 ),
@@ -508,21 +596,31 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen> with WidgetsBin
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0A84FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: _isTestingCredentials ? null : _onManualSubmit,
                     child: _isTestingCredentials
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                              const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white)),
                               const SizedBox(width: 12),
-                              Text(_statusText ?? 'Testing credentials...', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                              Text(_statusText ?? 'Testing credentials...',
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 14)),
                             ],
                           )
                         : const Text(
                             'Save & Continue to Step 2 →',
-                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
                           ),
                   ),
                 ),

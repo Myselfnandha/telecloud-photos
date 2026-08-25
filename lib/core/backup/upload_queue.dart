@@ -7,12 +7,11 @@ import '../utils/telecloud_logger.dart';
 import 'media_deduplicator.dart';
 import 'sync_policy_guard.dart';
 
-typedef UploadItemFunction =
-    Future<bool> Function(
-      MediaItem item, [
-      int? itemIndex,
-      int? totalBatchCount,
-    ]);
+typedef UploadItemFunction = Future<bool> Function(
+  MediaItem item, [
+  int? itemIndex,
+  int? totalBatchCount,
+]);
 
 typedef GetFileFunction = Future<File?> Function(String localId);
 
@@ -53,8 +52,7 @@ class UploadQueue {
   bool _isPaused = false;
   int _concurrency = 2;
 
-  final _progressController =
-      StreamController<UploadProgressState>.broadcast();
+  final _progressController = StreamController<UploadProgressState>.broadcast();
   Stream<UploadProgressState> get progressStream => _progressController.stream;
 
   UploadProgressState _lastState = const UploadProgressState();
@@ -202,7 +200,8 @@ class UploadQueue {
                 try {
                   final file = await getFileForLocalId(item.localId);
                   if (file != null && await file.exists()) {
-                    final deduplicated = await deduplicator!.checkAndDeduplicate(
+                    final deduplicated =
+                        await deduplicator!.checkAndDeduplicate(
                       localItem: item,
                       file: file,
                     );

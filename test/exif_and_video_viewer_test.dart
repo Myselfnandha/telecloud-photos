@@ -24,10 +24,12 @@ void main() {
   });
 
   group('ExifParserService Binary Parsing Tests', () {
-    test('1. Handles non-JPEG or empty files gracefully without throwing', () async {
+    test('1. Handles non-JPEG or empty files gracefully without throwing',
+        () async {
       final tempDir = await Directory.systemTemp.createTemp('exif_test');
       final emptyFile = File('${tempDir.path}/empty.png');
-      await emptyFile.writeAsBytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+      await emptyFile
+          .writeAsBytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
 
       final metadata = await ExifParserService.parseFile(emptyFile);
       expect(metadata, isNotNull);
@@ -65,7 +67,9 @@ void main() {
       expect(meta2.hasCameraSpecs, isTrue);
     });
 
-    test('3. Parses synthesized JPEG EXIF APP1 header with camera and exposure tags', () async {
+    test(
+        '3. Parses synthesized JPEG EXIF APP1 header with camera and exposure tags',
+        () async {
       // Build a minimal valid JPEG with APP1 EXIF segment (Little Endian 'II')
       final buffer = BytesBuilder();
 
@@ -86,9 +90,35 @@ void main() {
       // Entry 2: Model (0x0110), ASCII (2), count 7, offset 44
       tiffData.add([0x02, 0x00]); // 2 entries
       // Make entry
-      tiffData.add([0x0F, 0x01, 0x02, 0x00, 0x06, 0x00, 0x00, 0x00, 0x26, 0x00, 0x00, 0x00]);
+      tiffData.add([
+        0x0F,
+        0x01,
+        0x02,
+        0x00,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x26,
+        0x00,
+        0x00,
+        0x00
+      ]);
       // Model entry
-      tiffData.add([0x10, 0x01, 0x02, 0x00, 0x07, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00]);
+      tiffData.add([
+        0x10,
+        0x01,
+        0x02,
+        0x00,
+        0x07,
+        0x00,
+        0x00,
+        0x00,
+        0x2C,
+        0x00,
+        0x00,
+        0x00
+      ]);
       // Next IFD offset = 0
       tiffData.add([0x00, 0x00, 0x00, 0x00]);
 
@@ -148,7 +178,8 @@ void main() {
       expect(itemAfter?.capturedAt, newDate);
     });
 
-    test('2. updateMediaGpsCoordinates updates latitude and longitude', () async {
+    test('2. updateMediaGpsCoordinates updates latitude and longitude',
+        () async {
       await dao.insertOrIgnoreBatch([
         MediaItemsCompanion.insert(
           localId: 'exif_media_2',

@@ -117,13 +117,10 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
         return allItems.where((i) {
           if (i.isTrashed) return false;
           final fn = i.filename.toLowerCase();
-          return fn.contains('screenshot') ||
-              fn.contains('screen_shot');
+          return fn.contains('screenshot') || fn.contains('screen_shot');
         }).toList();
       case 'favorites':
-        return allItems
-            .where((i) => i.isFavorite && !i.isTrashed)
-            .toList();
+        return allItems.where((i) => i.isFavorite && !i.isTrashed).toList();
       case 'selfies':
         return allItems.where((i) {
           if (i.isTrashed) return false;
@@ -171,12 +168,10 @@ class _MediaCollectionScreenState extends ConsumerState<MediaCollectionScreen> {
     final asyncMedia = ref.watch(allMediaStreamProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -396,57 +391,58 @@ class _CollectionMediaTileState extends State<_CollectionMediaTile>
             fit: StackFit.expand,
             children: [
               thumbnailWidget,
-            if (isVideo)
-              Positioned(
-                bottom: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.65),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 13,
-                  ),
-                ),
-              ),
-            if (isMotion)
-              Positioned(
-                top: 4,
-                left: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.motion_photos_on_rounded,
-                    color: Colors.white,
-                    size: 12,
+              if (isVideo)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 13,
+                    ),
                   ),
                 ),
-              ),
-            if (item.isFavorite)
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.favorite_rounded,
-                    color: Color(0xFFFF453A),
-                    size: 12,
+              if (isMotion)
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.motion_photos_on_rounded,
+                      color: Colors.white,
+                      size: 12,
+                    ),
                   ),
                 ),
-              ),
+              if (item.isFavorite)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_rounded,
+                      color: Color(0xFFFF453A),
+                      size: 12,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

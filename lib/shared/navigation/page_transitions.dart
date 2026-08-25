@@ -11,14 +11,15 @@ Page<dynamic> buildTransitionPage({
   required Widget child,
   PageTransitionStyle? style,
 }) {
-  final resolvedStyle = style ?? () {
-    try {
-      final container = ProviderScope.containerOf(context, listen: false);
-      return container.read(pageTransitionProvider);
-    } catch (_) {
-      return PageTransitionStyle.fadeSlideUp;
-    }
-  }();
+  final resolvedStyle = style ??
+      () {
+        try {
+          final container = ProviderScope.containerOf(context, listen: false);
+          return container.read(pageTransitionProvider);
+        } catch (_) {
+          return PageTransitionStyle.fadeSlideUp;
+        }
+      }();
 
   switch (resolvedStyle) {
     case PageTransitionStyle.fadeSlideUp:

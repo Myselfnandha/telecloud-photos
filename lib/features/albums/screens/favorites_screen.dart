@@ -57,12 +57,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     final density = ref.watch(gridDensityProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -124,16 +122,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       AppSpacing.gapHorizontalM,
                       Text(
                         d.label,
-                        style:
-                            AppTypography.bodyMedium(
-                              color: density == d
-                                  ? AppColors.primaryBlue
-                                  : primaryTextColor,
-                            ).copyWith(
-                              fontWeight: density == d
-                                  ? AppTypography.bold
-                                  : AppTypography.regular,
-                            ),
+                        style: AppTypography.bodyMedium(
+                          color: density == d
+                              ? AppColors.primaryBlue
+                              : primaryTextColor,
+                        ).copyWith(
+                          fontWeight: density == d
+                              ? AppTypography.bold
+                              : AppTypography.regular,
+                        ),
                       ),
                     ],
                   ),
@@ -270,8 +267,7 @@ class _FavoriteTileState extends State<_FavoriteTile>
   Widget build(BuildContext context) {
     super.build(context);
     final thumbPath = widget.item.thumbnailPath;
-    final hasValidDiskThumb =
-        thumbPath != null &&
+    final hasValidDiskThumb = thumbPath != null &&
         thumbPath.isNotEmpty &&
         File(thumbPath).existsSync();
 
@@ -294,15 +290,15 @@ class _FavoriteTileState extends State<_FavoriteTile>
                             const ShimmerLoading(),
                       )
                     : (hasValidDiskThumb
-                          ? Image.file(
-                              File(thumbPath),
-                              fit: BoxFit.cover,
-                              cacheWidth: 256,
-                              cacheHeight: 256,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const ShimmerLoading(),
-                            )
-                          : const ShimmerLoading()),
+                        ? Image.file(
+                            File(thumbPath),
+                            fit: BoxFit.cover,
+                            cacheWidth: 256,
+                            cacheHeight: 256,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const ShimmerLoading(),
+                          )
+                        : const ShimmerLoading()),
               ),
               Positioned(
                 top: 4,

@@ -133,7 +133,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
 
   Future<void> _openMap(double lat, double lng) async {
     HapticFeedback.lightImpact();
-    final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final googleMapsUrl =
+        Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     final geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng');
 
     if (await canLaunchUrl(geoUrl)) {
@@ -153,7 +154,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
 
     final lat = _exif?.latitude ?? widget.item.latitude;
     final lng = _exif?.longitude ?? widget.item.longitude;
-    final hasLocation = lat != null && lng != null && (lat != 0.0 || lng != 0.0);
+    final hasLocation =
+        lat != null && lng != null && (lat != 0.0 || lng != 0.0);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.70,
@@ -183,7 +185,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
 
               // Title Row
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -221,7 +224,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryBlue.withValues(alpha: 0.15),
+                              color:
+                                  AppColors.primaryBlue.withValues(alpha: 0.15),
                               borderRadius: AppRadii.borderM,
                             ),
                             child: const Icon(
@@ -236,7 +240,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  DateFormat('EEEE, MMMM d, y').format(_capturedAt),
+                                  DateFormat('EEEE, MMMM d, y')
+                                      .format(_capturedAt),
                                   style: TextStyle(
                                     color: primaryTextColor,
                                     fontWeight: FontWeight.w600,
@@ -260,7 +265,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                             label: const Text('Edit'),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.primaryBlue,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
                             ),
                           ),
                         ],
@@ -292,7 +298,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF30D158).withValues(alpha: 0.15),
+                                    color: const Color(0xFF30D158)
+                                        .withValues(alpha: 0.15),
                                     borderRadius: AppRadii.borderM,
                                   ),
                                   child: const Icon(
@@ -304,10 +311,12 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _exif?.formattedCameraTitle ?? 'Device Camera',
+                                        _exif?.formattedCameraTitle ??
+                                            'Device Camera',
                                         style: TextStyle(
                                           color: primaryTextColor,
                                           fontWeight: FontWeight.bold,
@@ -364,7 +373,6 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 16),
                     ],
 
@@ -388,7 +396,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                           _buildDetailRow(
                             label: 'Resolution',
                             value: _exif?.formattedResolution ??
-                                (widget.item.width != null && widget.item.height != null
+                                (widget.item.width != null &&
+                                        widget.item.height != null
                                     ? '${widget.item.width} × ${widget.item.height}'
                                     : 'HD'),
                             primaryText: primaryTextColor,
@@ -435,7 +444,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFF9500).withValues(alpha: 0.15),
+                                    color: const Color(0xFFFF9500)
+                                        .withValues(alpha: 0.15),
                                     borderRadius: AppRadii.borderM,
                                   ),
                                   child: const Icon(
@@ -447,7 +457,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'GPS Geotag Location',
@@ -479,7 +490,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primaryBlue,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: AppRadii.borderL,
                                   ),
@@ -508,7 +520,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: (widget.item.uploadStatus == UploadStatus.done
+                                  color: (widget.item.uploadStatus ==
+                                              UploadStatus.done
                                           ? const Color(0xFF30D158)
                                           : AppColors.primaryBlue)
                                       .withValues(alpha: 0.15),
@@ -518,7 +531,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                   widget.item.uploadStatus == UploadStatus.done
                                       ? Icons.cloud_done_rounded
                                       : Icons.cloud_queue_rounded,
-                                  color: widget.item.uploadStatus == UploadStatus.done
+                                  color: widget.item.uploadStatus ==
+                                          UploadStatus.done
                                       ? const Color(0xFF30D158)
                                       : AppColors.primaryBlue,
                                   size: 22,
@@ -530,7 +544,8 @@ class _ExifInfoSheetState extends ConsumerState<ExifInfoSheet> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      widget.item.uploadStatus == UploadStatus.done
+                                      widget.item.uploadStatus ==
+                                              UploadStatus.done
                                           ? 'Synced to Telegram Cloud'
                                           : 'Local Device Media',
                                       style: TextStyle(

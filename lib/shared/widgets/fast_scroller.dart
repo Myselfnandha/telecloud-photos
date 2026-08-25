@@ -80,9 +80,9 @@ class _FastScrollerState extends State<FastScroller> {
     // Calculate active date label
     if (widget.dateLabels.isNotEmpty) {
       final index = (progress * (widget.dateLabels.length - 1)).round().clamp(
-        0,
-        widget.dateLabels.length - 1,
-      );
+            0,
+            widget.dateLabels.length - 1,
+          );
       final label = widget.dateLabels[index];
       if (index != _lastDateIndex) {
         _lastDateIndex = index;
@@ -209,9 +209,9 @@ class _FastScrollerState extends State<FastScroller> {
                             _currentDateLabel,
                             style: AppTypography.labelLarge(color: Colors.white)
                                 .copyWith(
-                                  fontWeight: AppTypography.bold,
-                                  letterSpacing: 0.3,
-                                ),
+                              fontWeight: AppTypography.bold,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ],
                       ),

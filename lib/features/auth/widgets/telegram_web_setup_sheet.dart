@@ -128,7 +128,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             _controller.runJavaScript(_jsAutoToolsAndScanScript);
           },
           onWebResourceError: (WebResourceError error) {
-            TeleCloudLogger.auth('WebView resource error: ${error.description}');
+            TeleCloudLogger.auth(
+                'WebView resource error: ${error.description}');
           },
         ),
       )
@@ -148,12 +149,14 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
           _statusMessage = 'Credentials extracted! Auto-closing...';
         });
 
-        TeleCloudLogger.auth('Successfully auto-extracted Telegram API ID: $apiId');
+        TeleCloudLogger.auth(
+            'Successfully auto-extracted Telegram API ID: $apiId');
 
         // Auto-close after 600ms success animation
         Future.delayed(const Duration(milliseconds: 600), () {
           if (mounted) {
-            Navigator.of(context).pop(ParsedCredentials(apiId: apiId, apiHash: apiHash));
+            Navigator.of(context)
+                .pop(ParsedCredentials(apiId: apiId, apiHash: apiHash));
           }
         });
       }
@@ -195,7 +198,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                     color: const Color(0xFF007AFF).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF007AFF), size: 20),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: Color(0xFF007AFF), size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -213,7 +217,9 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                       Text(
                         _statusMessage,
                         style: TextStyle(
-                          color: _isSuccess ? const Color(0xFF30D158) : Colors.white60,
+                          color: _isSuccess
+                              ? const Color(0xFF30D158)
+                              : Colors.white60,
                           fontSize: 12,
                         ),
                       ),
@@ -226,10 +232,13 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
-                  icon: const Icon(Icons.apps_rounded, color: Color(0xFF38BDF8), size: 16),
-                  label: const Text('API Tools', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12)),
+                  icon: const Icon(Icons.apps_rounded,
+                      color: Color(0xFF38BDF8), size: 16),
+                  label: const Text('API Tools',
+                      style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12)),
                   onPressed: () {
-                    _controller.loadRequest(Uri.parse('https://my.telegram.org/apps'));
+                    _controller
+                        .loadRequest(Uri.parse('https://my.telegram.org/apps'));
                   },
                 ),
                 IconButton(
@@ -245,7 +254,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             LinearProgressIndicator(
               value: _loadingProgress / 100.0,
               backgroundColor: Colors.transparent,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
               minHeight: 2,
             )
           else
@@ -256,7 +266,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             child: Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
                   child: WebViewWidget(controller: _controller),
                 ),
                 if (_isSuccess)
@@ -269,20 +280,26 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF30D158).withValues(alpha: 0.2),
+                              color: const Color(0xFF30D158)
+                                  .withValues(alpha: 0.2),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.check_circle_rounded, color: Color(0xFF30D158), size: 54),
+                            child: const Icon(Icons.check_circle_rounded,
+                                color: Color(0xFF30D158), size: 54),
                           ),
                           const SizedBox(height: 16),
                           const Text(
                             'Credentials Extracted!',
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 6),
                           const Text(
                             'Auto-closing and saving credentials...',
-                            style: TextStyle(color: Colors.white60, fontSize: 14),
+                            style:
+                                TextStyle(color: Colors.white60, fontSize: 14),
                           ),
                         ],
                       ),

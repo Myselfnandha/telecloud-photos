@@ -64,8 +64,8 @@ extension GridDensityExtension on GridDensity {
 
 final gridDensityProvider =
     StateNotifierProvider<GridDensityNotifier, GridDensity>((ref) {
-      return GridDensityNotifier();
-    });
+  return GridDensityNotifier();
+});
 
 class GridDensityNotifier extends StateNotifier<GridDensity> {
   static const _key = 'telecloud_grid_density';

@@ -42,7 +42,8 @@ class TelegramAuthManager extends ChangeNotifier {
   int? get targetChannelId => _targetChannelId;
 
   td.ConnectionState get connectionState => _client.currentConnectionState;
-  Stream<td.ConnectionState> get connectionStateStream => _client.connectionStateStream;
+  Stream<td.ConnectionState> get connectionStateStream =>
+      _client.connectionStateStream;
 
   bool _parametersSent = false;
   final String? _currentSessionDir;
@@ -64,10 +65,10 @@ class TelegramAuthManager extends ChangeNotifier {
     TelegramAccountService? accountService,
     ChannelManager? channelManager,
     String? sessionDir,
-  }) : _client = client ?? TdlibClient(),
-       _accountService = accountService,
-       _channelManager = channelManager,
-       _currentSessionDir = sessionDir {
+  })  : _client = client ?? TdlibClient(),
+        _accountService = accountService,
+        _channelManager = channelManager,
+        _currentSessionDir = sessionDir {
     _init();
   }
 
@@ -103,11 +104,13 @@ class TelegramAuthManager extends ChangeNotifier {
       );
       String userFriendlyMessage = event.message;
       if (event.message.contains('PASSWORD_HASH_INVALID')) {
-        userFriendlyMessage = 'Incorrect 2-step verification password. Please try again.';
+        userFriendlyMessage =
+            'Incorrect 2-step verification password. Please try again.';
       } else if (event.message.contains('PHONE_CODE_INVALID')) {
         userFriendlyMessage = 'Invalid verification code. Please try again.';
       } else if (event.message.contains('PHONE_CODE_EXPIRED')) {
-        userFriendlyMessage = 'Verification code expired. Please request a new one.';
+        userFriendlyMessage =
+            'Verification code expired. Please request a new one.';
       }
       _errorMessage = userFriendlyMessage;
       if (_state == AuthState.waitingForCode &&
@@ -418,7 +421,8 @@ class TelegramAuthManager extends ChangeNotifier {
   }
 
   void resendAuthenticationCode() {
-    TeleCloudLogger.auth('Requesting Telegram authentication code resend (SMS/Call)...');
+    TeleCloudLogger.auth(
+        'Requesting Telegram authentication code resend (SMS/Call)...');
     _errorMessage = null;
     _client.send(const td.ResendAuthenticationCode());
   }

@@ -37,7 +37,8 @@ void main() {
     test('toPrefString returns exact strings', () {
       expect(PageTransitionStyle.fadeSlideUp.toPrefString(), 'fadeSlideUp');
       expect(PageTransitionStyle.sharedAxis.toPrefString(), 'sharedAxis');
-      expect(PageTransitionStyle.cupertinoSlide.toPrefString(), 'cupertinoSlide');
+      expect(
+          PageTransitionStyle.cupertinoSlide.toPrefString(), 'cupertinoSlide');
     });
 
     test('displayName and description are non-empty', () {
@@ -65,7 +66,8 @@ void main() {
           .read(pageTransitionProvider.notifier)
           .setTransitionStyle(PageTransitionStyle.sharedAxis);
 
-      expect(container.read(pageTransitionProvider), PageTransitionStyle.sharedAxis);
+      expect(container.read(pageTransitionProvider),
+          PageTransitionStyle.sharedAxis);
       expect(prefs.getString('telecloud_transition_style'), 'sharedAxis');
     });
   });

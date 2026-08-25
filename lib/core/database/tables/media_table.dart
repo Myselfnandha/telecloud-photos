@@ -30,4 +30,3 @@ class MediaItems extends Table {
   @override
   Set<Column> get primaryKey => {localId};
 }
-

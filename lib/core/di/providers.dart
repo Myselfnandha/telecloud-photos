@@ -23,6 +23,9 @@ import '../backup/media_deduplicator.dart';
 import '../backup/sync_policy_guard.dart';
 import '../backup/folder_sync_manager.dart';
 import '../constants/app_constants.dart';
+import '../media/batch_operations_service.dart';
+import '../telegram/telegram_download_service.dart';
+import '../sync/deleted_media_detector.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError(
@@ -151,8 +154,7 @@ final uploadQueueProvider = Provider<UploadQueue>((ref) {
   final dao = ref.watch(mediaDaoProvider);
   final deduplicator = ref.watch(mediaDeduplicatorProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
-  final concurrency =
-      prefs.getInt(AppConstants.keyMaxConcurrentUploads) ??
+  final concurrency = prefs.getInt(AppConstants.keyMaxConcurrentUploads) ??
       AppConstants.defaultMaxConcurrentUploads;
   final queue = UploadQueue(mediaDao: dao, deduplicator: deduplicator);
   queue.setConcurrency(concurrency);
@@ -166,12 +168,13 @@ final uploadProgressStreamProvider = StreamProvider<UploadProgressState>((ref) {
 
 final uploadTelemetryProvider =
     StateNotifierProvider<UploadTelemetryNotifier, UploadTelemetryState>((ref) {
-      final dao = ref.watch(mediaDaoProvider);
-      final client = ref.watch(tdlibClientProvider);
-      return UploadTelemetryNotifier(dao, client);
-    });
+  final dao = ref.watch(mediaDaoProvider);
+  final client = ref.watch(tdlibClientProvider);
+  return UploadTelemetryNotifier(dao, client);
+});
 
-final backupManagerProvider = Provider<BackupManager>((ref) {
+final backupManagerProvider =
+    StateNotifierProvider<BackupManager, BackupState>((ref) {
   final manager = BackupManager();
   final queue = ref.watch(uploadQueueProvider);
   final uploadService = ref.watch(telegramUploadServiceProvider);
@@ -244,9 +247,9 @@ final backupManagerProvider = Provider<BackupManager>((ref) {
 
 final telegramAccountServiceProvider =
     ChangeNotifierProvider<TelegramAccountService>((ref) {
-      final secureStorage = ref.watch(secureStorageProvider);
-      return TelegramAccountService(storage: secureStorage);
-    });
+  final secureStorage = ref.watch(secureStorageProvider);
+  return TelegramAccountService(storage: secureStorage);
+});
 
 final activeTelegramAccountProvider = Provider<TelegramAccount?>((ref) {
   final service = ref.watch(telegramAccountServiceProvider);
@@ -268,12 +271,29 @@ final telegramAuthManagerProvider = ChangeNotifierProvider<TelegramAuthManager>(
 
 final supergroupTopicsProvider =
     FutureProvider.autoDispose<List<td.ForumTopic>>((ref) async {
-      final channelMgr = ref.watch(channelManagerProvider);
-      return await channelMgr.getSupergroupTopics();
-    });
+  final channelMgr = ref.watch(channelManagerProvider);
+  return await channelMgr.getSupergroupTopics();
+});
 
 final folderTopicMappingsProvider =
     FutureProvider.autoDispose<Map<String, int>>((ref) async {
-      final channelMgr = ref.watch(channelManagerProvider);
-      return await channelMgr.getAllFolderTopicMappings();
-    });
+  final channelMgr = ref.watch(channelManagerProvider);
+  return await channelMgr.getAllFolderTopicMappings();
+});
+
+final batchOperationsServiceProvider = Provider<BatchOperationsService>((ref) {
+  final mediaDao = ref.watch(mediaDaoProvider);
+  return BatchOperationsService(mediaDao: mediaDao);
+});
+
+final telegramDownloadServiceProvider =
+    Provider<TelegramDownloadService>((ref) {
+  final client = ref.watch(tdlibClientProvider);
+  final mediaDao = ref.watch(mediaDaoProvider);
+  return TelegramDownloadService(client: client, mediaDao: mediaDao);
+});
+
+final deletedMediaDetectorProvider = Provider<DeletedMediaDetector>((ref) {
+  final mediaDao = ref.watch(mediaDaoProvider);
+  return DeletedMediaDetector(mediaDao: mediaDao);
+});

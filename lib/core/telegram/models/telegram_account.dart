@@ -90,8 +90,7 @@ class TelegramAccount {
       backupChannelId: (map['backupChannelId'] as num?)?.toInt(),
       sessionDir: map['sessionDir'] as String,
       isActive: map['isActive'] as bool? ?? false,
-      createdAt:
-          DateTime.tryParse(map['createdAt'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ??
           DateTime.now(),
     );
   }

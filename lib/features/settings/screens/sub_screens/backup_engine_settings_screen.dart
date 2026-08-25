@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/backup/backup_manager.dart';
 import '../../../../core/di/providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -43,38 +42,30 @@ class _BackupEngineSettingsScreenState
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _autoBackupEnabled =
-          prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
+      _autoBackupEnabled = prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
           AppConstants.defaultAutoBackupEnabled;
-      _wifiOnly =
-          prefs.getBool(AppConstants.keyWifiOnly) ??
+      _wifiOnly = prefs.getBool(AppConstants.keyWifiOnly) ??
           AppConstants.defaultWifiOnly;
-      _allowMobileData =
-          prefs.getBool(AppConstants.keyAllowMobileData) ??
+      _allowMobileData = prefs.getBool(AppConstants.keyAllowMobileData) ??
           AppConstants.defaultAllowMobileData;
-      _pauseOnRoaming =
-          prefs.getBool(AppConstants.keyPauseOnRoaming) ??
+      _pauseOnRoaming = prefs.getBool(AppConstants.keyPauseOnRoaming) ??
           AppConstants.defaultPauseOnRoaming;
       _dailyCellularLimitMb =
           prefs.getInt(AppConstants.keyDailyCellularDataLimitMb) ??
-          prefs.getInt(AppConstants.keyMobileDataLimitMb) ??
-          AppConstants.defaultDailyCellularDataLimitMb;
+              prefs.getInt(AppConstants.keyMobileDataLimitMb) ??
+              AppConstants.defaultDailyCellularDataLimitMb;
       _maxConcurrentUploads =
           prefs.getInt(AppConstants.keyMaxConcurrentUploads) ??
-          AppConstants.defaultMaxConcurrentUploads;
-      _syncIntervalMins =
-          prefs.getInt(AppConstants.keySyncFrequencyMins) ??
+              AppConstants.defaultMaxConcurrentUploads;
+      _syncIntervalMins = prefs.getInt(AppConstants.keySyncFrequencyMins) ??
           AppConstants.defaultSyncFrequencyMins;
-      _uploadMp4Videos =
-          prefs.getBool(AppConstants.keyIncludeMp4Videos) ??
+      _uploadMp4Videos = prefs.getBool(AppConstants.keyIncludeMp4Videos) ??
           prefs.getBool(AppConstants.keyIncludeVideos) ??
           AppConstants.defaultIncludeMp4Videos;
-      _uploadMovVideos =
-          prefs.getBool(AppConstants.keyIncludeMovVideos) ??
+      _uploadMovVideos = prefs.getBool(AppConstants.keyIncludeMovVideos) ??
           prefs.getBool(AppConstants.keyIncludeVideos) ??
           AppConstants.defaultIncludeMovVideos;
-      _uploadScreenshots =
-          prefs.getBool(AppConstants.keyIncludeScreenshots) ??
+      _uploadScreenshots = prefs.getBool(AppConstants.keyIncludeScreenshots) ??
           AppConstants.defaultIncludeScreenshots;
     });
   }
@@ -86,19 +77,19 @@ class _BackupEngineSettingsScreenState
     } else if (value is int) {
       await prefs.setInt(key, value);
     }
-    await BackupManager().scheduleBackgroundWorker(forceReschedule: true);
+    await ref
+        .read(backupManagerProvider.notifier)
+        .scheduleBackgroundWorker(forceReschedule: true);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -233,7 +224,8 @@ class _BackupEngineSettingsScreenState
                       if (val) _allowMobileData = false;
                     });
                     _saveSetting(AppConstants.keyWifiOnly, val);
-                    _saveSetting(AppConstants.keyAllowMobileData, _allowMobileData);
+                    _saveSetting(
+                        AppConstants.keyAllowMobileData, _allowMobileData);
                     HapticFeedback.selectionClick();
                   },
                 ),
@@ -286,7 +278,8 @@ class _BackupEngineSettingsScreenState
                   ),
                   _buildDivider(isLight),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -602,12 +595,16 @@ class _BackupEngineSettingsScreenState
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? (workers == 0 ? const Color(0xFFFF9500) : AppColors.primaryBlue)
+                ? (workers == 0
+                    ? const Color(0xFFFF9500)
+                    : AppColors.primaryBlue)
                 : (isLight ? Colors.grey.shade100 : Colors.grey.shade900),
             borderRadius: AppRadii.borderM,
             border: Border.all(
               color: isSelected
-                  ? (workers == 0 ? const Color(0xFFFF9500) : AppColors.primaryBlue)
+                  ? (workers == 0
+                      ? const Color(0xFFFF9500)
+                      : AppColors.primaryBlue)
                   : (isLight ? AppColors.lightBorder : AppColors.darkBorder),
             ),
           ),

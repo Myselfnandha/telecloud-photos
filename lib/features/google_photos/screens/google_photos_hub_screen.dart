@@ -171,12 +171,10 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -226,7 +224,8 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.cloud_download_rounded, color: Colors.white, size: 28),
+                    Icon(Icons.cloud_download_rounded,
+                        color: Colors.white, size: 28),
                     SizedBox(width: 10),
                     Text(
                       'Google Takeout Importer',
@@ -241,7 +240,8 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                 const SizedBox(height: 10),
                 const Text(
                   'Import uncompressed photos & videos from your Google Takeout archive directly into TeleCloud unlimited storage.',
-                  style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+                  style:
+                      TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
                 ),
               ],
             ),
@@ -262,7 +262,8 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                 Text(
                   'HOW TO EXPORT FROM GOOGLE',
                   style: TextStyle(
-                    color: isLight ? Colors.grey.shade600 : Colors.grey.shade400,
+                    color:
+                        isLight ? Colors.grey.shade600 : Colors.grey.shade400,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.8,
@@ -303,24 +304,27 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                 Text(
                   'IMPORT ARCHIVE',
                   style: TextStyle(
-                    color: isLight ? Colors.grey.shade600 : Colors.grey.shade400,
+                    color:
+                        isLight ? Colors.grey.shade600 : Colors.grey.shade400,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 14),
-
                 TextField(
                   controller: _customPathController,
                   style: TextStyle(color: primaryTextColor, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: '/storage/emulated/0/Download/Takeout',
-                    hintStyle: TextStyle(color: secondaryTextColor, fontSize: 13),
+                    hintStyle:
+                        TextStyle(color: secondaryTextColor, fontSize: 13),
                     labelText: 'Custom Folder Path',
                     labelStyle: const TextStyle(color: Color(0xFF0A84FF)),
                     filled: true,
-                    fillColor: isLight ? Colors.grey.shade100 : const Color(0xFF2C2C2E),
+                    fillColor: isLight
+                        ? Colors.grey.shade100
+                        : const Color(0xFF2C2C2E),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -328,7 +332,6 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -351,7 +354,9 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                           )
                         : const Icon(Icons.folder_open_rounded),
                     label: Text(
-                      _isImporting ? 'Importing...' : 'Scan & Import Takeout Folder',
+                      _isImporting
+                          ? 'Importing...'
+                          : 'Scan & Import Takeout Folder',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     onPressed: _isImporting
@@ -366,7 +371,6 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                           },
                   ),
                 ),
-
                 if (_importStatus.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   Row(
@@ -379,7 +383,8 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0A84FF).withValues(alpha: 0.2),
+                            color:
+                                const Color(0xFF0A84FF).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(

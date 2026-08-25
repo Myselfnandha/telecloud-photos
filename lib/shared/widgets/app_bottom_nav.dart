@@ -127,7 +127,8 @@ class _AppleTabBarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isSelected = index == selectedIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unselectedColor = isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93);
+    final unselectedColor =
+        isDark ? const Color(0xFF8E8E93) : const Color(0xFF8E8E93);
     final activeColor = AppColors.primaryBlue;
 
     return Expanded(

@@ -128,7 +128,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
         backgroundColor: const Color(0xFF000000),
-        title: const Text('Verify Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+        title: const Text('Verify Code',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
@@ -176,7 +177,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     Expanded(
                       child: Text(
                         'Check your Telegram app messages for the 5-digit login code from official "Telegram".',
-                        style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.3),
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.white70, height: 1.3),
                       ),
                     ),
                   ],
@@ -216,26 +218,33 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                     if (_countdown > 0)
                       Text(
                         'Resend code in ${_countdown}s',
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                        style: TextStyle(
+                            color: Colors.grey.shade500, fontSize: 13),
                       )
                     else
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           TextButton.icon(
-                            icon: const Icon(Icons.telegram, size: 18, color: Color(0xFF0A84FF)),
+                            icon: const Icon(Icons.telegram,
+                                size: 18, color: Color(0xFF0A84FF)),
                             label: const Text(
                               'Resend Code',
-                              style: TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Color(0xFF0A84FF),
+                                  fontWeight: FontWeight.bold),
                             ),
                             onPressed: () => _resendCode(viaSms: false),
                           ),
                           const SizedBox(width: 12),
                           TextButton.icon(
-                            icon: const Icon(Icons.sms_rounded, size: 18, color: Color(0xFF30D158)),
+                            icon: const Icon(Icons.sms_rounded,
+                                size: 18, color: Color(0xFF30D158)),
                             label: const Text(
                               'Send via SMS',
-                              style: TextStyle(color: Color(0xFF30D158), fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Color(0xFF30D158),
+                                  fontWeight: FontWeight.bold),
                             ),
                             onPressed: () => _resendCode(viaSms: true),
                           ),
@@ -246,7 +255,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                       onPressed: () => context.pop(),
                       child: Text(
                         'Change Phone Number',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        style: TextStyle(
+                            color: Colors.grey.shade400, fontSize: 13),
                       ),
                     ),
                   ],

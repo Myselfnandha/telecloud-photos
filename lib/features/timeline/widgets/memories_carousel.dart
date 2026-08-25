@@ -75,9 +75,8 @@ class _MemoriesCarouselState extends ConsumerState<MemoriesCarousel> {
     required List<MediaItem> items,
   }) {
     final cover = items.first;
-    final title = yearsAgo == 1
-        ? '1 Year Ago Today'
-        : '$yearsAgo Years Ago Today';
+    final title =
+        yearsAgo == 1 ? '1 Year Ago Today' : '$yearsAgo Years Ago Today';
 
     return GestureDetector(
       onTap: () {

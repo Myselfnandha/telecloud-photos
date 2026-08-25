@@ -46,9 +46,8 @@ class _ShimmerLoadingState extends State<ShimmerLoading>
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final baseColor = isLight
-        ? AppColors.shimmerBaseLight
-        : AppColors.shimmerBaseDark;
+    final baseColor =
+        isLight ? AppColors.shimmerBaseLight : AppColors.shimmerBaseDark;
     final highlightColor = isLight
         ? AppColors.shimmerHighlightLight
         : AppColors.shimmerHighlightDark;

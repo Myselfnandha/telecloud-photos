@@ -27,12 +27,10 @@ class AddToAlbumSheet extends ConsumerWidget {
     final textController = TextEditingController();
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final dialogBg = isLight ? Colors.white : AppColors.darkSurface;
 
     showDialog(
@@ -124,12 +122,10 @@ class AddToAlbumSheet extends ConsumerWidget {
     final mediaDao = ref.watch(mediaDaoProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final sheetBg = isLight ? Colors.white : AppColors.darkSurface;
     final itemBg = isLight ? Colors.grey.shade100 : const Color(0xFF1C1C1E);
 
@@ -284,14 +280,13 @@ class AddToAlbumSheet extends ConsumerWidget {
                           ),
                           title: Text(
                             album.name,
-                            style:
-                                AppTypography.bodyLarge(
-                                  color: primaryTextColor,
-                                ).copyWith(
-                                  fontWeight: isCurrentAlbum
-                                      ? AppTypography.bold
-                                      : AppTypography.medium,
-                                ),
+                            style: AppTypography.bodyLarge(
+                              color: primaryTextColor,
+                            ).copyWith(
+                              fontWeight: isCurrentAlbum
+                                  ? AppTypography.bold
+                                  : AppTypography.medium,
+                            ),
                           ),
                           subtitle: Text(
                             'Created ${album.createdAt.toLocal().toString().split(' ')[0]}',

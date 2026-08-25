@@ -32,9 +32,8 @@ class MotionPhotoExtractor {
 
       // Step 1: Scan for standard MP4 ftyp signatures (ftypmp42, ftypisom, ftypqt, ftypMSNV)
       // Check last 25MB of file in 64KB blocks
-      final searchWindow = fileLength > 25 * 1024 * 1024
-          ? 25 * 1024 * 1024
-          : fileLength;
+      final searchWindow =
+          fileLength > 25 * 1024 * 1024 ? 25 * 1024 * 1024 : fileLength;
       final startSearchPos = fileLength - searchWindow;
 
       await raf.setPosition(startSearchPos);

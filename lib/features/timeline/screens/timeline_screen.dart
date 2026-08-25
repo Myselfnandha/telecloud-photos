@@ -1,31 +1,22 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/cache/thumbnail_cache_service.dart';
-import '../../../core/di/providers.dart';
 import '../../../core/database/app_database.dart';
-import '../../../core/database/tables/media_table.dart';
-import '../../../shared/theme/app_theme.dart';
+import '../../../core/di/providers.dart';
 import '../../../shared/theme/app_colors.dart';
-import '../../../shared/theme/app_radii.dart';
-import '../../../shared/theme/app_spacing.dart';
-import '../../../shared/theme/app_typography.dart';
-import '../../../shared/theme/app_elevation.dart';
-import '../../../shared/theme/app_icons.dart';
-import '../../../shared/theme/app_motion.dart';
-import '../../../shared/widgets/google_photos_badge.dart';
-import '../../../shared/theme/theme_provider.dart';
-import '../../../shared/widgets/shimmer_grid.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/fast_scroller.dart';
+import '../../../shared/widgets/selection_action_bar.dart';
+import '../../../shared/widgets/shimmer_grid.dart';
+import '../../viewer/widgets/add_to_album_sheet.dart';
 import '../controllers/timeline_zoom_controller.dart';
 import '../widgets/memories_carousel.dart';
-import '../../viewer/widgets/add_to_album_sheet.dart';
+import '../widgets/tier_badge_overlay.dart';
+import '../widgets/timeline_date_header.dart';
+import '../widgets/timeline_photo_grid.dart';
 
 class TimelineScreen extends ConsumerStatefulWidget {
   const TimelineScreen({super.key});
@@ -243,10 +234,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
         curve: Curves.easeOutCubic,
       ),
     )..addListener(() {
-      setState(() {
-        _pinchScale = _snapAnimation.value;
+        setState(() {
+          _pinchScale = _snapAnimation.value;
+        });
       });
-    });
 
     _snapAnimationController.forward(from: 0.0).then((_) {
       if (mounted) {
@@ -262,8 +253,8 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
 
   void _performBatchDelete(List<MediaItem> allItems) async {
     final count = _selectedLocalIds.length;
-    final dao = ref.read(mediaDaoProvider);
-    await dao.moveToTrash(_selectedLocalIds.toList());
+    final batchOps = ref.read(batchOperationsServiceProvider);
+    await batchOps.batchDelete(_selectedLocalIds.toList());
     HapticFeedback.mediumImpact();
     setState(() {
       _isSelectionMode = false;
@@ -275,21 +266,11 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
       messenger.showSnackBar(
         SnackBar(
           content: Text('Moved $count items to Trash'),
-          backgroundColor: AppColors.systemRed,
+          backgroundColor: AppColors.errorRed,
           duration: const Duration(seconds: 2),
         ),
       );
     }
-  }
-
-  void _performBatchUpload(List<MediaItem> allItems) async {
-    final backupMgr = ref.read(backupManagerProvider);
-    backupMgr.onStartUploading?.call();
-    HapticFeedback.heavyImpact();
-    setState(() {
-      _isSelectionMode = false;
-      _selectedLocalIds.clear();
-    });
   }
 
   void _performBatchShare(List<MediaItem> allItems) {
@@ -314,22 +295,68 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
     }
   }
 
+  void _performBatchDownload(List<MediaItem> allItems) {
+    final count = _selectedLocalIds.length;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Queued $count items for original download'),
+        backgroundColor: AppColors.primaryBlue,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    setState(() {
+      _isSelectionMode = false;
+      _selectedLocalIds.clear();
+    });
+  }
+
+  void _performBatchToggleFavorite(List<MediaItem> allItems) async {
+    final selectedItems =
+        allItems.where((i) => _selectedLocalIds.contains(i.localId)).toList();
+    final anyNotFavorite = selectedItems.any((i) => !i.isFavorite);
+    final batchOps = ref.read(batchOperationsServiceProvider);
+    await batchOps.batchToggleFavorite(
+      _selectedLocalIds.toList(),
+      isFavorite: anyNotFavorite,
+    );
+    setState(() {
+      _isSelectionMode = false;
+      _selectedLocalIds.clear();
+    });
+  }
+
+  void _performBatchExport(List<MediaItem> allItems) async {
+    final selectedItems =
+        allItems.where((i) => _selectedLocalIds.contains(i.localId)).toList();
+    final batchOps = ref.read(batchOperationsServiceProvider);
+    final count = await batchOps.batchExport(selectedItems);
+    setState(() {
+      _isSelectionMode = false;
+      _selectedLocalIds.clear();
+    });
+    if (mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Exported $count items to device storage'),
+          backgroundColor: AppColors.successGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight ? Colors.black87 : Colors.white;
+    final primaryTextColor = AppColors.textPrimary(context);
     final asyncMedia = ref.watch(allMediaStreamProvider);
-    final gridMode = ref.watch(gridDisplayModeProvider);
-
-    final childAspectRatio = _currentTier == TimelineTier.singlePhoto
-        ? 0.95
-        : (gridMode == GridDisplayMode.uncropped ? 0.82 : 1.0);
-    final boxFit = gridMode == GridDisplayMode.aspectRatioFit
-        ? BoxFit.contain
-        : BoxFit.cover;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -401,7 +428,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                       ? 'Deselect All'
                       : 'Select All',
                   style: const TextStyle(
-                    color: Color(0xFF0A84FF),
+                    color: AppColors.primaryBlue,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -430,9 +457,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                       Text(
                         'No photos found on device',
                         style: TextStyle(
-                          color: isLight
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade500,
+                          color: AppColors.textSecondary(context),
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -480,111 +505,50 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                     itemCount: dateEntries.length,
                     itemBuilder: (context, index) {
                       final entry = dateEntries[index];
-                      final isYearly = _currentTier == TimelineTier.yearlyMosaic;
+                      final isYearly =
+                          _currentTier == TimelineTier.yearlyMosaic;
                       final isSingle = _currentTier == TimelineTier.singlePhoto;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              16,
-                              isYearly ? 10 : 20,
-                              16,
-                              isYearly ? 4 : 8,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  entry.key,
-                                  style: TextStyle(
-                                    color: primaryTextColor,
-                                    fontSize:
-                                        isYearly ? 14 : (isSingle ? 20 : 18),
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                                Text(
-                                  '${entry.value.length} ${entry.value.length == 1 ? 'item' : 'items'}',
-                                  style: TextStyle(
-                                    color: isLight
-                                        ? Colors.grey.shade600
-                                        : Colors.grey.shade500,
-                                    fontSize: isYearly ? 11 : 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          TimelineDateHeader(
+                            dateLabel: entry.key,
+                            itemCount: entry.value.length,
+                            isYearly: isYearly,
+                            isSingle: isSingle,
                           ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isSingle ? 12 : 2,
-                            ),
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: entry.value.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: _currentTier.columns,
-                                mainAxisSpacing: isYearly
-                                    ? 1.0
-                                    : (_currentTier == TimelineTier.monthlyGrid
-                                        ? 1.5
-                                        : (isSingle ? 12.0 : 2.5)),
-                                crossAxisSpacing: isYearly
-                                    ? 1.0
-                                    : (_currentTier == TimelineTier.monthlyGrid
-                                        ? 1.5
-                                        : (isSingle ? 12.0 : 2.5)),
-                                childAspectRatio: childAspectRatio,
-                              ),
-                              itemBuilder: (context, itemIdx) {
-                                final item = entry.value[itemIdx];
-                                final isSelected =
-                                    _selectedLocalIds.contains(item.localId);
-                                return RepaintBoundary(
-                                  child: _MediaTile(
-                                    key: ValueKey(item.localId),
-                                    item: item,
-                                    boxFit: boxFit,
-                                    tier: _currentTier,
-                                    isSelectionMode: _isSelectionMode,
-                                    isSelected: isSelected,
-                                    onTap: () {
-                                      if (_isSelectionMode) {
-                                        HapticFeedback.selectionClick();
-                                        setState(() {
-                                          if (isSelected) {
-                                            _selectedLocalIds.remove(
-                                              item.localId,
-                                            );
-                                            if (_selectedLocalIds.isEmpty) {
-                                              _isSelectionMode = false;
-                                            }
-                                          } else {
-                                            _selectedLocalIds.add(item.localId);
-                                          }
-                                        });
-                                      } else {
-                                        context.push('/viewer/${item.localId}');
-                                      }
-                                    },
-                                    onLongPress: () {
-                                      HapticFeedback.heavyImpact();
-                                      setState(() {
-                                        _isSelectionMode = true;
-                                        _selectedLocalIds.add(item.localId);
-                                      });
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
+                          TimelinePhotoGrid(
+                            items: entry.value,
+                            tier: _currentTier,
+                            isSelectionMode: _isSelectionMode,
+                            selectedIds: _selectedLocalIds,
+                            onItemTap: (item) {
+                              if (_isSelectionMode) {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  if (_selectedLocalIds
+                                      .contains(item.localId)) {
+                                    _selectedLocalIds.remove(item.localId);
+                                    if (_selectedLocalIds.isEmpty) {
+                                      _isSelectionMode = false;
+                                    }
+                                  } else {
+                                    _selectedLocalIds.add(item.localId);
+                                  }
+                                });
+                              } else {
+                                context.push('/viewer/${item.localId}');
+                              }
+                            },
+                            onItemLongPress: (item) {
+                              HapticFeedback.heavyImpact();
+                              setState(() {
+                                _isSelectionMode = true;
+                                _selectedLocalIds.add(item.localId);
+                              });
+                            },
                           ),
                         ],
                       );
@@ -666,7 +630,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0A84FF),
+                      backgroundColor: AppColors.primaryBlue,
                     ),
                     icon: const Icon(
                       Icons.refresh,
@@ -687,396 +651,34 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
           ),
 
           // Floating Glassmorphic Tier Badge
-          Positioned(
-            top: AppSpacing.m,
-            left: 0,
-            right: 0,
-            child: AnimatedOpacity(
-              opacity: _showTierBadge ? 1.0 : 0.0,
-              duration: AppMotion.durationMedium,
-              curve: AppMotion.curveStandard,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.l,
-                    vertical: AppSpacing.s,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isLight
-                        ? const Color(0xF2FFFFFF)
-                        : const Color(0xF01C1C1E),
-                    borderRadius: AppRadii.borderFull,
-                    border: Border.all(
-                      color: isLight
-                          ? AppColors.glassBorderLight
-                          : AppColors.glassBorderDark,
-                      width: 0.8,
-                    ),
-                    boxShadow: AppElevation.glassPillShadow,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        (_isPinching ? _previewTier : _currentTier).icon,
-                        color: AppColors.primaryBlue,
-                        size: AppIcons.s,
-                      ),
-                      AppSpacing.gapHorizontalS,
-                      Text(
-                        (_isPinching ? _previewTier : _currentTier).label,
-                        style: AppTypography.labelLarge(
-                          color: isLight
-                              ? AppColors.lightTextPrimary
-                              : AppColors.darkTextPrimary,
-                        ).copyWith(
-                          fontWeight: AppTypography.bold,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          TierBadgeOverlay(
+            activeTier: _isPinching ? _previewTier : _currentTier,
+            isVisible: _showTierBadge,
           ),
 
-          // Floating Selection Action Bar
+          // Floating Selection Action Bar (Feature 5)
           if (_isSelectionMode)
             Positioned(
               bottom: 24,
               left: 20,
               right: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+              child: asyncMedia.maybeWhen(
+                data: (items) => SelectionActionBar(
+                  selectedCount: _selectedLocalIds.length,
+                  onShare: () => _performBatchShare(items),
+                  onAddToAlbum: () => _performBatchAddToAlbum(items),
+                  onDownload: () => _performBatchDownload(items),
+                  onToggleFavorite: () => _performBatchToggleFavorite(items),
+                  onExport: () => _performBatchExport(items),
+                  onDelete: () => _performBatchDelete(items),
+                  onCancel: () {
+                    setState(() {
+                      _isSelectionMode = false;
+                      _selectedLocalIds.clear();
+                    });
+                  },
                 ),
-                decoration: BoxDecoration(
-                  color: isLight
-                      ? Colors.white.withValues(alpha: 0.95)
-                      : const Color(0xFF1C1C1E).withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isLight ? Colors.black12 : Colors.white12,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: asyncMedia.maybeWhen(
-                  data: (items) => Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.ios_share_rounded),
-                        color: const Color(0xFF0A84FF),
-                        tooltip: 'Share',
-                        onPressed: () => _performBatchShare(items),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add_to_photos_rounded),
-                        color: const Color(0xFF0A84FF),
-                        tooltip: 'Add to Album',
-                        onPressed: () => _performBatchAddToAlbum(items),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.cloud_upload_rounded),
-                        color: const Color(0xFF0A84FF),
-                        tooltip: 'Upload to Cloud',
-                        onPressed: () => _performBatchUpload(items),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded),
-                        color: AppColors.systemRed,
-                        tooltip: 'Delete',
-                        onPressed: () => _performBatchDelete(items),
-                      ),
-                    ],
-                  ),
-                  orElse: () => const SizedBox.shrink(),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MediaTile extends StatefulWidget {
-  final MediaItem item;
-  final BoxFit boxFit;
-  final TimelineTier tier;
-  final bool isSelectionMode;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  const _MediaTile({
-    super.key,
-    required this.item,
-    required this.boxFit,
-    required this.tier,
-    required this.isSelectionMode,
-    required this.isSelected,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  @override
-  State<_MediaTile> createState() => _MediaTileState();
-}
-
-class _MediaTileState extends State<_MediaTile>
-    with AutomaticKeepAliveClientMixin {
-  Uint8List? _bytes;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadThumbnail();
-  }
-
-  @override
-  void didUpdateWidget(covariant _MediaTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.item.localId != widget.item.localId) {
-      _loadThumbnail();
-    }
-  }
-
-  Future<void> _loadThumbnail() async {
-    final cached = ThumbnailCacheService().getFromMemory(widget.item.localId);
-    if (cached != null) {
-      if (mounted) {
-        setState(() {
-          _bytes = cached;
-        });
-      }
-      return;
-    }
-
-    final isVideo = widget.item.mimeType.startsWith('video');
-    final bytes = await ThumbnailCacheService().getThumbnail(
-      id: widget.item.localId,
-      diskPath: widget.item.thumbnailPath,
-      isVideo: isVideo,
-    );
-
-    if (mounted) {
-      setState(() {
-        _bytes = bytes;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-
-    final isVideo = widget.item.mimeType.startsWith('video');
-    final isSinglePhoto = widget.tier == TimelineTier.singlePhoto;
-    final isYearly = widget.tier == TimelineTier.yearlyMosaic;
-    final cacheDim = isSinglePhoto ? 600 : (isYearly ? 128 : 256);
-
-    Widget imageWidget;
-    if (_bytes != null) {
-      imageWidget = Image.memory(
-        _bytes!,
-        fit: widget.boxFit,
-        cacheWidth: cacheDim,
-        cacheHeight: cacheDim,
-        errorBuilder: (context, error, stackTrace) => const ShimmerLoading(),
-      );
-    } else if (widget.item.thumbnailPath != null &&
-        widget.item.thumbnailPath!.isNotEmpty) {
-      imageWidget = Image.file(
-        File(widget.item.thumbnailPath!),
-        fit: widget.boxFit,
-        cacheWidth: cacheDim,
-        cacheHeight: cacheDim,
-        errorBuilder: (context, error, stackTrace) => const ShimmerLoading(),
-      );
-    } else {
-      imageWidget = const ShimmerLoading();
-    }
-
-    return GestureDetector(
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Hero(
-            tag: 'media_${widget.item.localId}',
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(
-                  isSinglePhoto ? 14 : (isYearly ? 1 : 3),
-                ),
-                border: widget.isSelected
-                    ? Border.all(color: const Color(0xFF0A84FF), width: 3.5)
-                    : null,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(
-                  isSinglePhoto
-                      ? 12
-                      : (isYearly ? 1 : (widget.isSelected ? 1 : 3)),
-                ),
-                child: Container(
-                  color: const Color(0xFF141416),
-                  child: imageWidget,
-                ),
-              ),
-            ),
-          ),
-
-          // Favorite badge
-          if (widget.item.isFavorite && !isYearly && !widget.isSelectionMode)
-            Positioned(
-              top: isSinglePhoto ? 10 : 4,
-              right: isSinglePhoto ? 10 : 4,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.favorite_rounded,
-                  color: const Color(0xFFFF453A),
-                  size: isSinglePhoto ? 16 : 12,
-                ),
-              ),
-            ),
-
-          // Telegram cloud synced badge
-          if (widget.item.localId.startsWith('tg_') &&
-              !isYearly &&
-              !widget.isSelectionMode)
-            Positioned(
-              top: isSinglePhoto ? 10 : 4,
-              left: isSinglePhoto ? 10 : 4,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.55),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.cloud_queue_rounded,
-                  color: Colors.white,
-                  size: isSinglePhoto ? 14 : 11,
-                ),
-              ),
-            ),
-
-          // Google photos badge
-          if (widget.item.localId.startsWith('gp_') &&
-              !isYearly &&
-              !widget.isSelectionMode)
-            Positioned(
-              top: isSinglePhoto ? 10 : 4,
-              left: isSinglePhoto ? 10 : 4,
-              child: GooglePhotosBadge(compact: !isSinglePhoto),
-            ),
-
-          // Video indicator
-          if (isVideo && !isYearly)
-            Positioned(
-              bottom: isSinglePhoto ? 10 : 4,
-              left: isSinglePhoto ? 10 : 4,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSinglePhoto ? 8 : 5,
-                  vertical: isSinglePhoto ? 4 : 2,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(isSinglePhoto ? 6 : 4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: isSinglePhoto ? 16 : 12,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      'VIDEO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isSinglePhoto ? 11 : 9,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // Pending upload indicator
-          if (widget.item.uploadStatus == UploadStatus.pending &&
-              !isYearly &&
-              !widget.isSelectionMode)
-            Positioned(
-              bottom: isSinglePhoto ? 10 : 4,
-              right: isSinglePhoto ? 10 : 4,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.access_time_rounded,
-                  color: Colors.white70,
-                  size: 10,
-                ),
-              ),
-            ),
-
-          // Selection indicator checkbox overlay
-          if (widget.isSelectionMode)
-            Positioned(
-              top: isSinglePhoto ? 10 : 6,
-              right: isSinglePhoto ? 10 : 6,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: widget.isSelected
-                      ? const Color(0xFF0A84FF)
-                      : Colors.black.withValues(alpha: 0.45),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: widget.isSelected
-                        ? const Color(0xFF0A84FF)
-                        : Colors.white.withValues(alpha: 0.8),
-                    width: 2,
-                  ),
-                ),
-                child: widget.isSelected
-                    ? const Icon(
-                        Icons.check_rounded,
-                        color: Colors.white,
-                        size: 14,
-                      )
-                    : null,
+                orElse: () => const SizedBox.shrink(),
               ),
             ),
         ],

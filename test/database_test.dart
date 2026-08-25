@@ -47,8 +47,8 @@ void main() {
           expect(
             mediaList[i].capturedAt.isAfter(mediaList[i + 1].capturedAt) ||
                 mediaList[i].capturedAt.isAtSameMomentAs(
-                  mediaList[i + 1].capturedAt,
-                ),
+                      mediaList[i + 1].capturedAt,
+                    ),
             isTrue,
           );
         }
@@ -307,7 +307,8 @@ void main() {
       expect(memories.map((e) => e.localId).toSet(), {'memory_1', 'memory_2'});
     });
 
-    test('10. Album creation, deleteAlbum unlinking, and queue operations', () async {
+    test('10. Album creation, deleteAlbum unlinking, and queue operations',
+        () async {
       final albumId = await dao.createAlbum('Vacation 2024', topicId: 888);
       expect(albumId, isPositive);
 

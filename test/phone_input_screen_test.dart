@@ -7,7 +7,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PhoneInputScreen Validation Tests', () {
-    testWidgets('validation does not show error for 1-9 digits; enables at 10 digits', (
+    testWidgets(
+        'validation does not show error for 1-9 digits; enables at 10 digits', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -57,7 +58,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Ensure validation error is displayed
-      expect(find.text('Phone number is too long (max 15 digits)'), findsOneWidget);
+      expect(find.text('Phone number is too long (max 15 digits)'),
+          findsOneWidget);
 
       // Verify Continue button is disabled
       final disabledButtonAfterOverlength = tester.widget<ElevatedButton>(

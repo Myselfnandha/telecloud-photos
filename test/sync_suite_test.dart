@@ -30,7 +30,9 @@ void main() {
   });
 
   group('MediaDeduplicator Tests', () {
-    test('1. Computes SHA-256 and skips re-upload when duplicate exists in Telegram Cloud', () async {
+    test(
+        '1. Computes SHA-256 and skips re-upload when duplicate exists in Telegram Cloud',
+        () async {
       final deduplicator = MediaDeduplicator(mediaDao: dao);
 
       // Create a temporary file
@@ -134,7 +136,9 @@ void main() {
       expect(result.reason, SyncBlockedReason.none);
     });
 
-    test('2. Blocks sync when cellular backup is disabled and on mobile network', () async {
+    test(
+        '2. Blocks sync when cellular backup is disabled and on mobile network',
+        () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.keyWifiOnly, true);
       await prefs.setBool(AppConstants.keyAllowMobileData, false);
@@ -155,13 +159,16 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.keyWifiOnly, false);
       await prefs.setBool(AppConstants.keyAllowMobileData, true);
-      await prefs.setInt(AppConstants.keyDailyCellularDataLimitMb, 50); // 50MB cap
+      await prefs.setInt(
+          AppConstants.keyDailyCellularDataLimitMb, 50); // 50MB cap
 
       // Simulate 55MB already used today
       final now = DateTime.now();
-      final todayKey = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final todayKey =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       await prefs.setString(AppConstants.keyLastDataUsageResetDay, todayKey);
-      await prefs.setInt(AppConstants.keyUsedCellularDataTodayBytes, 55 * 1024 * 1024);
+      await prefs.setInt(
+          AppConstants.keyUsedCellularDataTodayBytes, 55 * 1024 * 1024);
 
       final guard = SyncPolicyGuard();
 
@@ -175,7 +182,8 @@ void main() {
       expect(result.reason, SyncBlockedReason.cellularDataCapReached);
     });
 
-    test('4. Blocks sync when battery is below threshold and not charging', () async {
+    test('4. Blocks sync when battery is below threshold and not charging',
+        () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.keyChargingOnly, false);
       await prefs.setInt(AppConstants.keyBatteryThresholdPercent, 30);
@@ -192,7 +200,8 @@ void main() {
       expect(result.reason, SyncBlockedReason.batteryTooLow);
     });
 
-    test('5. Blocks sync when chargingOnly is true and device is unplugged', () async {
+    test('5. Blocks sync when chargingOnly is true and device is unplugged',
+        () async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.keyChargingOnly, true);
 
@@ -210,7 +219,8 @@ void main() {
   });
 
   group('FolderSyncManager Tests', () {
-    test('1. Saves per-folder auto-backup preferences and queries SQLite', () async {
+    test('1. Saves per-folder auto-backup preferences and queries SQLite',
+        () async {
       final manager = FolderSyncManager(mediaDao: dao);
 
       await dao.upsertFolderSyncSetting(
@@ -243,7 +253,9 @@ void main() {
       expect(updated?.isAutoBackupEnabled, isTrue);
     });
 
-    test('2. queueFolderHistoricalMedia queues all non-uploaded media in that folder', () async {
+    test(
+        '2. queueFolderHistoricalMedia queues all non-uploaded media in that folder',
+        () async {
       final manager = FolderSyncManager(mediaDao: dao);
 
       await dao.insertOrIgnoreBatch([
@@ -273,7 +285,8 @@ void main() {
         ),
       ]);
 
-      final queued = await manager.queueFolderHistoricalMedia('WhatsApp Images');
+      final queued =
+          await manager.queueFolderHistoricalMedia('WhatsApp Images');
       expect(queued, 2);
 
       final waItem1 = await dao.getMediaById('wa_1');
@@ -284,7 +297,8 @@ void main() {
   });
 
   group('UploadQueue Concurrency & Turbo Mode Tests', () {
-    test('1. UploadQueue supports Turbo Unlimited mode (concurrency = 0)', () async {
+    test('1. UploadQueue supports Turbo Unlimited mode (concurrency = 0)',
+        () async {
       final queue = UploadQueue(mediaDao: dao);
       queue.setConcurrency(0); // Turbo mode
 

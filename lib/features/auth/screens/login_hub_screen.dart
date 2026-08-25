@@ -57,7 +57,8 @@ class LoginHubScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0A84FF).withValues(alpha: 0.3),
+                            color:
+                                const Color(0xFF0A84FF).withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 1,
                           ),

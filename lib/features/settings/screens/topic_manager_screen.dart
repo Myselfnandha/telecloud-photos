@@ -262,9 +262,8 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                             ? 'Topic renamed to "$newName"'
                             : 'Failed to rename topic',
                       ),
-                      backgroundColor: ok
-                          ? const Color(0xFF30D158)
-                          : Colors.redAccent,
+                      backgroundColor:
+                          ok ? const Color(0xFF30D158) : Colors.redAccent,
                       duration: const Duration(seconds: 2),
                     ),
                   );
@@ -330,9 +329,8 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                           ? 'Topic deleted from Supergroup'
                           : 'Failed to delete topic',
                     ),
-                    backgroundColor: ok
-                        ? const Color(0xFF30D158)
-                        : Colors.redAccent,
+                    backgroundColor:
+                        ok ? const Color(0xFF30D158) : Colors.redAccent,
                     duration: const Duration(seconds: 2),
                   ),
                 );
@@ -357,12 +355,10 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
     final mappingsAsync = ref.watch(folderTopicMappingsProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -704,7 +700,8 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
           ..._deviceFolders.map((folder) {
             final rawName = folder.name.trim();
             final folderName = rawName.isEmpty ? 'Main Storage' : rawName;
-            final mappedTopicId = mappings[folderName.toLowerCase()] ?? mappings[folder.name.toLowerCase()];
+            final mappedTopicId = mappings[folderName.toLowerCase()] ??
+                mappings[folder.name.toLowerCase()];
 
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -722,7 +719,8 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF30D158).withValues(alpha: 0.15),
+                          color:
+                              const Color(0xFF30D158).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
@@ -779,9 +777,12 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                     decoration: BoxDecoration(
-                      color: isLight ? const Color(0xFFF2F2F7) : AppColors.darkCard,
+                      color: isLight
+                          ? const Color(0xFFF2F2F7)
+                          : AppColors.darkCard,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: cardBorder),
                     ),
@@ -789,7 +790,8 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                       child: DropdownButton<int?>(
                         value: mappedTopicId,
                         isExpanded: true,
-                        dropdownColor: isLight ? Colors.white : AppColors.darkCard,
+                        dropdownColor:
+                            isLight ? Colors.white : AppColors.darkCard,
                         icon: Icon(
                           Icons.keyboard_arrow_down_rounded,
                           color: secondaryTextColor,
@@ -807,7 +809,8 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                                 Icon(
                                   Icons.auto_awesome_rounded,
                                   size: 16,
-                                  color: AppColors.primaryBlue.withValues(alpha: 0.8),
+                                  color: AppColors.primaryBlue
+                                      .withValues(alpha: 0.8),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -846,14 +849,20 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                         onChanged: (val) async {
                           final channelMgr = ref.read(channelManagerProvider);
                           if (val == null) {
-                            await channelMgr.removeFolderTopicMapping(folderName);
-                            if (folder.name.isNotEmpty && folder.name != folderName) {
-                              await channelMgr.removeFolderTopicMapping(folder.name);
+                            await channelMgr
+                                .removeFolderTopicMapping(folderName);
+                            if (folder.name.isNotEmpty &&
+                                folder.name != folderName) {
+                              await channelMgr
+                                  .removeFolderTopicMapping(folder.name);
                             }
                           } else {
-                            await channelMgr.setFolderTopicMapping(folderName, val);
-                            if (folder.name.isNotEmpty && folder.name != folderName) {
-                              await channelMgr.setFolderTopicMapping(folder.name, val);
+                            await channelMgr.setFolderTopicMapping(
+                                folderName, val);
+                            if (folder.name.isNotEmpty &&
+                                folder.name != folderName) {
+                              await channelMgr.setFolderTopicMapping(
+                                  folder.name, val);
                             }
                           }
                           ref.invalidate(folderTopicMappingsProvider);

@@ -67,7 +67,8 @@ class MediaDeduplicator {
   }) async {
     int processed = 0;
     try {
-      final unhashed = await mediaDao.getUncomputedHashLocalMedia(limit: batchSize);
+      final unhashed =
+          await mediaDao.getUncomputedHashLocalMedia(limit: batchSize);
       for (final item in unhashed) {
         final file = await getFileForLocalId(item.localId);
         if (file != null && await file.exists()) {

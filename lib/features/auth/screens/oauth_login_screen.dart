@@ -113,19 +113,22 @@ class _OAuthLoginScreenState extends ConsumerState<OAuthLoginScreen> {
                     _buildStepRow(
                       icon: Icons.open_in_browser_rounded,
                       title: '1. Launch Web Portal',
-                      subtitle: 'Tap the button below to open Telegram OAuth authorization.',
+                      subtitle:
+                          'Tap the button below to open Telegram OAuth authorization.',
                     ),
                     const Divider(color: Colors.white10, height: 28),
                     _buildStepRow(
                       icon: Icons.check_circle_outline_rounded,
                       title: '2. Accept Service Message',
-                      subtitle: 'Telegram will send a notification message asking for your confirmation.',
+                      subtitle:
+                          'Telegram will send a notification message asking for your confirmation.',
                     ),
                     const Divider(color: Colors.white10, height: 28),
                     _buildStepRow(
                       icon: Icons.auto_awesome_rounded,
                       title: '3. Return & Enjoy TeleCloud',
-                      subtitle: 'Once confirmed, return to TeleCloud Photos to start cloud syncing.',
+                      subtitle:
+                          'Once confirmed, return to TeleCloud Photos to start cloud syncing.',
                     ),
                   ],
                 ),

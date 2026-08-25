@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/backup/backup_manager.dart';
+import '../../../../core/di/providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
@@ -37,20 +37,16 @@ class _PowerBatterySettingsScreenState
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _chargingOnly =
-          prefs.getBool(AppConstants.keyChargingOnly) ??
+      _chargingOnly = prefs.getBool(AppConstants.keyChargingOnly) ??
           AppConstants.defaultChargingOnly;
-      _chargingDwellMins =
-          prefs.getInt(AppConstants.keyChargingDwellMins) ??
+      _chargingDwellMins = prefs.getInt(AppConstants.keyChargingDwellMins) ??
           AppConstants.defaultChargingDwellMins;
-      _batteryNotLow =
-          prefs.getBool(AppConstants.keyBatteryNotLow) ??
+      _batteryNotLow = prefs.getBool(AppConstants.keyBatteryNotLow) ??
           AppConstants.defaultBatteryNotLow;
       _batteryThresholdPercent =
           prefs.getInt(AppConstants.keyBatteryThresholdPercent) ??
-          AppConstants.defaultBatteryThresholdPercent;
-      _autoKillWhenDone =
-          prefs.getBool(AppConstants.keyAutoKillWhenDone) ??
+              AppConstants.defaultBatteryThresholdPercent;
+      _autoKillWhenDone = prefs.getBool(AppConstants.keyAutoKillWhenDone) ??
           AppConstants.defaultAutoKillWhenDone;
     });
   }
@@ -62,19 +58,19 @@ class _PowerBatterySettingsScreenState
     } else if (value is int) {
       await prefs.setInt(key, value);
     }
-    await BackupManager().scheduleBackgroundWorker(forceReschedule: true);
+    await ref
+        .read(backupManagerProvider.notifier)
+        .scheduleBackgroundWorker(forceReschedule: true);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -197,9 +193,7 @@ class _PowerBatterySettingsScreenState
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'BATTERY PROTECTION & WORKER LIFECYCLE',
             style: AppTypography.labelSmall(
@@ -282,7 +276,8 @@ class _PowerBatterySettingsScreenState
                           divisions: 8,
                           activeColor: AppColors.primaryBlue,
                           onChanged: (v) {
-                            setState(() => _batteryThresholdPercent = v.toInt());
+                            setState(
+                                () => _batteryThresholdPercent = v.toInt());
                             _saveSetting(
                               AppConstants.keyBatteryThresholdPercent,
                               v.toInt(),

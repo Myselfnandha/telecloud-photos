@@ -15,9 +15,12 @@ class TdlibClient {
   final _eventController = StreamController<td.TdObject>.broadcast();
   Stream<td.TdObject> get events => _eventController.stream;
 
-  final _connectionStateController = StreamController<td.ConnectionState>.broadcast();
-  Stream<td.ConnectionState> get connectionStateStream => _connectionStateController.stream;
-  td.ConnectionState _currentConnectionState = const td.ConnectionStateConnecting();
+  final _connectionStateController =
+      StreamController<td.ConnectionState>.broadcast();
+  Stream<td.ConnectionState> get connectionStateStream =>
+      _connectionStateController.stream;
+  td.ConnectionState _currentConnectionState =
+      const td.ConnectionStateConnecting();
   td.ConnectionState get currentConnectionState => _currentConnectionState;
 
   bool _isReceiving = false;

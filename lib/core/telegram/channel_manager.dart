@@ -30,8 +30,10 @@ class ChannelManager {
         final chat = await _verifyChannelExists(prefsSavedId);
         if (chat != null) {
           _channelId = prefsSavedId;
-          await _storage.write(key: _channelKey, value: prefsSavedId.toString());
-          TeleCloudLogger.auth('Verified existing backup channel from prefs: $prefsSavedId');
+          await _storage.write(
+              key: _channelKey, value: prefsSavedId.toString());
+          TeleCloudLogger.auth(
+              'Verified existing backup channel from prefs: $prefsSavedId');
           return prefsSavedId;
         }
       }
@@ -95,13 +97,15 @@ class ChannelManager {
 
       await Future.delayed(const Duration(milliseconds: 1500));
 
-      final targetTitle = AppConstants.telegramChannelTitle.trim().toLowerCase();
+      final targetTitle =
+          AppConstants.telegramChannelTitle.trim().toLowerCase();
       for (final id in candidateChatIds) {
         final chat = await _verifyChannelExists(id);
         if (chat != null) {
           final title = chat.title.trim().toLowerCase();
           if (title == targetTitle || title.contains('telecloud')) {
-            TeleCloudLogger.auth('Found existing matching supergroup: "${chat.title}" ($id)');
+            TeleCloudLogger.auth(
+                'Found existing matching supergroup: "${chat.title}" ($id)');
             return id;
           }
         }
@@ -447,8 +451,7 @@ class ChannelManager {
           MediaItemsCompanion.insert(
             localId: 'tg_${msg.id}',
             filename: targetName,
-            capturedAt:
-                meta?.capturedAt ??
+            capturedAt: meta?.capturedAt ??
                 DateTime.fromMillisecondsSinceEpoch(msg.date * 1000),
             width: Value(meta?.width ?? width),
             height: Value(meta?.height ?? height),

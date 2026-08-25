@@ -90,7 +90,8 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
             children: [
               // Step Progress Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),

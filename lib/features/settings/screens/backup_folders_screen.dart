@@ -134,9 +134,9 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
     );
 
     await ref.read(folderSyncManagerProvider).setFolderBackupEnabled(
-      folder.id,
-      isSelected,
-    );
+          folder.id,
+          isSelected,
+        );
 
     // Rescan camera roll in background to update active scope
     ref.read(mediaScannerProvider).scanCameraRoll();
@@ -207,12 +207,10 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
         ? AppColors.lightCard
         : (isOled ? const Color(0xFF121212) : AppColors.darkSurface);
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -248,74 +246,73 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
               child: CircularProgressIndicator(color: AppColors.primaryBlue),
             )
           : _cachedFolders.isEmpty
-          ? Center(
-              child: Text(
-                'No media folders found on device',
-                style: AppTypography.bodyMedium(color: secondaryTextColor),
-              ),
-            )
-          : ListView.builder(
-              padding: AppSpacing.screenPadding,
-              itemCount: _cachedFolders.length,
-              itemBuilder: (context, index) {
-                final item = _cachedFolders[index];
-                final folder = item.folder;
-                final isChecked =
-                    _selectedFolderIds.contains(folder.id) ||
-                    _selectedFolderIds.contains(folder.name);
-
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: AppRadii.borderL,
-                    border: Border.all(color: cardBorder),
+              ? Center(
+                  child: Text(
+                    'No media folders found on device',
+                    style: AppTypography.bodyMedium(color: secondaryTextColor),
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    leading: Container(
-                      width: 48,
-                      height: 48,
+                )
+              : ListView.builder(
+                  padding: AppSpacing.screenPadding,
+                  itemCount: _cachedFolders.length,
+                  itemBuilder: (context, index) {
+                    final item = _cachedFolders[index];
+                    final folder = item.folder;
+                    final isChecked = _selectedFolderIds.contains(folder.id) ||
+                        _selectedFolderIds.contains(folder.name);
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
                       decoration: BoxDecoration(
-                        color: isLight
-                            ? Colors.grey.shade200
-                            : Colors.grey.shade900,
-                        borderRadius: AppRadii.borderM,
+                        color: cardBg,
+                        borderRadius: AppRadii.borderL,
+                        border: Border.all(color: cardBorder),
                       ),
-                      child: ClipRRect(
-                        borderRadius: AppRadii.borderM,
-                        child: _FolderThumbnail(
-                          folder: folder,
-                          fallbackColor: secondaryTextColor,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: isLight
+                                ? Colors.grey.shade200
+                                : Colors.grey.shade900,
+                            borderRadius: AppRadii.borderM,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: AppRadii.borderM,
+                            child: _FolderThumbnail(
+                              folder: folder,
+                              fallbackColor: secondaryTextColor,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          folder.name.isNotEmpty
+                              ? folder.name
+                              : (folder.isAll ? 'All Media' : 'Camera / DCIM'),
+                          style: AppTypography.labelLarge(
+                            color: primaryTextColor,
+                          ).copyWith(fontWeight: AppTypography.bold),
+                        ),
+                        subtitle: Text(
+                          '${item.count} ${item.count == 1 ? 'item' : 'items'}',
+                          style: AppTypography.labelSmall(
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                        trailing: Switch.adaptive(
+                          value: isChecked,
+                          activeTrackColor: AppColors.primaryBlue,
+                          onChanged: (val) => _toggleFolder(folder, val),
                         ),
                       ),
-                    ),
-                    title: Text(
-                      folder.name.isNotEmpty
-                          ? folder.name
-                          : (folder.isAll ? 'All Media' : 'Camera / DCIM'),
-                      style: AppTypography.labelLarge(
-                        color: primaryTextColor,
-                      ).copyWith(fontWeight: AppTypography.bold),
-                    ),
-                    subtitle: Text(
-                      '${item.count} ${item.count == 1 ? 'item' : 'items'}',
-                      style: AppTypography.labelSmall(
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                    trailing: Switch.adaptive(
-                      value: isChecked,
-                      activeTrackColor: AppColors.primaryBlue,
-                      onChanged: (val) => _toggleFolder(folder, val),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
     );
   }
 }

@@ -26,17 +26,17 @@ class MediaMetadata {
   });
 
   Map<String, dynamic> toJson() => {
-    'app': app,
-    'v': version,
-    'filename': filename,
-    'captured': capturedAt.toIso8601String(),
-    if (fileSizeBytes != null) 'size': fileSizeBytes,
-    if (width != null) 'width': width,
-    if (height != null) 'height': height,
-    if (latitude != null) 'lat': latitude,
-    if (longitude != null) 'lng': longitude,
-    if (album != null) 'album': album,
-  };
+        'app': app,
+        'v': version,
+        'filename': filename,
+        'captured': capturedAt.toIso8601String(),
+        if (fileSizeBytes != null) 'size': fileSizeBytes,
+        if (width != null) 'width': width,
+        if (height != null) 'height': height,
+        if (latitude != null) 'lat': latitude,
+        if (longitude != null) 'lng': longitude,
+        if (album != null) 'album': album,
+      };
 
   String encode() => jsonEncode(toJson());
 

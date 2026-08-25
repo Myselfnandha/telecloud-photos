@@ -5,18 +5,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:video_player/video_player.dart';
-import '../../../core/di/providers.dart';
-import '../../../core/database/app_database.dart';
+
 import '../../../core/cache/thumbnail_cache_service.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/di/providers.dart';
+import '../../../core/telegram/telegram_download_service.dart';
 import '../../../shared/theme/app_colors.dart';
+import '../../../shared/theme/app_motion.dart';
 import '../../../shared/theme/app_radii.dart';
-import '../../../shared/theme/app_icons.dart';
+import '../../../shared/widgets/download_progress_overlay.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../widgets/add_to_album_sheet.dart';
+import '../widgets/download_destination_sheet.dart';
+import '../widgets/drag_dismiss_wrapper.dart';
 import '../widgets/exif_info_sheet.dart';
-import '../widgets/video_gesture_overlay.dart';
-
-import '../../../shared/theme/app_motion.dart';
+import '../widgets/viewer_bottom_bar.dart';
+import '../widgets/viewer_top_bar.dart';
+import '../widgets/viewer_video_player.dart';
 
 class MediaViewerScreen extends ConsumerStatefulWidget {
   final String mediaId;
@@ -38,6 +43,10 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
   bool _isDragging = false;
   int _rotationQuarterTurns = 0;
 
+  // Telegram Cloud Download Progress (Feature 4)
+  DownloadProgress? _downloadProgress;
+  StreamSubscription<DownloadProgress>? _downloadSub;
+
   late final AnimationController _snapController;
   Animation<double>? _snapAnimation;
 
@@ -54,6 +63,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
 
   @override
   void dispose() {
+    _downloadSub?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _snapController.dispose();
     _pageController.dispose();
@@ -91,16 +101,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       }
     });
-  }
-
-  String _getResolutionLabel(int? width, int? height) {
-    if (width == null || height == null) return 'HD';
-    final maxDim = width > height ? width : height;
-    if (maxDim >= 3840) return '4K UHD';
-    if (maxDim >= 2560) return '2K QHD';
-    if (maxDim >= 1920) return '1080p FHD';
-    if (maxDim >= 1280) return '720p HD';
-    return '$width×$height';
   }
 
   void _showInfoSheet(BuildContext context, MediaItem item) async {
@@ -192,234 +192,192 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     HapticFeedback.lightImpact();
   }
 
+  // Feature 4: Cloud Download trigger
+  Future<void> _startDownloadFlow() async {
+    if (_items.isEmpty || _currentIndex >= _items.length) return;
+    final item = _items[_currentIndex];
+
+    final destination = await DownloadDestinationSheet.show(context);
+    if (destination == null || !mounted) return;
+
+    final downloadService = ref.read(telegramDownloadServiceProvider);
+    _downloadSub?.cancel();
+
+    _downloadSub = downloadService.downloadMediaItem(item).listen(
+      (progress) async {
+        if (!mounted) return;
+        setState(() {
+          _downloadProgress = progress;
+        });
+
+        if (progress.isCompleted && progress.savedPath != null) {
+          final saveToGallery = destination == DownloadDestination.gallery;
+          final saved = await downloadService.saveDownloadedFile(
+            progress.savedPath!,
+            filename: item.filename,
+            saveToGallery: saveToGallery,
+          );
+
+          if (mounted) {
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  saveToGallery
+                      ? 'Saved "${item.filename}" to device Gallery'
+                      : 'Saved to ${saved ?? 'TeleCloud Restored'}',
+                ),
+                backgroundColor: AppColors.successGreen,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                setState(() => _downloadProgress = null);
+              }
+            });
+          }
+        }
+      },
+      onError: (err) {
+        if (mounted) {
+          setState(() {
+            _downloadProgress = DownloadProgress(
+              progress: 0.0,
+              filename: item.filename,
+              error: err.toString(),
+            );
+          });
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncMedia = ref.watch(allMediaStreamProvider);
     final bgOpacity = (1.0 - (_dragOffsetY.abs() / 360)).clamp(0.0, 1.0);
     final currentScale = (1.0 - (_dragOffsetY.abs() / 1500)).clamp(0.80, 1.0);
+    final currentItem = _items.isNotEmpty && _currentIndex < _items.length
+        ? _items[_currentIndex]
+        : null;
 
     return Scaffold(
       backgroundColor: Colors.black.withValues(alpha: bgOpacity),
       extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: (_showUiOverlays && !_isDragging)
-          ? AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.5),
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Colors.white),
-              title: _items.isNotEmpty && _currentIndex < _items.length
-                  ? Column(
-                      children: [
-                        Text(
-                          _items[_currentIndex].capturedAt
-                              .toLocal()
-                              .toString()
-                              .split(' ')[0],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _getResolutionLabel(
-                            _items[_currentIndex].width,
-                            _items[_currentIndex].height,
-                          ),
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    )
-                  : null,
-              centerTitle: true,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              actions: [
-                if (_items.isNotEmpty && _currentIndex < _items.length) ...[
-                  IconButton(
-                    icon: Icon(
-                      _items[_currentIndex].isFavorite
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_outline_rounded,
-                      color: _items[_currentIndex].isFavorite
-                          ? const Color(0xFFFF453A)
-                          : Colors.white,
-                    ),
-                    onPressed: _toggleFavorite,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.info_outline, color: Colors.white),
-                    onPressed: () {
-                      _showInfoSheet(context, _items[_currentIndex]);
-                    },
-                  ),
-                ],
-              ],
+          ? ViewerTopBar(
+              currentItem: currentItem,
+              isFavorite: currentItem?.isFavorite ?? false,
+              onBack: () => Navigator.of(context).pop(),
+              onToggleFavorite: _toggleFavorite,
+              onShowInfo: () {
+                if (currentItem != null) _showInfoSheet(context, currentItem);
+              },
             )
           : null,
       bottomNavigationBar:
-          (_showUiOverlays &&
-              !_isDragging &&
-              _items.isNotEmpty &&
-              _currentIndex < _items.length)
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.65),
-                border: const Border(top: BorderSide(color: Colors.white12)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    // Share
-                    IconButton(
-                      tooltip: 'Share',
-                      icon: const Icon(
-                        Icons.ios_share_rounded,
-                        color: Colors.white,
-                        size: AppIcons.m,
+          (_showUiOverlays && !_isDragging && currentItem != null)
+              ? ViewerBottomBar(
+                  currentItem: currentItem,
+                  onShare: () {
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Sharing photo...'),
+                        backgroundColor: AppColors.primaryBlue,
+                        duration: Duration(seconds: 1),
                       ),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sharing photo...'),
-                            backgroundColor: AppColors.primaryBlue,
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // Rotate 90° Lossless
-                    IconButton(
-                      tooltip: 'Rotate 90°',
-                      icon: const Icon(
-                        Icons.rotate_90_degrees_cw_rounded,
-                        color: Colors.white,
-                        size: AppIcons.m,
-                      ),
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        setState(() {
-                          _rotationQuarterTurns =
-                              (_rotationQuarterTurns + 1) % 4;
-                        });
-                      },
-                    ),
-
-                    // Add to Album
-                    IconButton(
-                      tooltip: 'Add to Album',
-                      icon: const Icon(
-                        Icons.add_to_photos_rounded,
-                        color: Colors.white,
-                        size: AppIcons.m,
-                      ),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        AddToAlbumSheet.show(context, _items[_currentIndex]);
-                      },
-                    ),
-
-                    // Move to Trash
-                    IconButton(
-                      tooltip: 'Delete',
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        color: AppColors.systemRed,
-                        size: AppIcons.m,
-                      ),
-                      onPressed: _deleteCurrentItem,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : null,
-      body: asyncMedia.when(
-        data: (items) {
-          if (items.isEmpty) {
-            return const Center(
-              child: Text(
-                'No media found',
-                style: TextStyle(color: Colors.white),
-              ),
-            );
-          }
-
-          _items = items;
-          if (!_initialized) {
-            final initialIdx = items.indexWhere(
-              (i) => i.localId == widget.mediaId,
-            );
-            _currentIndex = initialIdx != -1 ? initialIdx : 0;
-            _pageController = PageController(initialPage: _currentIndex);
-            _initialized = true;
-          }
-
-          return GestureDetector(
-            onVerticalDragUpdate: (details) {
-              if (details.delta.dy > 0 || _dragOffsetY > 0) {
-                setState(() {
-                  _isDragging = true;
-                  _dragOffsetY = (_dragOffsetY + details.delta.dy).clamp(
-                    0.0,
-                    400.0,
-                  );
-                });
-              }
-            },
-            onVerticalDragEnd: (details) {
-              if (_dragOffsetY > 60 ||
-                  (details.primaryVelocity != null &&
-                      details.primaryVelocity! > 400)) {
-                HapticFeedback.lightImpact();
-                Navigator.of(context).pop();
-              } else if (_dragOffsetY > 0) {
-                _snapBack(_dragOffsetY);
-              } else {
-                setState(() {
-                  _dragOffsetY = 0.0;
-                  _isDragging = false;
-                });
-              }
-            },
-            onVerticalDragCancel: () {
-              if (_dragOffsetY > 0) {
-                _snapBack(_dragOffsetY);
-              } else {
-                setState(() {
-                  _dragOffsetY = 0.0;
-                  _isDragging = false;
-                });
-              }
-            },
-            child: Transform.translate(
-              offset: Offset(0, _dragOffsetY),
-              child: Transform.scale(
-                scale: currentScale,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    (_dragOffsetY / 12).clamp(0.0, 24.0),
+                    );
+                  },
+                  onRotate: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _rotationQuarterTurns = (_rotationQuarterTurns + 1) % 4;
+                    });
+                  },
+                  onDownload: _startDownloadFlow,
+                  onAddToAlbum: () {
+                    HapticFeedback.lightImpact();
+                    AddToAlbumSheet.show(context, currentItem);
+                  },
+                  onDelete: _deleteCurrentItem,
+                )
+              : null,
+      body: Stack(
+        children: [
+          asyncMedia.when(
+            data: (items) {
+              if (items.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No media found',
+                    style: TextStyle(color: Colors.white),
                   ),
-                  child: PageView.builder(
-                    controller: _pageController,
-                    physics: _isDragging
-                        ? const NeverScrollableScrollPhysics()
-                        : const BouncingScrollPhysics(),
+                );
+              }
+
+              _items = items;
+              if (!_initialized) {
+                final initialIdx = items.indexWhere(
+                  (i) => i.localId == widget.mediaId,
+                );
+                _currentIndex = initialIdx != -1 ? initialIdx : 0;
+                _pageController = PageController(initialPage: _currentIndex);
+                _initialized = true;
+              }
+
+              return DragDismissWrapper(
+                dragOffsetY: _dragOffsetY,
+                currentScale: currentScale,
+                onDragUpdate: (details) {
+                  if (details.delta.dy > 0 || _dragOffsetY > 0) {
+                    setState(() {
+                      _isDragging = true;
+                      _dragOffsetY = (_dragOffsetY + details.delta.dy).clamp(
+                        0.0,
+                        400.0,
+                      );
+                    });
+                  }
+                },
+                onDragEnd: (details) {
+                  if (_dragOffsetY > 60 ||
+                      (details.primaryVelocity != null &&
+                          details.primaryVelocity! > 400)) {
+                    HapticFeedback.lightImpact();
+                    Navigator.of(context).pop();
+                  } else if (_dragOffsetY > 0) {
+                    _snapBack(_dragOffsetY);
+                  } else {
+                    setState(() {
+                      _dragOffsetY = 0.0;
+                      _isDragging = false;
+                    });
+                  }
+                },
+                onDragCancel: () {
+                  if (_dragOffsetY > 0) {
+                    _snapBack(_dragOffsetY);
+                  } else {
+                    setState(() {
+                      _dragOffsetY = 0.0;
+                      _isDragging = false;
+                    });
+                  }
+                },
+                child: PageView.builder(
+                  controller: _pageController,
+                  physics: _isDragging
+                      ? const NeverScrollableScrollPhysics()
+                      : const BouncingScrollPhysics(),
                   itemCount: items.length,
                   onPageChanged: (index) {
                     setState(() {
                       _currentIndex = index;
-                      _rotationQuarterTurns = 0; // Reset rotation on swipe
+                      _rotationQuarterTurns = 0;
                     });
                   },
                   itemBuilder: (context, index) {
@@ -428,9 +386,8 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                       item: item,
                       onTap: _toggleUiOverlays,
                       showControls: _showUiOverlays && !_isDragging,
-                      rotationQuarterTurns: _currentIndex == index
-                          ? _rotationQuarterTurns
-                          : 0,
+                      rotationQuarterTurns:
+                          _currentIndex == index ? _rotationQuarterTurns : 0,
                       onHideControls: () {
                         if (mounted && _showUiOverlays) {
                           setState(() => _showUiOverlays = false);
@@ -439,16 +396,34 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                     );
                   },
                 ),
+              );
+            },
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            error: (e, s) => Center(
+              child: Text(
+                'Error: $e',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ),
-        );
-        },
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: Colors.white)),
-        error: (e, s) => Center(
-          child: Text('Error: $e', style: const TextStyle(color: Colors.white)),
-        ),
+
+          // Download Progress Floating Overlay (Feature 4)
+          if (_downloadProgress != null)
+            Positioned(
+              top: 100,
+              left: 20,
+              right: 20,
+              child: DownloadProgressOverlay(
+                progress: _downloadProgress!,
+                onCancel: () {
+                  _downloadSub?.cancel();
+                  setState(() => _downloadProgress = null);
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -483,6 +458,11 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
   bool _isVideoInitialized = false;
   bool _isLoadingCloudStream = false;
   double _playbackSpeed = 1.0;
+  bool _isMuted = false;
+  bool _isLooping = true;
+  bool _showCenterPlayIndicator = false;
+  Timer? _centerIndicatorTimer;
+  Timer? _autoHideTimer;
 
   File? _fullResFile;
   Uint8List? _thumbBytes;
@@ -516,13 +496,13 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
     } else {
       ThumbnailCacheService()
           .getThumbnail(
-            id: widget.item.localId,
-            diskPath: widget.item.thumbnailPath,
-            isVideo: false,
-          )
+        id: widget.item.localId,
+        diskPath: widget.item.thumbnailPath,
+        isVideo: false,
+      )
           .then((bytes) {
-            if (mounted && bytes != null) setState(() => _thumbBytes = bytes);
-          });
+        if (mounted && bytes != null) setState(() => _thumbBytes = bytes);
+      });
     }
 
     if (!widget.item.localId.startsWith('tg_') &&
@@ -554,6 +534,8 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
 
   @override
   void dispose() {
+    _autoHideTimer?.cancel();
+    _centerIndicatorTimer?.cancel();
     _transformationController.dispose();
     _liveController?.dispose();
     _videoPlayerController?.dispose();
@@ -658,37 +640,6 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
     }
   }
 
-  void _cyclePlaybackSpeed() {
-    if (_videoPlayerController == null) return;
-    final speeds = [0.5, 1.0, 1.5, 2.0];
-    final nextIdx = (speeds.indexOf(_playbackSpeed) + 1) % speeds.length;
-    final newSpeed = speeds[nextIdx];
-    setState(() => _playbackSpeed = newSpeed);
-    _videoPlayerController!.setPlaybackSpeed(newSpeed);
-  }
-
-  void _seekRelative(Duration delta) {
-    if (_videoPlayerController == null) return;
-    HapticFeedback.lightImpact();
-    final current = _videoPlayerController!.value.position;
-    final duration = _videoPlayerController!.value.duration;
-    final target = current + delta;
-    if (target < Duration.zero) {
-      _videoPlayerController!.seekTo(Duration.zero);
-    } else if (target > duration) {
-      _videoPlayerController!.seekTo(duration);
-    } else {
-      _videoPlayerController!.seekTo(target);
-    }
-    _resetAutoHideTimer();
-  }
-
-  bool _isMuted = false;
-  bool _isLooping = true;
-  bool _showCenterPlayIndicator = false;
-  Timer? _centerIndicatorTimer;
-  Timer? _autoHideTimer;
-
   void _resetAutoHideTimer() {
     _autoHideTimer?.cancel();
     if (_isVideoInitialized &&
@@ -743,292 +694,65 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
     _resetAutoHideTimer();
   }
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes.remainder(60).toString();
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+  void _cyclePlaybackSpeed() {
+    if (_videoPlayerController == null) return;
+    final speeds = [0.5, 1.0, 1.5, 2.0];
+    final nextIdx = (speeds.indexOf(_playbackSpeed) + 1) % speeds.length;
+    final newSpeed = speeds[nextIdx];
+    setState(() => _playbackSpeed = newSpeed);
+    _videoPlayerController!.setPlaybackSpeed(newSpeed);
+  }
+
+  void _seekRelative(Duration delta) {
+    if (_videoPlayerController == null) return;
+    HapticFeedback.lightImpact();
+    final current = _videoPlayerController!.value.position;
+    final duration = _videoPlayerController!.value.duration;
+    final target = current + delta;
+    if (target < Duration.zero) {
+      _videoPlayerController!.seekTo(Duration.zero);
+    } else if (target > duration) {
+      _videoPlayerController!.seekTo(duration);
+    } else {
+      _videoPlayerController!.seekTo(target);
+    }
+    _resetAutoHideTimer();
   }
 
   @override
   Widget build(BuildContext context) {
     final thumbPath = widget.item.thumbnailPath;
-    final hasThumb =
-        thumbPath != null &&
+    final hasThumb = thumbPath != null &&
         thumbPath.isNotEmpty &&
         File(thumbPath).existsSync();
 
-    // 1. Apple Photos Video Player
     if (_isVideo) {
-      return Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (_isVideoInitialized && _videoPlayerController != null)
-              VideoGestureOverlay(
-                controller: _videoPlayerController!,
-                onTap: () {
-                  widget.onTap();
-                  if (!widget.showControls) {
-                    _resetAutoHideTimer();
-                  }
-                },
-                child: Center(
-                  child: RotatedBox(
-                    quarterTurns: widget.rotationQuarterTurns,
-                    child: AspectRatio(
-                      aspectRatio: _videoPlayerController!.value.aspectRatio,
-                      child: VideoPlayer(_videoPlayerController!),
-                    ),
-                  ),
-                ),
-              )
-            else
-              GestureDetector(
-                onTap: () {
-                  widget.onTap();
-                  if (!widget.showControls) {
-                    _resetAutoHideTimer();
-                  }
-                },
-                child: Center(
-                  child: RotatedBox(
-                    quarterTurns: widget.rotationQuarterTurns,
-                    child: hasThumb
-                        ? Image.file(File(thumbPath), fit: BoxFit.contain)
-                        : const ShimmerLoading(
-                            width: double.infinity,
-                            height: 380,
-                          ),
-                  ),
-                ),
-              ),
-
-            // Loading Spinner
-            if (_isLoadingCloudStream || (!_isVideoInitialized && !_isVideo))
-              const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryBlue),
-              ),
-
-            // Play Indicator Overlay
-            if (_showCenterPlayIndicator && _videoPlayerController != null)
-              AnimatedOpacity(
-                opacity: _showCenterPlayIndicator ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    _videoPlayerController!.value.isPlaying
-                        ? Icons.play_arrow_rounded
-                        : Icons.pause_rounded,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                ),
-              ),
-
-            // Bottom Floating Apple Player Controls
-            if (_isVideoInitialized && _videoPlayerController != null)
-              Positioned(
-                bottom: 30,
-                left: 16,
-                right: 16,
-                child: AnimatedOpacity(
-                  opacity: widget.showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 240),
-                  child: IgnorePointer(
-                    ignoring: !widget.showControls,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.75),
-                        borderRadius: AppRadii.borderXL,
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Scrubber Slider
-                          ValueListenableBuilder(
-                            valueListenable: _videoPlayerController!,
-                            builder: (context, VideoPlayerValue val, _) {
-                              final pos = val.position;
-                              final dur = val.duration;
-                              final posMs = pos.inMilliseconds.toDouble();
-                              final durMs = dur.inMilliseconds > 0
-                                  ? dur.inMilliseconds.toDouble()
-                                  : 1.0;
-
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 3.5,
-                                      thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 6,
-                                      ),
-                                      overlayShape:
-                                          const RoundSliderOverlayShape(
-                                            overlayRadius: 14,
-                                          ),
-                                      activeTrackColor: AppColors.primaryBlue,
-                                      inactiveTrackColor: Colors.white24,
-                                      thumbColor: Colors.white,
-                                    ),
-                                    child: Slider(
-                                      value: posMs.clamp(0.0, durMs),
-                                      min: 0.0,
-                                      max: durMs,
-                                      onChanged: (newPos) {
-                                        _videoPlayerController!.seekTo(
-                                          Duration(
-                                            milliseconds: newPos.toInt(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _formatDuration(pos),
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        Text(
-                                          '-${_formatDuration(dur > pos ? dur - pos : Duration.zero)}',
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 2),
-
-                          // Controls Bar: 10s back, Play/Pause, 10s fwd, Mute, Loop, Speed
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              // 10s Backward
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.replay_10_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                onPressed: () =>
-                                    _seekRelative(const Duration(seconds: -10)),
-                              ),
-
-                              // Play / Pause
-                              IconButton(
-                                icon: Icon(
-                                  _videoPlayerController!.value.isPlaying
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                                onPressed: _togglePlayPause,
-                              ),
-
-                              // 10s Forward
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.forward_10_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                onPressed: () =>
-                                    _seekRelative(const Duration(seconds: 10)),
-                              ),
-
-                              // Mute Toggle
-                              IconButton(
-                                icon: Icon(
-                                  _isMuted
-                                      ? Icons.volume_off_rounded
-                                      : Icons.volume_up_rounded,
-                                  color: _isMuted
-                                      ? AppColors.systemRed
-                                      : Colors.white,
-                                  size: 22,
-                                ),
-                                onPressed: _toggleMute,
-                              ),
-
-                              // Loop Toggle
-                              IconButton(
-                                icon: Icon(
-                                  Icons.repeat_rounded,
-                                  color: _isLooping
-                                      ? AppColors.primaryBlue
-                                      : Colors.white38,
-                                  size: 22,
-                                ),
-                                onPressed: _toggleLoop,
-                              ),
-
-                              // Speed Chip
-                              TextButton(
-                                onPressed: _cyclePlaybackSpeed,
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  backgroundColor: AppColors.primaryBlue
-                                      .withValues(alpha: 0.15),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Text(
-                                  '${_playbackSpeed}x',
-                                  style: const TextStyle(
-                                    color: AppColors.primaryBlue,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+      return ViewerVideoPlayer(
+        controller: _videoPlayerController,
+        isInitialized: _isVideoInitialized,
+        isLoadingStream: _isLoadingCloudStream,
+        showControls: widget.showControls,
+        rotationQuarterTurns: widget.rotationQuarterTurns,
+        playbackSpeed: _playbackSpeed,
+        isMuted: _isMuted,
+        isLooping: _isLooping,
+        showCenterPlayIndicator: _showCenterPlayIndicator,
+        fallbackThumbnailPath: widget.item.thumbnailPath,
+        onTap: () {
+          widget.onTap();
+          if (!widget.showControls) {
+            _resetAutoHideTimer();
+          }
+        },
+        onTogglePlayPause: _togglePlayPause,
+        onToggleMute: _toggleMute,
+        onToggleLoop: _toggleLoop,
+        onCycleSpeed: _cyclePlaybackSpeed,
+        onSeekRelative: _seekRelative,
       );
     }
 
-    // 2. Photo / Live Motion Photo Viewer
+    // Photo / Live Motion Photo Viewer
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -1047,8 +771,7 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
               child: Center(
                 child: RotatedBox(
                   quarterTurns: widget.rotationQuarterTurns,
-                  child:
-                      _isPlayingLive &&
+                  child: _isPlayingLive &&
                           _liveController != null &&
                           _liveController!.value.isInitialized
                       ? AspectRatio(
@@ -1070,11 +793,9 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
                                 width: double.infinity,
                                 height: 380,
                               ),
-
                             if (_fullResFile != null &&
                                 _fullResFile!.existsSync())
                               Image.file(_fullResFile!, fit: BoxFit.contain),
-
                             if (_isLoadingFullRes &&
                                 _fullResFile == null &&
                                 _thumbBytes == null &&

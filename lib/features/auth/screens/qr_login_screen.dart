@@ -261,7 +261,8 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
                     _buildStepRow(
                       number: '1',
                       title: 'Open Telegram on your phone',
-                      subtitle: 'Make sure you are logged into your Telegram account.',
+                      subtitle:
+                          'Make sure you are logged into your Telegram account.',
                     ),
                     const SizedBox(height: 12),
                     _buildStepRow(
@@ -273,7 +274,8 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen> {
                     _buildStepRow(
                       number: '3',
                       title: 'Point camera at this screen',
-                      subtitle: 'You will be logged into TeleCloud Photos immediately.',
+                      subtitle:
+                          'You will be logged into TeleCloud Photos immediately.',
                     ),
                   ],
                 ),

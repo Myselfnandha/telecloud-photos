@@ -42,16 +42,19 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
             children: [
               // Step Progress Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFF30D158).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.4)),
+                  border: Border.all(
+                      color: const Color(0xFF30D158).withValues(alpha: 0.4)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock_person_rounded, color: Color(0xFF30D158), size: 14),
+                    Icon(Icons.lock_person_rounded,
+                        color: Color(0xFF30D158), size: 14),
                     SizedBox(width: 6),
                     Text(
                       'STEP 2 OF 3 · AUTHENTICATION METHOD',
@@ -94,7 +97,9 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1C1C1E),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFFFF9F0A).withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color:
+                              const Color(0xFFFF9F0A).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -107,7 +112,8 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
+                          child: const Icon(Icons.qr_code_scanner_rounded,
+                              color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -126,9 +132,11 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFF9F0A).withValues(alpha: 0.2),
+                                      color: const Color(0xFFFF9F0A)
+                                          .withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
@@ -145,13 +153,17 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 'Scan QR code or link device directly from your Telegram App.',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.3),
+                                style: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 13,
+                                    height: 1.3),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            color: Colors.white38, size: 16),
                       ],
                     ),
                   ),
@@ -170,7 +182,9 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1C1C1E),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: const Color(0xFF0A84FF).withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF0A84FF).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -183,7 +197,8 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                             ),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.phone_android_rounded, color: Colors.white, size: 28),
+                          child: const Icon(Icons.phone_android_rounded,
+                              color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -202,9 +217,11 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF0A84FF).withValues(alpha: 0.2),
+                                      color: const Color(0xFF0A84FF)
+                                          .withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
@@ -221,13 +238,17 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 'Receive verification code directly inside your Telegram messages or SMS.',
-                                style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.3),
+                                style: TextStyle(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 13,
+                                    height: 1.3),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            color: Colors.white38, size: 16),
                       ],
                     ),
                   ),
@@ -245,12 +266,16 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shield_outlined, color: Color(0xFF30D158), size: 20),
+                    const Icon(Icons.shield_outlined,
+                        color: Color(0xFF30D158), size: 20),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Your session is end-to-end secured directly with Telegram servers. TeleCloud never sees your password or chat messages.',
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12, height: 1.3),
+                        style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                            height: 1.3),
                       ),
                     ),
                   ],

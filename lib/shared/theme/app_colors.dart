@@ -44,6 +44,15 @@ class AppColors {
   static const Color systemRed = errorRed;
   static const Color systemBlue = primaryBlue;
 
+  // Semantic Status Badges & Indicators
+  static const Color activeUpload = Color(0xFF0A84FF);
+  static const Color syncedBadge = Color(0xFF30D158);
+  static const Color failedUpload = Color(0xFFFF453A);
+  static const Color pendingGrey = Color(0xFF8E8E93);
+  static const Color cloudOnlyBadge = Color(0xFF5AC8FA);
+  static const Color localOnlyBadge = Color(0xFFFF9F0A);
+  static const Color uploadingBadge = Color(0xFF0A84FF);
+
   // Glassmorphic & Overlay Tokens
   static const Color glassBackgroundDark = Color(0xCC1C1C1E);
   static const Color glassBackgroundLight = Color(0xCCFFFFFF);
@@ -56,4 +65,38 @@ class AppColors {
   static const Color shimmerHighlightLight = Color(0xFFF2F2F7);
   static const Color shimmerBaseDark = Color(0xFF1C1C1E);
   static const Color shimmerHighlightDark = Color(0xFF2C2C2E);
+
+  // Context-aware accessors (auto-resolves light vs dark mode)
+  static Color surface(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightSurface
+          : darkSurface;
+
+  static Color textPrimary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightTextPrimary
+          : darkTextPrimary;
+
+  static Color textSecondary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightTextSecondary
+          : darkTextSecondary;
+
+  static Color textTertiary(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightTextTertiary
+          : darkTextTertiary;
+
+  static Color border(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightBorder
+          : darkBorder;
+
+  static Color card(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light ? lightCard : darkCard;
+
+  static Color background(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light
+          ? lightBackground
+          : darkBackground;
 }

@@ -59,12 +59,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final mediaDao = ref.watch(mediaDaoProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -127,14 +125,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   child: FilterChip(
                     label: Text(
                       filter,
-                      style:
-                          AppTypography.labelSmall(
-                            color: isSelected ? Colors.white : primaryTextColor,
-                          ).copyWith(
-                            fontWeight: isSelected
-                                ? AppTypography.bold
-                                : FontWeight.normal,
-                          ),
+                      style: AppTypography.labelSmall(
+                        color: isSelected ? Colors.white : primaryTextColor,
+                      ).copyWith(
+                        fontWeight:
+                            isSelected ? AppTypography.bold : FontWeight.normal,
+                      ),
                     ),
                     selected: isSelected,
                     onSelected: (selected) {
@@ -209,10 +205,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         padding: const EdgeInsets.all(4),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 3,
-                              mainAxisSpacing: 3,
-                            ),
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 3,
+                          mainAxisSpacing: 3,
+                        ),
                         itemCount: results.length,
                         itemBuilder: (context, index) {
                           final item = results[index];
@@ -281,8 +277,7 @@ class _SearchTileState extends State<_SearchTile>
   Widget build(BuildContext context) {
     super.build(context);
     final thumbPath = widget.item.thumbnailPath;
-    final hasValidDiskThumb =
-        thumbPath != null &&
+    final hasValidDiskThumb = thumbPath != null &&
         thumbPath.isNotEmpty &&
         File(thumbPath).existsSync();
 
@@ -302,15 +297,15 @@ class _SearchTileState extends State<_SearchTile>
                         const ShimmerLoading(),
                   )
                 : (hasValidDiskThumb
-                      ? Image.file(
-                          File(thumbPath),
-                          fit: BoxFit.cover,
-                          cacheWidth: 256,
-                          cacheHeight: 256,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const ShimmerLoading(),
-                        )
-                      : const ShimmerLoading()),
+                    ? Image.file(
+                        File(thumbPath),
+                        fit: BoxFit.cover,
+                        cacheWidth: 256,
+                        cacheHeight: 256,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ShimmerLoading(),
+                      )
+                    : const ShimmerLoading()),
           ),
         ),
       ),

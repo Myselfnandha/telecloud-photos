@@ -47,12 +47,10 @@ class MediaScanner {
       }
 
       final prefs = await SharedPreferences.getInstance();
-      final uploadMp4 =
-          prefs.getBool(AppConstants.keyIncludeMp4Videos) ??
+      final uploadMp4 = prefs.getBool(AppConstants.keyIncludeMp4Videos) ??
           prefs.getBool(AppConstants.keyIncludeVideos) ??
           AppConstants.defaultIncludeMp4Videos;
-      final uploadMov =
-          prefs.getBool(AppConstants.keyIncludeMovVideos) ??
+      final uploadMov = prefs.getBool(AppConstants.keyIncludeMovVideos) ??
           prefs.getBool(AppConstants.keyIncludeVideos) ??
           AppConstants.defaultIncludeMovVideos;
       final allowAnyVideos = uploadMp4 || uploadMov;
@@ -61,9 +59,8 @@ class MediaScanner {
         'telecloud_backup_folder_ids',
       );
 
-      final requestType = allowAnyVideos
-          ? RequestType.common
-          : RequestType.image;
+      final requestType =
+          allowAnyVideos ? RequestType.common : RequestType.image;
       final allAlbums = await PhotoManager.getAssetPathList(type: requestType);
       if (allAlbums.isEmpty) {
         TeleCloudLogger.scanner('No media albums found on device.');
@@ -71,8 +68,7 @@ class MediaScanner {
       }
 
       // Check if user has explicitly configured folder whitelist or selected all
-      final isAllExplicitlySelected =
-          enabledFolderIds != null &&
+      final isAllExplicitlySelected = enabledFolderIds != null &&
           allAlbums.any(
             (a) =>
                 a.isAll &&
@@ -124,8 +120,7 @@ class MediaScanner {
             unthumbnailedAssets.add(asset);
             enabledAssetIds.add(asset.id);
 
-            final isMovVideo =
-                asset.type == AssetType.video &&
+            final isMovVideo = asset.type == AssetType.video &&
                 (asset.title?.toLowerCase().endsWith('.mov') ?? false);
 
             // Ingest device asset metadata without creating artificial albums
@@ -229,8 +224,7 @@ class MediaScanner {
           unthumbnailedAssets.add(asset);
           assetIds.add(asset.id);
 
-          final isMovVideo =
-              asset.type == AssetType.video &&
+          final isMovVideo = asset.type == AssetType.video &&
               (asset.title?.toLowerCase().endsWith('.mov') ?? false);
 
           companions.add(
@@ -251,6 +245,8 @@ class MediaScanner {
               uploadStatus: UploadStatus.pending,
               albumId: const Value.absent(),
               thumbnailPath: const Value.absent(),
+              folderName: Value(folder.name),
+              folderPath: Value(folder.name),
             ),
           );
         }

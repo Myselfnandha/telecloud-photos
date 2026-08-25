@@ -39,7 +39,8 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.wifi_tethering_error_rounded, color: Color(0xFFFF9F0A), size: 28),
+                  const Icon(Icons.wifi_tethering_error_rounded,
+                      color: Color(0xFFFF9F0A), size: 28),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
@@ -71,11 +72,19 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                     color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.tune_rounded, color: Color(0xFF0A84FF)),
+                  child:
+                      const Icon(Icons.tune_rounded, color: Color(0xFF0A84FF)),
                 ),
-                title: const Text('API Credentials & Proxy Settings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                subtitle: const Text('Set custom API ID/Hash, launch In-App Web Assistant, or clear TDLib cache.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white30),
+                title: const Text('API Credentials & Proxy Settings',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15)),
+                subtitle: const Text(
+                    'Set custom API ID/Hash, launch In-App Web Assistant, or clear TDLib cache.',
+                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                trailing:
+                    const Icon(Icons.chevron_right, color: Colors.white30),
                 onTap: () {
                   Navigator.pop(ctx);
                   context.push('/setup');
@@ -149,7 +158,8 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
         backgroundColor: const Color(0xFF000000),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 20),
           tooltip: 'Back',
           onPressed: () {
             if (Navigator.of(context).canPop()) {
@@ -172,16 +182,19 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
             children: [
               // Step Progress Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFF30D158).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.4)),
+                  border: Border.all(
+                      color: const Color(0xFF30D158).withValues(alpha: 0.4)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.phone_android_rounded, color: Color(0xFF30D158), size: 14),
+                    Icon(Icons.phone_android_rounded,
+                        color: Color(0xFF30D158), size: 14),
                     SizedBox(width: 6),
                     Text(
                       'STEP 2 OF 3 · PHONE AUTHENTICATION',
@@ -223,7 +236,8 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF0A84FF), size: 20),
+                    Icon(Icons.info_outline,
+                        color: Color(0xFF0A84FF), size: 20),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -237,12 +251,14 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
               const SizedBox(height: 24),
               Builder(
                 builder: (context) {
-                  final rawDigits = _rawController.text.replaceAll(RegExp(r'\D'), '');
+                  final rawDigits =
+                      _rawController.text.replaceAll(RegExp(r'\D'), '');
                   final hasEnteredEnoughDigits = rawDigits.length >= 10;
                   final isNumberTooLong = rawDigits.length > 15;
-                  final String? errorMsg = hasEnteredEnoughDigits && isNumberTooLong
-                      ? 'Phone number is too long (max 15 digits)'
-                      : null;
+                  final String? errorMsg =
+                      hasEnteredEnoughDigits && isNumberTooLong
+                          ? 'Phone number is too long (max 15 digits)'
+                          : null;
 
                   return IntlPhoneField(
                     style: const TextStyle(color: Colors.white),
@@ -310,8 +326,7 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed:
-                      (_isLoading ||
+                  onPressed: (_isLoading ||
                           _rawController.text
                                   .replaceAll(RegExp(r'\D'), '')
                                   .length <
@@ -365,5 +380,4 @@ class _PhoneInputScreenState extends ConsumerState<PhoneInputScreen> {
       ),
     );
   }
-
 }

@@ -13,9 +13,8 @@ class SkeletonShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return Shimmer.fromColors(
-      baseColor: isLight
-          ? AppColors.shimmerBaseLight
-          : AppColors.shimmerBaseDark,
+      baseColor:
+          isLight ? AppColors.shimmerBaseLight : AppColors.shimmerBaseDark,
       highlightColor: isLight
           ? AppColors.shimmerHighlightLight
           : AppColors.shimmerHighlightDark,
@@ -203,17 +202,21 @@ class SearchResultsSkeleton extends StatelessWidget {
           // Filter Chips Row Bone
           Row(
             children: [
-              SkeletonBone(width: 80, height: 32, borderRadius: AppRadii.borderPill),
+              SkeletonBone(
+                  width: 80, height: 32, borderRadius: AppRadii.borderPill),
               const SizedBox(width: 8),
-              SkeletonBone(width: 100, height: 32, borderRadius: AppRadii.borderPill),
+              SkeletonBone(
+                  width: 100, height: 32, borderRadius: AppRadii.borderPill),
               const SizedBox(width: 8),
-              SkeletonBone(width: 90, height: 32, borderRadius: AppRadii.borderPill),
+              SkeletonBone(
+                  width: 90, height: 32, borderRadius: AppRadii.borderPill),
             ],
           ),
           const SizedBox(height: 20),
 
           // Section Title Bone
-          SkeletonBone(width: 130, height: 16, borderRadius: BorderRadius.circular(4)),
+          SkeletonBone(
+              width: 130, height: 16, borderRadius: BorderRadius.circular(4)),
           const SizedBox(height: 12),
 
           // Staggered Masonry-style Grid

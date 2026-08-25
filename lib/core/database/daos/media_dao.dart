@@ -100,7 +100,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   Future<MediaItem?> getMediaById(String localId) {
     return (select(
       mediaItems,
-    )..where((t) => t.localId.equals(localId))).getSingleOrNull();
+    )..where((t) => t.localId.equals(localId)))
+        .getSingleOrNull();
   }
 
   Stream<List<MediaItem>> watchMediaInAlbum(int albumId) {
@@ -122,18 +123,16 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     int? msgId,
     String? fileId,
   }) async {
-    final count =
-        await (update(
-          mediaItems,
-        )..where((t) => t.localId.equals(localId))).write(
-          MediaItemsCompanion(
-            uploadStatus: Value(status),
-            telegramMsgId: msgId != null ? Value(msgId) : const Value.absent(),
-            telegramFileId: fileId != null
-                ? Value(fileId)
-                : const Value.absent(),
-          ),
-        );
+    final count = await (update(
+      mediaItems,
+    )..where((t) => t.localId.equals(localId)))
+        .write(
+      MediaItemsCompanion(
+        uploadStatus: Value(status),
+        telegramMsgId: msgId != null ? Value(msgId) : const Value.absent(),
+        telegramFileId: fileId != null ? Value(fileId) : const Value.absent(),
+      ),
+    );
     return count > 0;
   }
 
@@ -149,10 +148,46 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     );
   }
 
+  Future<int> retryAllFailed() async {
+    return (update(mediaItems)
+          ..where((t) =>
+              t.uploadStatus.equals(UploadStatus.failed.index) &
+              t.isTrashed.equals(false)))
+        .write(
+      const MediaItemsCompanion(
+        uploadStatus: Value(UploadStatus.pending),
+      ),
+    );
+  }
+
+  Future<int> retryFailedItem(String localId) async {
+    return (update(mediaItems)
+          ..where((t) =>
+              t.localId.equals(localId) &
+              t.uploadStatus.equals(UploadStatus.failed.index) &
+              t.isTrashed.equals(false)))
+        .write(
+      const MediaItemsCompanion(
+        uploadStatus: Value(UploadStatus.pending),
+      ),
+    );
+  }
+
+  Stream<int> watchFailedCount() {
+    final countCol = mediaItems.localId.count();
+    final query = selectOnly(mediaItems)
+      ..addColumns([countCol])
+      ..where(
+        mediaItems.uploadStatus.equals(UploadStatus.failed.index) &
+            mediaItems.isTrashed.equals(false),
+      );
+    return query.map((row) => row.read(countCol) ?? 0).watchSingle();
+  }
+
   Future<bool> toggleFavorite(String localId, bool isFavorite) async {
-    final count =
-        await (update(mediaItems)..where((t) => t.localId.equals(localId)))
-            .write(MediaItemsCompanion(isFavorite: Value(isFavorite)));
+    final count = await (update(mediaItems)
+          ..where((t) => t.localId.equals(localId)))
+        .write(MediaItemsCompanion(isFavorite: Value(isFavorite)));
     return count > 0;
   }
 
@@ -177,20 +212,22 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   }
 
   Future<List<MediaItem>> getBackedUpLocalMedia() {
-    return (select(mediaItems)..where(
-          (t) =>
-              t.uploadStatus.equals(UploadStatus.done.index) &
-              t.telegramFileId.isNotNull() &
-              t.isTrashed.equals(false) &
-              t.localId.like('tg_%').not(),
-        ))
+    return (select(mediaItems)
+          ..where(
+            (t) =>
+                t.uploadStatus.equals(UploadStatus.done.index) &
+                t.telegramFileId.isNotNull() &
+                t.isTrashed.equals(false) &
+                t.localId.like('tg_%').not(),
+          ))
         .get();
   }
 
   Future<List<MediaItem>> getMemoriesForDate(int month, int day) async {
     final all = await (select(
       mediaItems,
-    )..where((t) => t.isTrashed.equals(false))).get();
+    )..where((t) => t.isTrashed.equals(false)))
+        .get();
     final now = DateTime.now();
     return all.where((item) {
       final dt = item.capturedAt;
@@ -220,46 +257,40 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   }) async {
     final cleanName = filename.trim().toLowerCase();
     // 1. Direct case-insensitive match
-    var count =
-        await (update(
-          mediaItems,
-        )..where((t) => t.filename.lower().equals(cleanName))).write(
-          MediaItemsCompanion(
-            uploadStatus: const Value(UploadStatus.done),
-            telegramMsgId: msgId != null ? Value(msgId) : const Value.absent(),
-            telegramFileId: fileId != null
-                ? Value(fileId)
-                : const Value.absent(),
-          ),
-        );
+    var count = await (update(
+      mediaItems,
+    )..where((t) => t.filename.lower().equals(cleanName)))
+        .write(
+      MediaItemsCompanion(
+        uploadStatus: const Value(UploadStatus.done),
+        telegramMsgId: msgId != null ? Value(msgId) : const Value.absent(),
+        telegramFileId: fileId != null ? Value(fileId) : const Value.absent(),
+      ),
+    );
     if (count > 0) return true;
 
     // 2. Base name match (e.g. viewer_detail vs viewer_detail.png)
-    final baseName = cleanName.contains('.')
-        ? cleanName.split('.').first
-        : cleanName;
+    final baseName =
+        cleanName.contains('.') ? cleanName.split('.').first : cleanName;
     if (baseName.length >= 4) {
-      count =
-          await (update(
-            mediaItems,
-          )..where((t) => t.filename.lower().like('%$baseName%'))).write(
-            MediaItemsCompanion(
-              uploadStatus: const Value(UploadStatus.done),
-              telegramMsgId: msgId != null
-                  ? Value(msgId)
-                  : const Value.absent(),
-              telegramFileId: fileId != null
-                  ? Value(fileId)
-                  : const Value.absent(),
-            ),
-          );
+      count = await (update(
+        mediaItems,
+      )..where((t) => t.filename.lower().like('%$baseName%')))
+          .write(
+        MediaItemsCompanion(
+          uploadStatus: const Value(UploadStatus.done),
+          telegramMsgId: msgId != null ? Value(msgId) : const Value.absent(),
+          telegramFileId: fileId != null ? Value(fileId) : const Value.absent(),
+        ),
+      );
       if (count > 0) return true;
     }
 
     return false;
   }
 
-  Future<void> updateMediaCapturedAt(String localId, DateTime newCapturedAt) async {
+  Future<void> updateMediaCapturedAt(
+      String localId, DateTime newCapturedAt) async {
     await (update(mediaItems)..where((t) => t.localId.equals(localId))).write(
       MediaItemsCompanion(
         capturedAt: Value(newCapturedAt),
@@ -296,31 +327,33 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   /// Sets pending upload status for items in enabled folders and removes pending status for items outside enabled folders.
   Future<void> syncPendingQueueScope(Set<String> enabledLocalIds) async {
     // 1. For items not in enabledLocalIds (and not external cloud items like tg_% or gp_%), mark them as done/not pending
-    await (update(mediaItems)..where(
-          (t) =>
-              t.uploadStatus.equals(UploadStatus.pending.index) &
-              t.localId.isIn(enabledLocalIds).not() &
-              t.localId.like('tg_%').not() &
-              t.localId.like('gp_%').not(),
-        ))
+    await (update(mediaItems)
+          ..where(
+            (t) =>
+                t.uploadStatus.equals(UploadStatus.pending.index) &
+                t.localId.isIn(enabledLocalIds).not() &
+                t.localId.like('tg_%').not() &
+                t.localId.like('gp_%').not(),
+          ))
         .write(
-          const MediaItemsCompanion(uploadStatus: Value(UploadStatus.done)),
-        );
+      const MediaItemsCompanion(uploadStatus: Value(UploadStatus.done)),
+    );
 
     // 2. For items that are in enabledLocalIds and haven't been uploaded yet (no telegramFileId), ensure they are marked pending
     if (enabledLocalIds.isNotEmpty) {
-      await (update(mediaItems)..where(
-            (t) =>
-                t.localId.isIn(enabledLocalIds) &
-                t.telegramFileId.isNull() &
-                t.telegramMsgId.isNull() &
-                t.isTrashed.equals(false),
-          ))
+      await (update(mediaItems)
+            ..where(
+              (t) =>
+                  t.localId.isIn(enabledLocalIds) &
+                  t.telegramFileId.isNull() &
+                  t.telegramMsgId.isNull() &
+                  t.isTrashed.equals(false),
+            ))
           .write(
-            const MediaItemsCompanion(
-              uploadStatus: Value(UploadStatus.pending),
-            ),
-          );
+        const MediaItemsCompanion(
+          uploadStatus: Value(UploadStatus.pending),
+        ),
+      );
     }
   }
 
@@ -328,13 +361,15 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   Stream<List<Album>> watchAllAlbums() {
     return (select(
       albums,
-    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
+    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .watch();
   }
 
   Future<List<Album>> getAllAlbums() {
     return (select(
       albums,
-    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
+    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
   }
 
   Future<Album?> getAlbumById(int id) {
@@ -344,7 +379,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   Future<Album> getOrCreateAlbum(String name, {int? topicId}) async {
     final existing = await (select(
       albums,
-    )..where((t) => t.name.equals(name))).getSingleOrNull();
+    )..where((t) => t.name.equals(name)))
+        .getSingleOrNull();
     if (existing != null) {
       if (topicId != null && existing.telegramTopicId == null) {
         await (update(albums)..where((t) => t.id.equals(existing.id))).write(
@@ -361,9 +397,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     return into(albums).insert(
       AlbumsCompanion.insert(
         name: name,
-        telegramTopicId: topicId != null
-            ? Value(topicId)
-            : const Value.absent(),
+        telegramTopicId:
+            topicId != null ? Value(topicId) : const Value.absent(),
       ),
     );
   }
@@ -379,20 +414,21 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     return (update(mediaItems)
           ..where((t) => t.localId.isIn(localIds) & t.isTrashed.equals(false)))
         .write(
-          const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
-        );
+      const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
+    );
   }
 
   Future<int> queueAlbumForUpload(int albumId) async {
-    return (update(mediaItems)..where(
-          (t) =>
-              t.albumId.equals(albumId) &
-              t.telegramFileId.isNull() &
-              t.isTrashed.equals(false),
-        ))
+    return (update(mediaItems)
+          ..where(
+            (t) =>
+                t.albumId.equals(albumId) &
+                t.telegramFileId.isNull() &
+                t.isTrashed.equals(false),
+          ))
         .write(
-          const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
-        );
+      const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
+    );
   }
 
   Future<int> deleteAlbum(int albumId) async {
@@ -406,7 +442,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   Future<void> purgeMockData() async {
     // 1. Delete mock media items (e.g. gp_sample_...)
     await (delete(mediaItems)
-          ..where((t) => t.localId.like('gp_sample_%') | t.localId.like('mock_%')))
+          ..where(
+              (t) => t.localId.like('gp_sample_%') | t.localId.like('mock_%')))
         .go();
 
     // 2. Delete mock predefined albums
@@ -418,7 +455,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
       'Sample Album',
     ];
     for (final name in mockAlbumNames) {
-      final found = await (select(albums)..where((t) => t.name.equals(name))).get();
+      final found =
+          await (select(albums)..where((t) => t.name.equals(name))).get();
       for (final a in found) {
         await deleteAlbum(a.id);
       }
@@ -497,7 +535,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
   Future<bool> setFolderAutoBackup(String folderId, bool isEnabled) async {
     final count = await (update(folderSyncSettings)
           ..where((t) => t.folderId.equals(folderId)))
-        .write(FolderSyncSettingsCompanion(isAutoBackupEnabled: Value(isEnabled)));
+        .write(
+            FolderSyncSettingsCompanion(isAutoBackupEnabled: Value(isEnabled)));
     return count > 0;
   }
 
@@ -511,8 +550,8 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
                 t.isTrashed.equals(false),
           ))
         .write(
-          const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
-        );
+      const MediaItemsCompanion(uploadStatus: Value(UploadStatus.pending)),
+    );
   }
 
   /// Streams all media items belonging to a specific device folder.
@@ -525,5 +564,3 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
         .watch();
   }
 }
-
-

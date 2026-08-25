@@ -105,12 +105,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final mediaDao = ref.watch(mediaDaoProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -187,7 +185,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0A84FF).withValues(alpha: 0.12),
+                            color:
+                                const Color(0xFF0A84FF).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -274,20 +273,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.photo_outlined,
                   iconColor: const Color(0xFF0A84FF),
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                    if (i.isTrashed) return false;
-                    final fn = i.filename.toUpperCase();
-                    final isMotion = fn.startsWith('MVIMG_') ||
-                        fn.contains('MOTION') ||
-                        fn.contains('LIVE');
-                    final isImg = i.mimeType.startsWith('image') ||
-                        fn.endsWith('.JPG') ||
-                        fn.endsWith('.JPEG') ||
-                        fn.endsWith('.PNG') ||
-                        fn.endsWith('.WEBP') ||
-                        fn.endsWith('.HEIC');
-                    return isImg && !isMotion;
-                  }).length),
-                  onTap: () => context.push('/collection/photos', extra: 'Photos'),
+                        if (i.isTrashed) return false;
+                        final fn = i.filename.toUpperCase();
+                        final isMotion = fn.startsWith('MVIMG_') ||
+                            fn.contains('MOTION') ||
+                            fn.contains('LIVE');
+                        final isImg = i.mimeType.startsWith('image') ||
+                            fn.endsWith('.JPG') ||
+                            fn.endsWith('.JPEG') ||
+                            fn.endsWith('.PNG') ||
+                            fn.endsWith('.WEBP') ||
+                            fn.endsWith('.HEIC');
+                        return isImg && !isMotion;
+                      }).length),
+                  onTap: () =>
+                      context.push('/collection/photos', extra: 'Photos'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
@@ -298,18 +298,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.videocam_outlined,
                   iconColor: const Color(0xFF30D158),
                   streamCount: mediaDao.watchAllMedia().map(
-                    (l) => l.where((i) {
-                      if (i.isTrashed) return false;
-                      final fn = i.filename.toUpperCase();
-                      return i.mimeType.startsWith('video') ||
-                          fn.endsWith('.MP4') ||
-                          fn.endsWith('.MOV') ||
-                          fn.endsWith('.MKV') ||
-                          fn.endsWith('.AVI') ||
-                          fn.endsWith('.WEBM');
-                    }).length,
-                  ),
-                  onTap: () => context.push('/collection/videos', extra: 'Videos'),
+                        (l) => l.where((i) {
+                          if (i.isTrashed) return false;
+                          final fn = i.filename.toUpperCase();
+                          return i.mimeType.startsWith('video') ||
+                              fn.endsWith('.MP4') ||
+                              fn.endsWith('.MOV') ||
+                              fn.endsWith('.MKV') ||
+                              fn.endsWith('.AVI') ||
+                              fn.endsWith('.WEBM');
+                        }).length,
+                      ),
+                  onTap: () =>
+                      context.push('/collection/videos', extra: 'Videos'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
@@ -320,20 +321,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.motion_photos_on_outlined,
                   iconColor: const Color(0xFFFF9F0A),
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                    if (i.isTrashed) return false;
-                    final fn = i.filename.toUpperCase();
-                    final isMotionName = fn.startsWith('MVIMG_') ||
-                        fn.startsWith('LIVE_') ||
-                        fn.contains('_MOTION_PHOTO') ||
-                        fn.contains('_LIVEPHOTO') ||
-                        fn.contains('_MP.JPG') ||
-                        fn.contains('_MP.JPEG') ||
-                        fn.contains('.MOTION.');
-                    final isMotionMime = i.mimeType == 'image/x-motion-photo' ||
-                        i.mimeType == 'image/x-livephoto';
-                    return isMotionName || isMotionMime;
-                  }).length),
-                  onTap: () => context.push('/collection/live_photos', extra: 'Live Photos'),
+                        if (i.isTrashed) return false;
+                        final fn = i.filename.toUpperCase();
+                        final isMotionName = fn.startsWith('MVIMG_') ||
+                            fn.startsWith('LIVE_') ||
+                            fn.contains('_MOTION_PHOTO') ||
+                            fn.contains('_LIVEPHOTO') ||
+                            fn.contains('_MP.JPG') ||
+                            fn.contains('_MP.JPEG') ||
+                            fn.contains('.MOTION.');
+                        final isMotionMime =
+                            i.mimeType == 'image/x-motion-photo' ||
+                                i.mimeType == 'image/x-livephoto';
+                        return isMotionName || isMotionMime;
+                      }).length),
+                  onTap: () => context.push('/collection/live_photos',
+                      extra: 'Live Photos'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
@@ -344,12 +347,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.screenshot_outlined,
                   iconColor: const Color(0xFF64D2FF),
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                    if (i.isTrashed) return false;
-                    final fn = i.filename.toLowerCase();
-                    return fn.contains('screenshot') ||
-                        fn.contains('screen_shot');
-                  }).length),
-                  onTap: () => context.push('/collection/screenshots', extra: 'Screenshots'),
+                        if (i.isTrashed) return false;
+                        final fn = i.filename.toLowerCase();
+                        return fn.contains('screenshot') ||
+                            fn.contains('screen_shot');
+                      }).length),
+                  onTap: () => context.push('/collection/screenshots',
+                      extra: 'Screenshots'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
@@ -371,13 +375,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.portrait_rounded,
                   iconColor: const Color(0xFFFF375F),
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                    if (i.isTrashed) return false;
-                    final fn = i.filename.toLowerCase();
-                    return fn.startsWith('selfie_') ||
-                        fn.contains('_selfie_') ||
-                        fn.contains('_portrait_');
-                  }).length),
-                  onTap: () => context.push('/collection/selfies', extra: 'Selfies & Portraits'),
+                        if (i.isTrashed) return false;
+                        final fn = i.filename.toLowerCase();
+                        return fn.startsWith('selfie_') ||
+                            fn.contains('_selfie_') ||
+                            fn.contains('_portrait_');
+                      }).length),
+                  onTap: () => context.push('/collection/selfies',
+                      extra: 'Selfies & Portraits'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
@@ -388,18 +393,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.panorama_horizontal_rounded,
                   iconColor: const Color(0xFFBF5AF2),
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                    if (i.isTrashed) return false;
-                    final fn = i.filename.toUpperCase();
-                    final isPanoAspect = i.width != null &&
-                        i.height != null &&
-                        i.height! > 0 &&
-                        (i.width! / i.height! >= 2.4 || i.height! / i.width! >= 2.4);
-                    return fn.startsWith('PANO_') ||
-                        fn.contains('_PANO_') ||
-                        fn.contains('_PANORAMA') ||
-                        isPanoAspect;
-                  }).length),
-                  onTap: () => context.push('/collection/panoramas', extra: 'Panoramas'),
+                        if (i.isTrashed) return false;
+                        final fn = i.filename.toUpperCase();
+                        final isPanoAspect = i.width != null &&
+                            i.height != null &&
+                            i.height! > 0 &&
+                            (i.width! / i.height! >= 2.4 ||
+                                i.height! / i.width! >= 2.4);
+                        return fn.startsWith('PANO_') ||
+                            fn.contains('_PANO_') ||
+                            fn.contains('_PANORAMA') ||
+                            isPanoAspect;
+                      }).length),
+                  onTap: () =>
+                      context.push('/collection/panoramas', extra: 'Panoramas'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
@@ -410,16 +417,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.camera_rounded,
                   iconColor: const Color(0xFFFFD60A),
                   streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                    if (i.isTrashed) return false;
-                    final fn = i.filename.toLowerCase();
-                    return fn.endsWith('.dng') ||
-                        fn.endsWith('.cr2') ||
-                        fn.endsWith('.arw') ||
-                        fn.endsWith('.nef') ||
-                        fn.endsWith('.raw') ||
-                        fn.endsWith('.orf') ||
-                        fn.endsWith('.rw2');
-                  }).length),
+                        if (i.isTrashed) return false;
+                        final fn = i.filename.toLowerCase();
+                        return fn.endsWith('.dng') ||
+                            fn.endsWith('.cr2') ||
+                            fn.endsWith('.arw') ||
+                            fn.endsWith('.nef') ||
+                            fn.endsWith('.raw') ||
+                            fn.endsWith('.orf') ||
+                            fn.endsWith('.rw2');
+                      }).length),
                   onTap: () => context.push('/collection/raw', extra: 'RAW'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
@@ -452,7 +459,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.sync_rounded,
                   iconColor: const Color(0xFF30D158),
                   subtitle: 'Manage selective device folder auto-sync',
-                  streamCount: mediaDao.watchFolderSyncSettings().map((l) => l.where((f) => f.isAutoBackupEnabled).length),
+                  streamCount: mediaDao
+                      .watchFolderSyncSettings()
+                      .map((l) => l.where((f) => f.isAutoBackupEnabled).length),
                   onTap: () => context.push('/settings/folders'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
@@ -464,7 +473,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   icon: Icons.cloud_download_outlined,
                   iconColor: const Color(0xFF4285F4),
                   subtitle: 'Google Photos & Cloud Synced Media',
-                  streamCount: mediaDao.watchGooglePhotosMedia().map((l) => l.length),
+                  streamCount:
+                      mediaDao.watchGooglePhotosMedia().map((l) => l.length),
                   onTap: () => context.push('/google-photos/synced'),
                   isLight: isLight,
                   primaryTextColor: primaryTextColor,
@@ -513,7 +523,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         ),
       ),
       subtitle: subtitle != null
-          ? Text(subtitle, style: TextStyle(color: secondaryTextColor, fontSize: 11))
+          ? Text(subtitle,
+              style: TextStyle(color: secondaryTextColor, fontSize: 11))
           : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -547,7 +558,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     return Divider(
       height: 1,
       indent: 52,
-      color: isLight ? const Color(0xFFF2F2F7) : Colors.white.withValues(alpha: 0.05),
+      color: isLight
+          ? const Color(0xFFF2F2F7)
+          : Colors.white.withValues(alpha: 0.05),
     );
   }
 
@@ -590,7 +603,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               children: [
                 Expanded(
                   child: firstItem != null
-                      ? _AlbumCoverThumbnail(item: firstItem, fallbackGradient: pair)
+                      ? _AlbumCoverThumbnail(
+                          item: firstItem, fallbackGradient: pair)
                       : _buildAlbumGradientPlaceholder(pair),
                 ),
                 Padding(
@@ -854,7 +868,8 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
 
     if (_folders.isEmpty) return const SizedBox.shrink();
 
-    final displayFolders = _folders.length > 4 ? _folders.sublist(0, 4) : _folders;
+    final displayFolders =
+        _folders.length > 4 ? _folders.sublist(0, 4) : _folders;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

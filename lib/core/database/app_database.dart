@@ -11,7 +11,8 @@ import 'daos/media_dao.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [MediaItems, Albums, FolderSyncSettings], daos: [MediaDao])
+@DriftDatabase(
+    tables: [MediaItems, Albums, FolderSyncSettings], daos: [MediaDao])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
@@ -21,23 +22,23 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    beforeOpen: (details) async {
-      await customStatement('PRAGMA foreign_keys = ON;');
-    },
-    onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await m.addColumn(mediaItems, mediaItems.isFavorite);
-        await m.addColumn(mediaItems, mediaItems.isTrashed);
-        await m.addColumn(mediaItems, mediaItems.trashedAt);
-      }
-      if (from < 3) {
-        await m.addColumn(mediaItems, mediaItems.sha256Hash);
-        await m.addColumn(mediaItems, mediaItems.folderName);
-        await m.addColumn(mediaItems, mediaItems.folderPath);
-        await m.createTable(folderSyncSettings);
-      }
-    },
-  );
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON;');
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(mediaItems, mediaItems.isFavorite);
+            await m.addColumn(mediaItems, mediaItems.isTrashed);
+            await m.addColumn(mediaItems, mediaItems.trashedAt);
+          }
+          if (from < 3) {
+            await m.addColumn(mediaItems, mediaItems.sha256Hash);
+            await m.addColumn(mediaItems, mediaItems.folderName);
+            await m.addColumn(mediaItems, mediaItems.folderPath);
+            await m.createTable(folderSyncSettings);
+          }
+        },
+      );
 }
 
 LazyDatabase _openConnection() {

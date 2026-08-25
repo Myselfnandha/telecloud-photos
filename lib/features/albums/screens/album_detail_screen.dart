@@ -64,12 +64,10 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
     final density = ref.watch(gridDensityProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -120,16 +118,15 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                       AppSpacing.gapHorizontalM,
                       Text(
                         d.label,
-                        style:
-                            AppTypography.bodyMedium(
-                              color: density == d
-                                  ? AppColors.primaryBlue
-                                  : primaryTextColor,
-                            ).copyWith(
-                              fontWeight: density == d
-                                  ? AppTypography.bold
-                                  : AppTypography.regular,
-                            ),
+                        style: AppTypography.bodyMedium(
+                          color: density == d
+                              ? AppColors.primaryBlue
+                              : primaryTextColor,
+                        ).copyWith(
+                          fontWeight: density == d
+                              ? AppTypography.bold
+                              : AppTypography.regular,
+                        ),
                       ),
                     ],
                   ),
@@ -149,11 +146,14 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    backgroundColor: isLight ? Colors.white : AppColors.darkSurface,
-                    shape: const RoundedRectangleBorder(borderRadius: AppRadii.borderL),
+                    backgroundColor:
+                        isLight ? Colors.white : AppColors.darkSurface,
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadii.borderL),
                     title: Text(
                       'Delete Album "${widget.albumName}"?',
-                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: primaryTextColor, fontWeight: FontWeight.bold),
                     ),
                     content: Text(
                       'This removes the album organisation. Photos inside the album will remain safe in your photo library and cloud.',
@@ -162,14 +162,18 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: Text('Cancel', style: TextStyle(color: secondaryTextColor)),
+                        child: Text('Cancel',
+                            style: TextStyle(color: secondaryTextColor)),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.errorRed,
                         ),
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Delete Album', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: const Text('Delete Album',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -197,9 +201,11 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline_rounded, color: AppColors.errorRed, size: 18),
+                    Icon(Icons.delete_outline_rounded,
+                        color: AppColors.errorRed, size: 18),
                     SizedBox(width: 8),
-                    Text('Delete Album', style: TextStyle(color: AppColors.errorRed)),
+                    Text('Delete Album',
+                        style: TextStyle(color: AppColors.errorRed)),
                   ],
                 ),
               ),
@@ -321,8 +327,7 @@ class _AlbumMediaTileState extends State<_AlbumMediaTile>
   Widget build(BuildContext context) {
     super.build(context);
     final thumbPath = widget.item.thumbnailPath;
-    final hasValidDiskThumb =
-        thumbPath != null &&
+    final hasValidDiskThumb = thumbPath != null &&
         thumbPath.isNotEmpty &&
         File(thumbPath).existsSync();
 
@@ -342,15 +347,15 @@ class _AlbumMediaTileState extends State<_AlbumMediaTile>
                         const ShimmerLoading(),
                   )
                 : (hasValidDiskThumb
-                      ? Image.file(
-                          File(thumbPath),
-                          fit: BoxFit.cover,
-                          cacheWidth: 256,
-                          cacheHeight: 256,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const ShimmerLoading(),
-                        )
-                      : const ShimmerLoading()),
+                    ? Image.file(
+                        File(thumbPath),
+                        fit: BoxFit.cover,
+                        cacheWidth: 256,
+                        cacheHeight: 256,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const ShimmerLoading(),
+                      )
+                    : const ShimmerLoading()),
           ),
         ),
       ),

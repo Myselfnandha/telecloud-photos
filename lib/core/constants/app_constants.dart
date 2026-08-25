@@ -32,12 +32,15 @@ class AppConstants {
   }
 
   static String get telegramApiHash {
-    if (_customApiHash != null && _customApiHash!.isNotEmpty) return _customApiHash!;
+    if (_customApiHash != null && _customApiHash!.isNotEmpty) {
+      return _customApiHash!;
+    }
     if (dotenv.isInitialized) {
       final envHash = dotenv.env['TELEGRAM_API_HASH'];
       if (envHash != null && envHash.isNotEmpty) return envHash;
     }
-    const defineHash = String.fromEnvironment('TELEGRAM_API_HASH', defaultValue: '');
+    const defineHash =
+        String.fromEnvironment('TELEGRAM_API_HASH', defaultValue: '');
     if (defineHash.isNotEmpty) return defineHash;
     // Official Telegram production public API Hash
     return '8da85b0d5b1652522bc46057082da478';
@@ -66,7 +69,10 @@ class AppConstants {
       if (dotenv.isInitialized) {
         final envId = int.tryParse(dotenv.env['TELEGRAM_API_ID'] ?? '');
         final envHash = dotenv.env['TELEGRAM_API_HASH'];
-        if (envId != null && envId > 0 && envHash != null && envHash.isNotEmpty) {
+        if (envId != null &&
+            envId > 0 &&
+            envHash != null &&
+            envHash.isNotEmpty) {
           setCredentials(envId, envHash);
           return true;
         }
@@ -109,8 +115,10 @@ class AppConstants {
 
   // Advanced Sync & Storage Keys
   static const String keyEnabledBackupFolders = 'telecloud_backup_folder_ids';
-  static const String keyDailyCellularDataLimitMb = 'daily_cellular_data_limit_mb';
-  static const String keyUsedCellularDataTodayBytes = 'used_cellular_data_today_bytes';
+  static const String keyDailyCellularDataLimitMb =
+      'daily_cellular_data_limit_mb';
+  static const String keyUsedCellularDataTodayBytes =
+      'used_cellular_data_today_bytes';
   static const String keyLastDataUsageResetDay = 'last_data_usage_reset_day';
   static const String keyBatteryThresholdPercent = 'battery_threshold_percent';
   static const String keyPauseOnRoaming = 'pause_on_roaming';
@@ -121,7 +129,8 @@ class AppConstants {
   static const bool defaultWifiOnly = true;
   static const bool defaultAllowMobileData = false;
   static const int defaultMobileDataLimitMb = 0; // 0 = unlimited
-  static const int defaultDailyCellularDataLimitMb = 0; // 0 = unlimited / disabled
+  static const int defaultDailyCellularDataLimitMb =
+      0; // 0 = unlimited / disabled
   static const int defaultBatteryThresholdPercent = 20; // 20%
   static const bool defaultPauseOnRoaming = true;
   static const int defaultMaxConcurrentUploads = 2;

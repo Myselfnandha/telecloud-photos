@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
-import '../../../../core/backup/backup_manager.dart';
+import '../../../../core/di/providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
@@ -142,7 +142,7 @@ class _StorageMaintenanceSettingsScreenState
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              BackupManager().deepKillEverything();
+              ref.read(backupManagerProvider.notifier).deepKillEverything();
             },
           ),
         ],
@@ -154,12 +154,10 @@ class _StorageMaintenanceSettingsScreenState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -236,9 +234,7 @@ class _StorageMaintenanceSettingsScreenState
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'CACHE MANAGEMENT',
             style: AppTypography.labelSmall(
@@ -283,9 +279,7 @@ class _StorageMaintenanceSettingsScreenState
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'EMERGENCY DIAGNOSTICS & PROCESS CONTROL',
             style: AppTypography.labelSmall(

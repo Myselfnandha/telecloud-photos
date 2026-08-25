@@ -6,13 +6,13 @@ import 'app_theme.dart';
 
 final themeModeProvider =
     StateNotifierProvider<ThemeModeNotifier, AppThemeMode>((ref) {
-      return ThemeModeNotifier();
-    });
+  return ThemeModeNotifier();
+});
 
 final gridDisplayModeProvider =
     StateNotifierProvider<GridDisplayModeNotifier, GridDisplayMode>((ref) {
-      return GridDisplayModeNotifier();
-    });
+  return GridDisplayModeNotifier();
+});
 
 class GridDisplayModeNotifier extends StateNotifier<GridDisplayMode> {
   GridDisplayModeNotifier() : super(GridDisplayMode.squareCropped) {

@@ -69,7 +69,8 @@ class ExifMetadata {
 
   String get formattedResolution {
     if (width != null && height != null) {
-      final mp = megapixels != null ? '${megapixels!.toStringAsFixed(1)} MP • ' : '';
+      final mp =
+          megapixels != null ? '${megapixels!.toStringAsFixed(1)} MP • ' : '';
       return '$mp$width × $height';
     }
     return 'Unknown Resolution';
@@ -128,7 +129,8 @@ class ExifParserService {
         width: w,
         height: h,
         megapixels: mp,
-        fileSizeBytes: fileExif.fileSizeBytes ?? (file != null ? await file.length() : null),
+        fileSizeBytes: fileExif.fileSizeBytes ??
+            (file != null ? await file.length() : null),
         mimeType: asset.mimeType ?? fileExif.mimeType,
         dateTimeOriginal: asset.createDateTime,
         software: fileExif.software,
@@ -137,7 +139,8 @@ class ExifParserService {
       _cache[cacheKey] = merged;
       return merged;
     } catch (e) {
-      TeleCloudLogger.log('EXIF', 'Failed to parse EXIF for asset ${asset.id}: $e');
+      TeleCloudLogger.log(
+          'EXIF', 'Failed to parse EXIF for asset ${asset.id}: $e');
       return ExifMetadata(
         width: asset.width,
         height: asset.height,
@@ -160,7 +163,8 @@ class ExifParserService {
       _cache[path] = parsed;
       return parsed;
     } catch (e) {
-      TeleCloudLogger.log('EXIF', 'Failed to parse EXIF from file ${file.path}: $e');
+      TeleCloudLogger.log(
+          'EXIF', 'Failed to parse EXIF from file ${file.path}: $e');
       final length = await file.length().catchError((_) => 0);
       return ExifMetadata(fileSizeBytes: length);
     }
@@ -188,7 +192,8 @@ class ExifParserService {
 
       // APP1 Marker for Exif (0xFFE1)
       if (marker == 0xE1 && offset + 4 + length <= bytes.length) {
-        final exifHeader = String.fromCharCodes(bytes.sublist(offset + 4, offset + 8));
+        final exifHeader =
+            String.fromCharCodes(bytes.sublist(offset + 4, offset + 8));
         if (exifHeader.startsWith('Exif')) {
           final tiffOffset = offset + 10;
           return _parseTiffHeader(bytes, tiffOffset, totalFileSize);
@@ -210,7 +215,8 @@ class ExifParserService {
       return ExifMetadata(fileSizeBytes: totalFileSize);
     }
 
-    final isLittleEndian = bytes[tiffStart] == 0x49 && bytes[tiffStart + 1] == 0x49; // 'II'
+    final isLittleEndian =
+        bytes[tiffStart] == 0x49 && bytes[tiffStart + 1] == 0x49; // 'II'
     final byteData = ByteData.sublistView(bytes);
 
     int read16(int pos) =>
@@ -279,7 +285,8 @@ class ExifParserService {
               gpsIfdOffset = tiffStart + read32(cur + 8);
               break;
             case 0x829A: // ExposureTime
-              exposureTime = _readRationalFraction(byteData, isLittleEndian, valueOffset);
+              exposureTime =
+                  _readRationalFraction(byteData, isLittleEndian, valueOffset);
               break;
             case 0x829D: // FNumber
               fNumber = _readFNumber(byteData, isLittleEndian, valueOffset);
@@ -288,7 +295,8 @@ class ExifParserService {
               iso = 'ISO ${_readInt(read16, read32, type, cur + 8)}';
               break;
             case 0x920A: // FocalLength
-              focalLength = _readFocalLength(byteData, isLittleEndian, valueOffset);
+              focalLength =
+                  _readFocalLength(byteData, isLittleEndian, valueOffset);
               break;
             case 0xA434: // LensModel
               lensModel = _readString(bytes, type, count, cur + 8, valueOffset);
@@ -298,7 +306,8 @@ class ExifParserService {
               if (flashVal != null) flashFired = (flashVal & 1) == 1;
               break;
             case 0x9204: // ExposureBias
-              exposureBias = _readExposureBias(byteData, isLittleEndian, valueOffset);
+              exposureBias =
+                  _readExposureBias(byteData, isLittleEndian, valueOffset);
               break;
           }
         } else {
@@ -377,8 +386,10 @@ class ExifParserService {
     int offset,
   ) {
     if (offset + 8 > byteData.lengthInBytes) return null;
-    final num = byteData.getUint32(offset, isLittleEndian ? Endian.little : Endian.big);
-    final den = byteData.getUint32(offset + 4, isLittleEndian ? Endian.little : Endian.big);
+    final num =
+        byteData.getUint32(offset, isLittleEndian ? Endian.little : Endian.big);
+    final den = byteData.getUint32(
+        offset + 4, isLittleEndian ? Endian.little : Endian.big);
     if (den == 0) return null;
     if (num < den && num > 0) {
       final inv = (den / num).round();
@@ -393,8 +404,10 @@ class ExifParserService {
     int offset,
   ) {
     if (offset + 8 > byteData.lengthInBytes) return null;
-    final num = byteData.getUint32(offset, isLittleEndian ? Endian.little : Endian.big);
-    final den = byteData.getUint32(offset + 4, isLittleEndian ? Endian.little : Endian.big);
+    final num =
+        byteData.getUint32(offset, isLittleEndian ? Endian.little : Endian.big);
+    final den = byteData.getUint32(
+        offset + 4, isLittleEndian ? Endian.little : Endian.big);
     if (den == 0) return null;
     final val = num / den;
     return 'f/${val.toStringAsFixed(val >= 10 ? 0 : 1)}';
@@ -406,8 +419,10 @@ class ExifParserService {
     int offset,
   ) {
     if (offset + 8 > byteData.lengthInBytes) return null;
-    final num = byteData.getUint32(offset, isLittleEndian ? Endian.little : Endian.big);
-    final den = byteData.getUint32(offset + 4, isLittleEndian ? Endian.little : Endian.big);
+    final num =
+        byteData.getUint32(offset, isLittleEndian ? Endian.little : Endian.big);
+    final den = byteData.getUint32(
+        offset + 4, isLittleEndian ? Endian.little : Endian.big);
     if (den == 0) return null;
     final val = num / den;
     return '${val.toStringAsFixed(val >= 10 ? 0 : 1)}mm';
@@ -419,8 +434,10 @@ class ExifParserService {
     int offset,
   ) {
     if (offset + 8 > byteData.lengthInBytes) return null;
-    final num = byteData.getInt32(offset, isLittleEndian ? Endian.little : Endian.big);
-    final den = byteData.getInt32(offset + 4, isLittleEndian ? Endian.little : Endian.big);
+    final num =
+        byteData.getInt32(offset, isLittleEndian ? Endian.little : Endian.big);
+    final den = byteData.getInt32(
+        offset + 4, isLittleEndian ? Endian.little : Endian.big);
     if (den == 0) return null;
     final val = num / den;
     return '${val >= 0 ? '+' : ''}${val.toStringAsFixed(1)} EV';

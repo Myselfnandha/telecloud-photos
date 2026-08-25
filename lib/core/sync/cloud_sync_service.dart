@@ -110,8 +110,7 @@ class CloudSyncService {
           MediaItemsCompanion.insert(
             localId: localId,
             filename: targetName,
-            capturedAt:
-                meta?.capturedAt ??
+            capturedAt: meta?.capturedAt ??
                 DateTime.fromMillisecondsSinceEpoch(msg.date * 1000),
             width: Value(meta?.width ?? width),
             height: Value(meta?.height ?? height),

@@ -120,7 +120,7 @@ class _ManualFolderUploadSheetState
 
     final scanner = ref.read(mediaScannerProvider);
     final dao = ref.read(mediaDaoProvider);
-    final backupManager = ref.read(backupManagerProvider);
+    final backupManager = ref.read(backupManagerProvider.notifier);
 
     // 1. Queue Device Folders
     for (final folderData in _deviceFolders) {
@@ -148,12 +148,10 @@ class _ManualFolderUploadSheetState
     final mediaDao = ref.watch(mediaDaoProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final sheetBg = isLight ? Colors.white : AppColors.darkSurface;
     final cardBg = isLight ? Colors.grey.shade100 : const Color(0xFF1C1C1E);
 
@@ -245,171 +243,177 @@ class _ManualFolderUploadSheetState
                           ),
                         )
                       : _deviceFolders.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No media folders found on device',
-                            style: AppTypography.bodyMedium(
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          itemCount: _deviceFolders.length,
-                          itemBuilder: (context, index) {
-                            final item = _deviceFolders[index];
-                            final isSelected = _selectedFolderIds.contains(
-                              item.folder.id,
-                            );
-
-                            return Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppColors.primaryBlue.withValues(
-                                        alpha: 0.12,
-                                      )
-                                    : cardBg,
-                                borderRadius: AppRadii.borderL,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppColors.primaryBlue
-                                      : Colors.transparent,
+                          ? Center(
+                              child: Text(
+                                'No media folders found on device',
+                                style: AppTypography.bodyMedium(
+                                  color: secondaryTextColor,
                                 ),
                               ),
-                              child: ListTile(
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: AppRadii.borderL,
-                                ),
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    if (isSelected) {
-                                      _selectedFolderIds.remove(item.folder.id);
-                                    } else {
-                                      _selectedFolderIds.add(item.folder.id);
-                                    }
-                                  });
-                                },
-                                leading: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Checkbox(
-                                      value: isSelected,
-                                      activeColor: AppColors.primaryBlue,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(4),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              itemCount: _deviceFolders.length,
+                              itemBuilder: (context, index) {
+                                final item = _deviceFolders[index];
+                                final isSelected = _selectedFolderIds.contains(
+                                  item.folder.id,
+                                );
+
+                                return Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.primaryBlue.withValues(
+                                            alpha: 0.12,
+                                          )
+                                        : cardBg,
+                                    borderRadius: AppRadii.borderL,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.primaryBlue
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                  child: ListTile(
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: AppRadii.borderL,
+                                    ),
+                                    onTap: () {
+                                      HapticFeedback.selectionClick();
+                                      setState(() {
+                                        if (isSelected) {
+                                          _selectedFolderIds
+                                              .remove(item.folder.id);
+                                        } else {
+                                          _selectedFolderIds
+                                              .add(item.folder.id);
+                                        }
+                                      });
+                                    },
+                                    leading: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Checkbox(
+                                          value: isSelected,
+                                          activeColor: AppColors.primaryBlue,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          onChanged: (val) {
+                                            HapticFeedback.selectionClick();
+                                            setState(() {
+                                              if (val == true) {
+                                                _selectedFolderIds.add(
+                                                  item.folder.id,
+                                                );
+                                              } else {
+                                                _selectedFolderIds.remove(
+                                                  item.folder.id,
+                                                );
+                                              }
+                                            });
+                                          },
+                                        ),
+                                        ClipRRect(
+                                          borderRadius: AppRadii.borderM,
+                                          child: Container(
+                                            width: 44,
+                                            height: 44,
+                                            color: isLight
+                                                ? Colors.grey.shade300
+                                                : const Color(0xFF2C2C2E),
+                                            child: item.thumbBytes != null
+                                                ? Image.memory(
+                                                    item.thumbBytes!,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : const Icon(
+                                                    Icons.folder_rounded,
+                                                    color:
+                                                        AppColors.primaryBlue,
+                                                  ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    title: Text(
+                                      item.folder.name,
+                                      style: AppTypography.bodyLarge(
+                                        color: primaryTextColor,
+                                      ).copyWith(
+                                        fontWeight: isSelected
+                                            ? AppTypography.bold
+                                            : AppTypography.medium,
                                       ),
-                                      onChanged: (val) {
-                                        HapticFeedback.selectionClick();
-                                        setState(() {
-                                          if (val == true) {
-                                            _selectedFolderIds.add(
-                                              item.folder.id,
-                                            );
-                                          } else {
-                                            _selectedFolderIds.remove(
-                                              item.folder.id,
-                                            );
-                                          }
-                                        });
+                                    ),
+                                    subtitle: Text(
+                                      '${item.count} items',
+                                      style: AppTypography.labelSmall(
+                                        color: secondaryTextColor,
+                                      ),
+                                    ),
+                                    trailing: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.primaryBlue,
+                                        side: const BorderSide(
+                                          color: AppColors.primaryBlue,
+                                          width: 1.2,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.cloud_upload_outlined,
+                                        size: 13,
+                                      ),
+                                      label: const Text(
+                                        'Upload',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        HapticFeedback.mediumImpact();
+                                        final scanner = ref.read(
+                                          mediaScannerProvider,
+                                        );
+                                        final backupManager = ref.read(
+                                          backupManagerProvider.notifier,
+                                        );
+                                        final channelMgr = ref.read(
+                                          channelManagerProvider,
+                                        );
+                                        await scanner
+                                            .queueFolderForUpload(item.folder);
+                                        await channelMgr.ensureAlbumTopic(
+                                          item.folder.name,
+                                        );
+                                        backupManager.onStartUploading?.call();
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
                                       },
                                     ),
-                                    ClipRRect(
-                                      borderRadius: AppRadii.borderM,
-                                      child: Container(
-                                        width: 44,
-                                        height: 44,
-                                        color: isLight
-                                            ? Colors.grey.shade300
-                                            : const Color(0xFF2C2C2E),
-                                        child: item.thumbBytes != null
-                                            ? Image.memory(
-                                                item.thumbBytes!,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : const Icon(
-                                                Icons.folder_rounded,
-                                                color: AppColors.primaryBlue,
-                                              ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                title: Text(
-                                  item.folder.name,
-                                  style: AppTypography.bodyLarge(
-                                    color: primaryTextColor,
-                                  ).copyWith(
-                                    fontWeight: isSelected
-                                        ? AppTypography.bold
-                                        : AppTypography.medium,
                                   ),
-                                ),
-                                subtitle: Text(
-                                  '${item.count} items',
-                                  style: AppTypography.labelSmall(
-                                    color: secondaryTextColor,
-                                  ),
-                                ),
-                                trailing: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.primaryBlue,
-                                    side: const BorderSide(
-                                      color: AppColors.primaryBlue,
-                                      width: 1.2,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.cloud_upload_outlined,
-                                    size: 13,
-                                  ),
-                                  label: const Text(
-                                    'Upload',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  onPressed: () async {
-                                    HapticFeedback.mediumImpact();
-                                    final scanner = ref.read(
-                                      mediaScannerProvider,
-                                    );
-                                    final backupManager = ref.read(
-                                      backupManagerProvider,
-                                    );
-                                    final channelMgr = ref.read(
-                                      channelManagerProvider,
-                                    );
-                                    await scanner
-                                        .queueFolderForUpload(item.folder);
-                                    await channelMgr.ensureAlbumTopic(
-                                      item.folder.name,
-                                    );
-                                    backupManager.onStartUploading?.call();
-                                    if (context.mounted) {
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                                );
+                              },
+                            ),
 
                   // Tab 2: Custom Albums
                   StreamBuilder<List<Album>>(
@@ -575,14 +579,14 @@ class _ManualFolderUploadSheetState
                                   HapticFeedback.mediumImpact();
                                   final dao = ref.read(mediaDaoProvider);
                                   final backupManager = ref.read(
-                                    backupManagerProvider,
+                                    backupManagerProvider.notifier,
                                   );
                                   final channelMgr = ref.read(
                                     channelManagerProvider,
                                   );
-                                   await dao.queueAlbumForUpload(
-                                     album.id,
-                                   );
+                                  await dao.queueAlbumForUpload(
+                                    album.id,
+                                  );
                                   await channelMgr.ensureAlbumTopic(album.name);
                                   backupManager.onStartUploading?.call();
                                   if (context.mounted) {
@@ -608,8 +612,7 @@ class _ManualFolderUploadSheetState
                 final totalSelected = _calculateTotalSelectedItems(
                   customAlbums,
                 );
-                final hasSelection =
-                    _selectedFolderIds.isNotEmpty ||
+                final hasSelection = _selectedFolderIds.isNotEmpty ||
                     _selectedAlbumIds.isNotEmpty;
 
                 return Container(
@@ -664,9 +667,8 @@ class _ManualFolderUploadSheetState
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryBlue,
-                            disabledBackgroundColor: isLight
-                                ? Colors.grey.shade300
-                                : Colors.white12,
+                            disabledBackgroundColor:
+                                isLight ? Colors.grey.shade300 : Colors.white12,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: const RoundedRectangleBorder(
                               borderRadius: AppRadii.borderL,
@@ -690,8 +692,8 @@ class _ManualFolderUploadSheetState
                             _isQueueing
                                 ? 'Queueing Items...'
                                 : hasSelection
-                                ? 'Upload Selected ($totalSelected)'
-                                : 'Select Folders to Upload',
+                                    ? 'Upload Selected ($totalSelected)'
+                                    : 'Select Folders to Upload',
                             style: AppTypography.labelLarge(
                               color: Colors.white,
                             ).copyWith(fontWeight: AppTypography.bold),

@@ -54,8 +54,9 @@ class SyncPolicyGuard {
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    final autoBackupEnabled = prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
-        AppConstants.defaultAutoBackupEnabled;
+    final autoBackupEnabled =
+        prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
+            AppConstants.defaultAutoBackupEnabled;
     if (!autoBackupEnabled) {
       return const SyncPolicyEvaluation(
         canSync: false,
@@ -88,8 +89,8 @@ class SyncPolicyGuard {
     final isWifi = connectivityResults.contains(ConnectivityResult.wifi) ||
         connectivityResults.contains(ConnectivityResult.ethernet);
 
-    final wifiOnly = prefs.getBool(AppConstants.keyWifiOnly) ??
-        AppConstants.defaultWifiOnly;
+    final wifiOnly =
+        prefs.getBool(AppConstants.keyWifiOnly) ?? AppConstants.defaultWifiOnly;
     final allowMobileData = prefs.getBool(AppConstants.keyAllowMobileData) ??
         AppConstants.defaultAllowMobileData;
 
@@ -103,9 +104,10 @@ class SyncPolicyGuard {
       }
 
       // Check daily cellular data cap
-      final dailyLimitMb = prefs.getInt(AppConstants.keyDailyCellularDataLimitMb) ??
-          prefs.getInt(AppConstants.keyMobileDataLimitMb) ??
-          AppConstants.defaultDailyCellularDataLimitMb;
+      final dailyLimitMb =
+          prefs.getInt(AppConstants.keyDailyCellularDataLimitMb) ??
+              prefs.getInt(AppConstants.keyMobileDataLimitMb) ??
+              AppConstants.defaultDailyCellularDataLimitMb;
 
       final usedTodayBytes = await getUsedCellularDataToday(prefs);
 
@@ -173,8 +175,7 @@ class SyncPolicyGuard {
     }
 
     final usedToday = await getUsedCellularDataToday(prefs);
-    final limitMb =
-        prefs.getInt(AppConstants.keyDailyCellularDataLimitMb) ?? 0;
+    final limitMb = prefs.getInt(AppConstants.keyDailyCellularDataLimitMb) ?? 0;
 
     return SyncPolicyEvaluation(
       canSync: true,

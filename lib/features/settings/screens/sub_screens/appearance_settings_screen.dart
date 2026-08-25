@@ -50,12 +50,10 @@ class _AppearanceSettingsScreenState
     final currentThemeMode = ref.watch(themeModeProvider);
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor = isLight
-        ? AppColors.lightTextPrimary
-        : AppColors.darkTextPrimary;
-    final secondaryTextColor = isLight
-        ? AppColors.lightTextSecondary
-        : AppColors.darkTextSecondary;
+    final primaryTextColor =
+        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
+    final secondaryTextColor =
+        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
     final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
     final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
 
@@ -102,7 +100,9 @@ class _AppearanceSettingsScreenState
                   subtitle: 'True black #000000 theme for OLED displays',
                   value: AppThemeMode.pureBlack,
                   groupValue: currentThemeMode,
-                  onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(AppThemeMode.pureBlack),
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(AppThemeMode.pureBlack),
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
                 ),
@@ -112,7 +112,9 @@ class _AppearanceSettingsScreenState
                   subtitle: 'Refined deep charcoal modern dark interface',
                   value: AppThemeMode.dark,
                   groupValue: currentThemeMode,
-                  onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(AppThemeMode.dark),
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(AppThemeMode.dark),
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
                 ),
@@ -122,16 +124,16 @@ class _AppearanceSettingsScreenState
                   subtitle: 'Clean, high-contrast daylight appearance',
                   value: AppThemeMode.light,
                   groupValue: currentThemeMode,
-                  onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(AppThemeMode.light),
+                  onTap: () => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(AppThemeMode.light),
                   primaryTextColor: primaryTextColor,
                   secondaryTextColor: secondaryTextColor,
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'GALLERY ASPECT RATIO',
             style: AppTypography.labelSmall(
@@ -169,9 +171,7 @@ class _AppearanceSettingsScreenState
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
           Text(
             'PAGE TRANSITIONS',
             style: AppTypography.labelSmall(
@@ -199,7 +199,8 @@ class _AppearanceSettingsScreenState
                         HapticFeedback.selectionClick();
                         ref
                             .read(pageTransitionProvider.notifier)
-                            .setTransitionStyle(PageTransitionStyle.fadeSlideUp);
+                            .setTransitionStyle(
+                                PageTransitionStyle.fadeSlideUp);
                       },
                       primaryTextColor: primaryTextColor,
                       secondaryTextColor: secondaryTextColor,
@@ -229,7 +230,8 @@ class _AppearanceSettingsScreenState
                         HapticFeedback.selectionClick();
                         ref
                             .read(pageTransitionProvider.notifier)
-                            .setTransitionStyle(PageTransitionStyle.cupertinoSlide);
+                            .setTransitionStyle(
+                                PageTransitionStyle.cupertinoSlide);
                       },
                       primaryTextColor: primaryTextColor,
                       secondaryTextColor: secondaryTextColor,
@@ -268,7 +270,8 @@ class _AppearanceSettingsScreenState
         style: TextStyle(color: secondaryTextColor, fontSize: 12),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue, size: 22)
+          ? const Icon(Icons.check_circle_rounded,
+              color: AppColors.primaryBlue, size: 22)
           : const Icon(Icons.circle_outlined, color: Colors.grey, size: 22),
       onTap: onTap,
     );
@@ -298,7 +301,8 @@ class _AppearanceSettingsScreenState
         style: TextStyle(color: secondaryTextColor, fontSize: 12),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue, size: 22)
+          ? const Icon(Icons.check_circle_rounded,
+              color: AppColors.primaryBlue, size: 22)
           : const Icon(Icons.circle_outlined, color: Colors.grey, size: 22),
       onTap: onTap,
     );
@@ -328,7 +332,8 @@ class _AppearanceSettingsScreenState
         style: TextStyle(color: secondaryTextColor, fontSize: 12),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue, size: 22)
+          ? const Icon(Icons.check_circle_rounded,
+              color: AppColors.primaryBlue, size: 22)
           : const Icon(Icons.circle_outlined, color: Colors.grey, size: 22),
       onTap: onTap,
     );

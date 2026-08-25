@@ -28,18 +28,17 @@ TeleCloud Photos is a next-generation, open-source cloud photo gallery and backu
 - **Bit-for-Bit Original Resolution**: Downloads original quality photos and videos directly from Google CDN and uploads to Telegram without compression or synthetic mocks.
 - **Flexible Scope Presets**: Full Library, Past 30/90 Days, Past Year, or Custom Date Range imports.
 
-### 📁 4. Selective Device Folder Sync & Monitored Uploads
-- **Per-Folder Auto-Backup Toggles**: Dedicated controls for `Camera`, `WhatsApp Images`, `Screenshots`, `Downloads`, `Pictures`, and `Instagram`.
-- **Historical Media Ingestion**: Toggling on a new folder triggers optional historical photo/video queueing.
-- **Smart SHA-256 Deduplication**: Automatically detects duplicates before uploading and re-uses existing Telegram cloud references.
-- **⚡ Turbo Unlimited Concurrency**: High-throughput parallel uploads (1, 2, 4, 8 workers or Turbo mode) with live speed metrics (`MB/s` or `KB/s`).
+### 📁 4. Strict Monitored Backup Folders & Uploads Screen
+- **Dedicated Monitored Folders Section**: Live horizontal cards displaying active backup folders with live item counts, sync indicators, and a `+ Manage` shortcut.
+- **Manual Folder Upload**: Explicit one-tap folder upload trigger with full progress feedback.
+- **Instant Folder Scanner (<50ms)**: Parallelized folder count resolution and asynchronous thumbnail previews.
 
 ### 🎨 5. Hierarchical Compact Settings Dashboard
 - **Grouped Category Architecture**: Streamlined master dashboard with 5 high-level category cards routing into dedicated focused sub-screens:
   - 🎨 **Appearance & Display**: OLED Pure Black (#000000), Dark, Light themes, Aspect ratio switcher, 120Hz toggle.
   - ☁️ **Cloud Migration & Imports**: Google Photos sync hub & Google Takeout archive extractor.
-  - 🔄 **Backup Engine & Rules**: Auto-backup switch, folder sync settings, Wi-Fi only, mobile data caps (50MB/100MB/500MB/Unlimited), roaming pause, and concurrency selector.
-  - ⚡ **Power & Battery Constraints**: Charging-only policy, thermal dwell delay slider, battery protection percentage cutoff (10%–50%).
+  - 🔄 **Backup Engine & Rules**: Auto-backup switch, backup folders, Wi-Fi only, mobile data caps, sync frequency.
+  - ⚡ **Power & Battery Constraints**: Charging-only policy, thermal dwell delay slider, battery protection (<20%).
   - 💾 **Storage & Cache Maintenance**: Free up device space, thumbnail cache clearing, deep app kill.
 
 ### 🧹 6. Storage Freedom & Local Maintenance
@@ -54,31 +53,22 @@ TeleCloud Photos is a next-generation, open-source cloud photo gallery and backu
 telecloud_photos/
 ├── lib/
 │   ├── core/
-│   │   ├── backup/          # Upload queue, media scanner, deduplicator, & folder sync
+│   │   ├── backup/          # Media scanner, upload queue, & background workers
 │   │   ├── cache/           # Persistent thumbnail cache & disk eviction
-│   │   ├── constants/       # App keys, defaults, and configuration constants
 │   │   ├── database/        # Drift SQLite database, DAOs, & tables
-│   │   ├── di/              # Riverpod dependency injection providers
 │   │   ├── google/          # Google Photos OAuth2 client & sync pipeline
-│   │   ├── media/           # Motion photo & media asset extractors
-│   │   ├── storage/         # Storage cleaner & space analyzer
-│   │   ├── sync/            # Cloud synchronization worker
 │   │   ├── telegram/        # TDLib MTProto client, channel & topic manager
-│   │   └── utils/           # Structured logging & helpers
+│   │   └── di/              # Riverpod dependency injection providers
 │   ├── features/
-│   │   ├── albums/          # Album details, favorites, and trash management
-│   │   ├── auth/            # Telegram login, QR scanner, 2FA, & fast onboarding
-│   │   ├── google_photos/   # Google Photos cloud sync hub
-│   │   ├── library/         # 2-Column collection cards & real cover previews
-│   │   ├── search/          # Local & cloud media search
-│   │   ├── settings/        # 5-Category hierarchical sub-screen settings
 │   │   ├── timeline/        # Pinch-zoom gallery timeline & sticky headers
+│   │   ├── library/         # 2-Column collection cards & real cover previews
 │   │   ├── uploads/         # Monitored backup folders & manual upload triggers
-│   │   └── viewer/          # Fullscreen pan-zoom viewer & EXIF inspector
+│   │   ├── viewer/          # Fullscreen pan-zoom viewer & EXIF inspector
+│   │   ├── google_photos/   # Google Photos cloud sync hub
+│   │   └── settings/        # 5-Category hierarchical sub-screen settings
 │   └── shared/
-│       ├── theme/           # OLED pure black, dark, & light design system
-│       └── widgets/         # Reusable widgets (Shimmer, AppScaffold, etc.)
-└── test/                    # 56 automated unit & integration tests
+│       └── theme/           # OLED pure black, dark, & light design system
+└── test/                    # 40+ automated unit & integration tests
 ```
 
 ---

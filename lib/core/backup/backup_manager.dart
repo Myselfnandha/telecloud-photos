@@ -1,19 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+
 import '../constants/app_constants.dart';
 import '../utils/telecloud_logger.dart';
 import 'upload_queue.dart';
 
 enum BackupState { idle, waitingToUpload, uploading, waitingForReconnect }
 
-class BackupManager {
-  static final BackupManager _instance = BackupManager._internal();
-  factory BackupManager() => _instance;
-  BackupManager._internal();
-
+class BackupManager extends StateNotifier<BackupState> {
   static const String backgroundTaskName = 'telecloud_background_auto_sync';
   static const String backgroundUniqueName =
       'com.telecloud.telecloud_photos.background_sync';
@@ -21,10 +19,11 @@ class BackupManager {
   Timer? _stateTimer;
   bool _isCharging = false;
   bool _isInForeground = true;
-  BackupState _currentState = BackupState.idle;
+
+  BackupManager([super.initialState = BackupState.idle]);
 
   bool get isInForeground => _isInForeground;
-  BackupState get currentState => _currentState;
+  BackupState get currentState => state;
 
   void Function()? onStartUploading;
   void Function()? onStopUploading;
@@ -50,8 +49,7 @@ class BackupManager {
   /// Schedules or reschedules Workmanager periodic background worker based on current Settings
   Future<void> scheduleBackgroundWorker({bool forceReschedule = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled =
-        prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
+    final enabled = prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
         AppConstants.defaultAutoBackupEnabled;
 
     if (!enabled) {
@@ -64,17 +62,13 @@ class BackupManager {
 
     final wifiOnly =
         prefs.getBool(AppConstants.keyWifiOnly) ?? AppConstants.defaultWifiOnly;
-    final allowMobileData =
-        prefs.getBool(AppConstants.keyAllowMobileData) ??
+    final allowMobileData = prefs.getBool(AppConstants.keyAllowMobileData) ??
         AppConstants.defaultAllowMobileData;
-    final chargingOnly =
-        prefs.getBool(AppConstants.keyChargingOnly) ??
+    final chargingOnly = prefs.getBool(AppConstants.keyChargingOnly) ??
         AppConstants.defaultChargingOnly;
-    final batteryNotLow =
-        prefs.getBool(AppConstants.keyBatteryNotLow) ??
+    final batteryNotLow = prefs.getBool(AppConstants.keyBatteryNotLow) ??
         AppConstants.defaultBatteryNotLow;
-    final freqMins =
-        prefs.getInt(AppConstants.keySyncFrequencyMins) ??
+    final freqMins = prefs.getInt(AppConstants.keySyncFrequencyMins) ??
         AppConstants.defaultSyncFrequencyMins;
 
     final networkType = wifiOnly
@@ -144,8 +138,7 @@ class BackupManager {
   Future<void> onUploadsFinished() async {
     TeleCloudLogger.backup('All queued uploads finished.');
     final prefs = await SharedPreferences.getInstance();
-    final autoKill =
-        prefs.getBool(AppConstants.keyAutoKillWhenDone) ??
+    final autoKill = prefs.getBool(AppConstants.keyAutoKillWhenDone) ??
         AppConstants.defaultAutoKillWhenDone;
 
     if (autoKill) {
@@ -154,8 +147,8 @@ class BackupManager {
       );
       await stopService();
     } else {
-      if (_currentState == BackupState.uploading ||
-          _currentState == BackupState.waitingToUpload) {
+      if (state == BackupState.uploading ||
+          state == BackupState.waitingToUpload) {
         await _transitionTo(BackupState.idle);
       }
     }
@@ -163,11 +156,9 @@ class BackupManager {
 
   Future<void> _evaluateState() async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled =
-        prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
+    final enabled = prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
         AppConstants.defaultAutoBackupEnabled;
-    final chargingOnly =
-        prefs.getBool(AppConstants.keyChargingOnly) ??
+    final chargingOnly = prefs.getBool(AppConstants.keyChargingOnly) ??
         AppConstants.defaultChargingOnly;
 
     if (!enabled) {
@@ -177,29 +168,29 @@ class BackupManager {
 
     bool canUpload = _isInForeground || (!chargingOnly || _isCharging);
     TeleCloudLogger.backup(
-      'Evaluating backup policy: canUpload=$canUpload (foreground=$_isInForeground, charging=$_isCharging, chargingOnly=$chargingOnly, state=$_currentState)',
+      'Evaluating backup policy: canUpload=$canUpload (foreground=$_isInForeground, charging=$_isCharging, chargingOnly=$chargingOnly, state=$state)',
     );
 
     if (canUpload) {
-      if (_currentState == BackupState.idle) {
+      if (state == BackupState.idle) {
         await _transitionTo(BackupState.waitingToUpload);
-      } else if (_currentState == BackupState.waitingForReconnect) {
+      } else if (state == BackupState.waitingForReconnect) {
         // Reconnected during grace period! Resume immediately
         await _transitionTo(BackupState.uploading);
       }
     } else {
       // Cannot upload (background + battery while chargingOnly is true)
-      if (_currentState == BackupState.uploading ||
-          _currentState == BackupState.waitingToUpload) {
+      if (state == BackupState.uploading ||
+          state == BackupState.waitingToUpload) {
         await _transitionTo(BackupState.waitingForReconnect);
       }
     }
   }
 
   Future<void> _transitionTo(BackupState newState) async {
-    TeleCloudLogger.backup('State Transition: $_currentState -> $newState');
+    TeleCloudLogger.backup('State Transition: $state -> $newState');
     _stateTimer?.cancel();
-    _currentState = newState;
+    state = newState;
     final prefs = await SharedPreferences.getInstance();
 
     switch (newState) {
@@ -210,8 +201,7 @@ class BackupManager {
 
       case BackupState.waitingToUpload:
         onStopUploading?.call();
-        final dwellMins =
-            prefs.getInt(AppConstants.keyChargingDwellMins) ??
+        final dwellMins = prefs.getInt(AppConstants.keyChargingDwellMins) ??
             AppConstants.defaultChargingDwellMins;
         TeleCloudLogger.backup(
           'Entering charging stabilization dwell delay ($dwellMins minutes)...',
@@ -237,7 +227,7 @@ class BackupManager {
         }
 
         _stateTimer = Timer(Duration(minutes: dwellMins), () {
-          if (_currentState == BackupState.waitingToUpload) {
+          if (state == BackupState.waitingToUpload) {
             _transitionTo(BackupState.uploading);
           }
         });
@@ -262,8 +252,7 @@ class BackupManager {
 
       case BackupState.waitingForReconnect:
         onStopUploading?.call();
-        final waitMins =
-            prefs.getInt(AppConstants.keyWaitDisconnectMins) ??
+        final waitMins = prefs.getInt(AppConstants.keyWaitDisconnectMins) ??
             AppConstants.defaultWaitDisconnectMins;
         TeleCloudLogger.backup(
           'Charger disconnected. Waiting grace period ($waitMins minutes)...',
@@ -276,7 +265,7 @@ class BackupManager {
           );
         }
         _stateTimer = Timer(Duration(minutes: waitMins), () {
-          if (_currentState == BackupState.waitingForReconnect) {
+          if (state == BackupState.waitingForReconnect) {
             _transitionTo(BackupState.idle);
           }
         });
@@ -285,14 +274,18 @@ class BackupManager {
   }
 
   /// Updates foreground notification in real-time with live speed and item counts
-  Future<void> updateUploadProgressNotification(UploadProgressState progress) async {
+  Future<void> updateUploadProgressNotification(
+    UploadProgressState progress,
+  ) async {
     try {
       if (!await FlutterForegroundTask.isRunningService) return;
 
-      if (progress.totalCount == 0 || progress.completedCount >= progress.totalCount) {
+      if (progress.totalCount == 0 ||
+          progress.completedCount >= progress.totalCount) {
         await FlutterForegroundTask.updateService(
           notificationTitle: 'TeleCloud Backup Complete',
-          notificationText: 'All items successfully backed up to Telegram Cloud.',
+          notificationText:
+              'All items successfully backed up to Telegram Cloud.',
         );
         return;
       }
@@ -321,7 +314,7 @@ class BackupManager {
     if (await FlutterForegroundTask.isRunningService) {
       await FlutterForegroundTask.stopService();
     }
-    _currentState = BackupState.idle;
+    state = BackupState.idle;
   }
 
   /// Deep Kill: Stops all uploads, cancels all background workers, stops foreground services, and terminates the application process.
@@ -340,7 +333,7 @@ class BackupManager {
       await Workmanager().cancelAll();
       TeleCloudLogger.backup('All WorkManager background tasks cancelled.');
     } catch (_) {}
-    _currentState = BackupState.idle;
+    state = BackupState.idle;
     await Future.delayed(const Duration(milliseconds: 300));
     exit(0);
   }

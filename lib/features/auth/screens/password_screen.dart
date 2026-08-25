@@ -53,7 +53,8 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
         messenger.clearSnackBars();
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Verification taking longer than usual. Please check your password and try again.'),
+            content: Text(
+                'Verification taking longer than usual. Please check your password and try again.'),
             backgroundColor: Color(0xFFFF9F0A),
             duration: Duration(seconds: 2),
           ),
@@ -95,7 +96,8 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => context.pop(),
         ),
-        title: const Text('2-Step Verification', style: TextStyle(color: Colors.white)),
+        title: const Text('2-Step Verification',
+            style: TextStyle(color: Colors.white)),
       ),
       body: SafeArea(
         child: Padding(
@@ -104,7 +106,8 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -150,7 +153,8 @@ class _PasswordScreenState extends ConsumerState<PasswordScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF0A84FF), width: 1.5),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF0A84FF), width: 1.5),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(

@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class QuickSettingsGuideScreen extends StatefulWidget {
+import '../../../core/constants/app_constants.dart';
+import '../../../core/di/providers.dart';
+import '../../../shared/theme/app_colors.dart';
+
+class QuickSettingsGuideScreen extends ConsumerStatefulWidget {
   const QuickSettingsGuideScreen({super.key});
 
   @override
-  State<QuickSettingsGuideScreen> createState() =>
+  ConsumerState<QuickSettingsGuideScreen> createState() =>
       _QuickSettingsGuideScreenState();
 }
 
-class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
-  bool _losslessQuality = true;
-  bool _wifiOnly = true;
-  bool _chargingOnly = false;
-  bool _cameraBackup = true;
-  bool _highRefreshRate = true;
-  bool _smoothTransitions = true;
+class _QuickSettingsGuideScreenState
+    extends ConsumerState<QuickSettingsGuideScreen> {
+  bool _autoBackup = AppConstants.defaultAutoBackupEnabled;
+  bool _wifiOnly = AppConstants.defaultWifiOnly;
+  bool _includeVideos = AppConstants.defaultIncludeVideos;
+  bool _includeScreenshots = AppConstants.defaultIncludeScreenshots;
+  bool _pureBlackTheme = true;
   bool _isSaving = false;
 
   @override
@@ -29,14 +34,24 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
   Future<void> _loadExistingPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      setState(() {
-        _wifiOnly = prefs.getBool('backup_wifi_only') ?? true;
-        _chargingOnly = prefs.getBool('backup_charging_only') ?? false;
-        _cameraBackup = prefs.getBool('backup_camera_auto') ?? true;
-        _losslessQuality = prefs.getBool('backup_lossless') ?? true;
-        _highRefreshRate = prefs.getBool('pref_high_refresh_rate') ?? true;
-        _smoothTransitions = prefs.getBool('pref_smooth_transitions') ?? true;
-      });
+      if (mounted) {
+        setState(() {
+          _autoBackup =
+              prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
+              AppConstants.defaultAutoBackupEnabled;
+          _wifiOnly =
+              prefs.getBool(AppConstants.keyWifiOnly) ??
+              AppConstants.defaultWifiOnly;
+          _includeVideos =
+              prefs.getBool(AppConstants.keyIncludeVideos) ??
+              AppConstants.defaultIncludeVideos;
+          _includeScreenshots =
+              prefs.getBool(AppConstants.keyIncludeScreenshots) ??
+              AppConstants.defaultIncludeScreenshots;
+          final themeMode = prefs.getString(AppConstants.keyAppTheme);
+          _pureBlackTheme = themeMode != 'light' && themeMode != 'dark' || themeMode == 'pure_black';
+        });
+      }
     } catch (_) {}
   }
 
@@ -46,14 +61,28 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('backup_wifi_only', _wifiOnly);
-      await prefs.setBool('backup_charging_only', _chargingOnly);
-      await prefs.setBool('backup_camera_auto', _cameraBackup);
-      await prefs.setBool('backup_lossless', _losslessQuality);
-      await prefs.setBool('pref_high_refresh_rate', _highRefreshRate);
-      await prefs.setBool('pref_smooth_transitions', _smoothTransitions);
+      await prefs.setBool(AppConstants.keyAutoBackupEnabled, _autoBackup);
+      await prefs.setBool(AppConstants.keyWifiOnly, _wifiOnly);
+      await prefs.setBool(AppConstants.keyIncludeVideos, _includeVideos);
+      await prefs.setBool(
+        AppConstants.keyIncludeScreenshots,
+        _includeScreenshots,
+      );
+      await prefs.setString(
+        AppConstants.keyAppTheme,
+        _pureBlackTheme ? 'pure_black' : 'dark',
+      );
       await prefs.setBool('telecloud_onboarding_completed', true);
       await prefs.setBool('telecloud_is_authenticated', true);
+
+      // Register or cancel background worker depending on auto-backup
+      if (_autoBackup) {
+        ref
+            .read(backupManagerProvider.notifier)
+            .scheduleBackgroundWorker(forceReschedule: true);
+      } else {
+        ref.read(backupManagerProvider.notifier).cancelBackgroundWorker();
+      }
     } catch (_) {}
 
     if (!mounted) return;
@@ -90,13 +119,15 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
             children: [
               // Step Progress Badge
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
+                  color: AppColors.primaryBlue.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF0A84FF).withValues(alpha: 0.4),
+                    color: AppColors.primaryBlue.withValues(alpha: 0.4),
                   ),
                 ),
                 child: const Row(
@@ -104,14 +135,14 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                   children: [
                     Icon(
                       Icons.tune_rounded,
-                      color: Color(0xFF0A84FF),
+                      color: AppColors.primaryBlue,
                       size: 14,
                     ),
                     SizedBox(width: 6),
                     Text(
                       'STEP 3 OF 3 · QUICK SETTINGS GUIDE',
                       style: TextStyle(
-                        color: Color(0xFF0A84FF),
+                        color: AppColors.primaryBlue,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
@@ -138,22 +169,22 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Setting Card 1: Lossless Quality
+              // 1. Auto-Sync Camera Roll
               _buildToggleCard(
-                icon: Icons.hd_rounded,
-                iconColor: const Color(0xFF38BDF8),
-                title: 'Lossless Original Quality',
+                icon: Icons.camera_alt_rounded,
+                iconColor: const Color(0xFFFF9F0A),
+                title: 'Auto-Sync Camera Roll',
                 subtitle:
-                    'Store photos & 4K videos in original raw resolution without compression.',
-                value: _losslessQuality,
-                onChanged: (val) => setState(() => _losslessQuality = val),
+                    'Automatically detects and queues new photos taken with your camera.',
+                value: _autoBackup,
+                onChanged: (val) => setState(() => _autoBackup = val),
               ),
               const SizedBox(height: 12),
 
-              // Setting Card 2: Wi-Fi Only
+              // 2. Wi-Fi Only Sync
               _buildToggleCard(
                 icon: Icons.wifi_rounded,
-                iconColor: const Color(0xFF0A84FF),
+                iconColor: AppColors.primaryBlue,
                 title: 'Back up on Wi-Fi Only',
                 subtitle:
                     'Saves mobile data by backing up photos only when connected to Wi-Fi.',
@@ -162,51 +193,39 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Setting Card 3: Charging Only
+              // 3. Include Videos Backup
               _buildToggleCard(
-                icon: Icons.battery_charging_full_rounded,
-                iconColor: const Color(0xFF30D158),
-                title: 'Back up while Charging Only',
+                icon: Icons.videocam_rounded,
+                iconColor: const Color(0xFF30B0C7),
+                title: 'Include Videos Backup',
                 subtitle:
-                    'Optimizes battery life by running heavy upload sync while plugged into power.',
-                value: _chargingOnly,
-                onChanged: (val) => setState(() => _chargingOnly = val),
+                    'Automatically back up high-definition videos and screen recordings.',
+                value: _includeVideos,
+                onChanged: (val) => setState(() => _includeVideos = val),
               ),
               const SizedBox(height: 12),
 
-              // Setting Card 4: Camera Auto-Backup
+              // 4. Include Screenshots
               _buildToggleCard(
-                icon: Icons.camera_alt_rounded,
-                iconColor: const Color(0xFFFF9F0A),
-                title: 'Auto-Sync Camera Roll',
+                icon: Icons.screenshot_monitor_rounded,
+                iconColor: const Color(0xFF5E5CE6),
+                title: 'Include Screenshots',
                 subtitle:
-                    'Automatically detects and queues new photos taken with your camera.',
-                value: _cameraBackup,
-                onChanged: (val) => setState(() => _cameraBackup = val),
+                    'Back up captured screenshots alongside camera roll photos.',
+                value: _includeScreenshots,
+                onChanged: (val) => setState(() => _includeScreenshots = val),
               ),
               const SizedBox(height: 12),
 
-              // Setting Card 5: High Refresh Rate (90/120Hz)
+              // 5. Pure Black OLED Theme
               _buildToggleCard(
-                icon: Icons.speed_rounded,
-                iconColor: const Color(0xFFBF5AF2),
-                title: 'High Refresh Rate (120Hz/90Hz)',
+                icon: Icons.dark_mode_rounded,
+                iconColor: const Color(0xFFFFD60A),
+                title: 'Pure Black OLED Theme',
                 subtitle:
-                    'Unlocks fluid 120Hz scrolling for buttery smooth gallery browsing.',
-                value: _highRefreshRate,
-                onChanged: (val) => setState(() => _highRefreshRate = val),
-              ),
-              const SizedBox(height: 12),
-
-              // Setting Card 6: Smooth Page Transitions
-              _buildToggleCard(
-                icon: Icons.animation_rounded,
-                iconColor: const Color(0xFFFF375F),
-                title: 'Smooth Apple Transitions',
-                subtitle:
-                    'Applies refined iOS Cupertino spring curves to screen transitions.',
-                value: _smoothTransitions,
-                onChanged: (val) => setState(() => _smoothTransitions = val),
+                    'Deep OLED true-black aesthetic to maximize battery efficiency.',
+                value: _pureBlackTheme,
+                onChanged: (val) => setState(() => _pureBlackTheme = val),
               ),
               const SizedBox(height: 36),
 
@@ -216,7 +235,7 @@ class _QuickSettingsGuideScreenState extends State<QuickSettingsGuideScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0A84FF),
+                    backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

@@ -252,7 +252,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
           const SizedBox(height: 28),
 
-          // 2. Media Collections (Clean Full-Width Grid Cards Layout)
+          // 2. Media Collections (Single Stream - Performance Optimized)
           Text(
             'MEDIA COLLECTIONS',
             style: AppTypography.labelSmall(
@@ -260,180 +260,117 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ).copyWith(fontWeight: AppTypography.bold, letterSpacing: 0.8),
           ),
           AppSpacing.gapVerticalS,
-          Container(
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: cardBorder),
-            ),
-            child: Column(
-              children: [
-                _buildMediaTypeRow(
-                  title: 'Photos',
-                  icon: Icons.photo_outlined,
-                  iconColor: const Color(0xFF0A84FF),
-                  streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                        if (i.isTrashed) return false;
-                        final fn = i.filename.toUpperCase();
-                        final isMotion = fn.startsWith('MVIMG_') ||
-                            fn.contains('MOTION') ||
-                            fn.contains('LIVE');
-                        final isImg = i.mimeType.startsWith('image') ||
-                            fn.endsWith('.JPG') ||
-                            fn.endsWith('.JPEG') ||
-                            fn.endsWith('.PNG') ||
-                            fn.endsWith('.WEBP') ||
-                            fn.endsWith('.HEIC');
-                        return isImg && !isMotion;
-                      }).length),
-                  onTap: () =>
-                      context.push('/collection/photos', extra: 'Photos'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
+          StreamBuilder<Map<String, int>>(
+            stream: mediaDao.watchMediaCollectionCounts(),
+            builder: (context, countSnap) {
+              final counts = countSnap.data ?? {};
+              return Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: cardBorder),
                 ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'Videos',
-                  icon: Icons.videocam_outlined,
-                  iconColor: const Color(0xFF30D158),
-                  streamCount: mediaDao.watchAllMedia().map(
-                        (l) => l.where((i) {
-                          if (i.isTrashed) return false;
-                          final fn = i.filename.toUpperCase();
-                          return i.mimeType.startsWith('video') ||
-                              fn.endsWith('.MP4') ||
-                              fn.endsWith('.MOV') ||
-                              fn.endsWith('.MKV') ||
-                              fn.endsWith('.AVI') ||
-                              fn.endsWith('.WEBM');
-                        }).length,
-                      ),
-                  onTap: () =>
-                      context.push('/collection/videos', extra: 'Videos'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
+                child: Column(
+                  children: [
+                    _buildStaticCountRow(
+                      title: 'Photos',
+                      icon: Icons.photo_outlined,
+                      iconColor: const Color(0xFF0A84FF),
+                      count: counts['photos'] ?? 0,
+                      onTap: () =>
+                          context.push('/collection/photos', extra: 'Photos'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildStaticCountRow(
+                      title: 'Videos',
+                      icon: Icons.videocam_outlined,
+                      iconColor: const Color(0xFF30D158),
+                      count: counts['videos'] ?? 0,
+                      onTap: () =>
+                          context.push('/collection/videos', extra: 'Videos'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildStaticCountRow(
+                      title: 'Live Photos',
+                      icon: Icons.motion_photos_on_outlined,
+                      iconColor: const Color(0xFFFF9F0A),
+                      count: counts['livePhotos'] ?? 0,
+                      onTap: () => context.push('/collection/live_photos',
+                          extra: 'Live Photos'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildStaticCountRow(
+                      title: 'Screenshots',
+                      icon: Icons.screenshot_outlined,
+                      iconColor: const Color(0xFF64D2FF),
+                      count: counts['screenshots'] ?? 0,
+                      onTap: () => context.push('/collection/screenshots',
+                          extra: 'Screenshots'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildMediaTypeRow(
+                      title: 'Favorites',
+                      icon: Icons.star_rounded,
+                      iconColor: const Color(0xFFFFB800),
+                      streamCount:
+                          mediaDao.watchFavorites().map((l) => l.length),
+                      onTap: () => context.push('/favorites'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildStaticCountRow(
+                      title: 'Selfies & Portraits',
+                      icon: Icons.portrait_rounded,
+                      iconColor: const Color(0xFFFF375F),
+                      count: counts['selfies'] ?? 0,
+                      onTap: () => context.push('/collection/selfies',
+                          extra: 'Selfies & Portraits'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildStaticCountRow(
+                      title: 'Panoramas',
+                      icon: Icons.panorama_horizontal_rounded,
+                      iconColor: const Color(0xFFBF5AF2),
+                      count: counts['panoramas'] ?? 0,
+                      onTap: () => context.push('/collection/panoramas',
+                          extra: 'Panoramas'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                    _buildDivider(isLight),
+                    _buildStaticCountRow(
+                      title: 'RAW',
+                      icon: Icons.camera_rounded,
+                      iconColor: const Color(0xFFFFD60A),
+                      count: counts['raw'] ?? 0,
+                      onTap: () =>
+                          context.push('/collection/raw', extra: 'RAW'),
+                      isLight: isLight,
+                      primaryTextColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                    ),
+                  ],
                 ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'Live Photos',
-                  icon: Icons.motion_photos_on_outlined,
-                  iconColor: const Color(0xFFFF9F0A),
-                  streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                        if (i.isTrashed) return false;
-                        final fn = i.filename.toUpperCase();
-                        final isMotionName = fn.startsWith('MVIMG_') ||
-                            fn.startsWith('LIVE_') ||
-                            fn.contains('_MOTION_PHOTO') ||
-                            fn.contains('_LIVEPHOTO') ||
-                            fn.contains('_MP.JPG') ||
-                            fn.contains('_MP.JPEG') ||
-                            fn.contains('.MOTION.');
-                        final isMotionMime =
-                            i.mimeType == 'image/x-motion-photo' ||
-                                i.mimeType == 'image/x-livephoto';
-                        return isMotionName || isMotionMime;
-                      }).length),
-                  onTap: () => context.push('/collection/live_photos',
-                      extra: 'Live Photos'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'Screenshots',
-                  icon: Icons.screenshot_outlined,
-                  iconColor: const Color(0xFF64D2FF),
-                  streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                        if (i.isTrashed) return false;
-                        final fn = i.filename.toLowerCase();
-                        return fn.contains('screenshot') ||
-                            fn.contains('screen_shot');
-                      }).length),
-                  onTap: () => context.push('/collection/screenshots',
-                      extra: 'Screenshots'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'Favorites',
-                  icon: Icons.star_rounded,
-                  iconColor: const Color(0xFFFFB800),
-                  streamCount: mediaDao.watchFavorites().map((l) => l.length),
-                  onTap: () => context.push('/favorites'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'Selfies & Portraits',
-                  icon: Icons.portrait_rounded,
-                  iconColor: const Color(0xFFFF375F),
-                  streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                        if (i.isTrashed) return false;
-                        final fn = i.filename.toLowerCase();
-                        return fn.startsWith('selfie_') ||
-                            fn.contains('_selfie_') ||
-                            fn.contains('_portrait_');
-                      }).length),
-                  onTap: () => context.push('/collection/selfies',
-                      extra: 'Selfies & Portraits'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'Panoramas',
-                  icon: Icons.panorama_horizontal_rounded,
-                  iconColor: const Color(0xFFBF5AF2),
-                  streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                        if (i.isTrashed) return false;
-                        final fn = i.filename.toUpperCase();
-                        final isPanoAspect = i.width != null &&
-                            i.height != null &&
-                            i.height! > 0 &&
-                            (i.width! / i.height! >= 2.4 ||
-                                i.height! / i.width! >= 2.4);
-                        return fn.startsWith('PANO_') ||
-                            fn.contains('_PANO_') ||
-                            fn.contains('_PANORAMA') ||
-                            isPanoAspect;
-                      }).length),
-                  onTap: () =>
-                      context.push('/collection/panoramas', extra: 'Panoramas'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildMediaTypeRow(
-                  title: 'RAW',
-                  icon: Icons.camera_rounded,
-                  iconColor: const Color(0xFFFFD60A),
-                  streamCount: mediaDao.watchAllMedia().map((l) => l.where((i) {
-                        if (i.isTrashed) return false;
-                        final fn = i.filename.toLowerCase();
-                        return fn.endsWith('.dng') ||
-                            fn.endsWith('.cr2') ||
-                            fn.endsWith('.arw') ||
-                            fn.endsWith('.nef') ||
-                            fn.endsWith('.raw') ||
-                            fn.endsWith('.orf') ||
-                            fn.endsWith('.rw2');
-                      }).length),
-                  onTap: () => context.push('/collection/raw', extra: 'RAW'),
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-              ],
-            ),
+              );
+            },
           ),
 
           const SizedBox(height: 28),
@@ -497,6 +434,56 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  Widget _buildStaticCountRow({
+    required String title,
+    String? subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required int count,
+    required VoidCallback onTap,
+    required bool isLight,
+    required Color primaryTextColor,
+    required Color secondaryTextColor,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: Icon(icon, color: iconColor, size: 22),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: primaryTextColor,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: TextStyle(color: secondaryTextColor, fontSize: 11),
+            )
+          : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$count',
+            style: TextStyle(
+              color: secondaryTextColor,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: isLight ? Colors.grey.shade400 : Colors.grey.shade600,
+            size: 20,
+          ),
+        ],
+      ),
+      onTap: onTap,
     );
   }
 
@@ -841,7 +828,11 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
       final List<({AssetPathEntity folder, int count})> loaded = [];
       for (final f in rawFolders) {
         final nameLower = f.name.trim().toLowerCase();
-        if (f.isAll || nameLower == 'recent' || nameLower == 'all') {
+        if (f.isAll ||
+            nameLower == 'recent' ||
+            nameLower == 'all' ||
+            nameLower == 'recent photos' ||
+            nameLower.isEmpty) {
           continue;
         }
         final count = await f.assetCountAsync;
@@ -904,15 +895,15 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.15,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.4,
           ),
           itemCount: displayFolders.length,
           itemBuilder: (context, index) {
@@ -930,9 +921,16 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: widget.cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: widget.cardBorder),
+                  color: widget.isLight
+                      ? widget.cardBg
+                      : const Color(0xFF161618),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: widget.isLight
+                        ? widget.cardBorder
+                        : const Color(0xFF2C2C2E),
+                    width: 1.0,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -940,18 +938,18 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
                     Expanded(
                       child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(15),
+                          top: Radius.circular(13),
                         ),
                         child: _DeviceFolderThumbnail(
                           folder: item.folder,
-                          fallbackColor: const Color(0xFF0A84FF),
+                          fallbackColor: AppColors.primaryBlue,
                         ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 8,
+                        vertical: 6,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -966,6 +964,7 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
                               fontSize: 13,
                             ),
                           ),
+                          const SizedBox(height: 1),
                           Text(
                             '${item.count} items',
                             style: TextStyle(
@@ -982,7 +981,7 @@ class _DeviceFoldersSectionState extends ConsumerState<_DeviceFoldersSection> {
             );
           },
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
       ],
     );
   }

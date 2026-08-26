@@ -48,18 +48,25 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
       );
       final monitored = <MonitoredFolderItem>[];
       for (final folder in rawFolders) {
-        final nameLower = folder.name.trim().toLowerCase();
-        if (folder.isAll || nameLower == 'recent' || nameLower == 'all') {
+        final rawName = folder.name.trim();
+        final nameLower = rawName.toLowerCase();
+        if (folder.isAll ||
+            nameLower == 'recent' ||
+            nameLower == 'all' ||
+            nameLower == 'recent photos' ||
+            nameLower.isEmpty) {
           continue;
         }
         if (savedIds == null ||
             savedIds.isEmpty ||
             savedIds.contains(folder.id) ||
             savedIds.any(
-              (s) => folder.name.toLowerCase().contains(s.toLowerCase()),
+              (s) => rawName.toLowerCase().contains(s.toLowerCase()),
             )) {
           final count = await folder.assetCountAsync;
-          monitored.add((name: folder.name, count: count, id: folder.id));
+          if (count > 0) {
+            monitored.add((name: rawName, count: count, id: folder.id));
+          }
         }
       }
       if (mounted) {
@@ -141,7 +148,17 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen> {
     if (item.folderPath != null && item.folderPath!.isNotEmpty) {
       return item.folderPath!;
     }
-    return 'Unknown';
+    // Infer folder from filename patterns when metadata is missing
+    final fn = item.filename.toUpperCase();
+    if (fn.contains('SCREENSHOT')) return 'Screenshots';
+    if (fn.startsWith('IMG_') || fn.startsWith('DCIM')) return 'Camera';
+    if (fn.startsWith('VID_')) return 'Camera';
+    if (fn.startsWith('MVIMG_')) return 'Camera';
+    if (fn.startsWith('PXL_')) return 'Camera';
+    if (fn.contains('DOWNLOAD')) return 'Download';
+    if (fn.contains('WHATSAPP')) return 'WhatsApp Images';
+    if (fn.contains('TELEGRAM')) return 'Telegram';
+    return 'Camera';
   }
 
   String _parseLeafFolderName(String dirPath) {

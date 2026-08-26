@@ -90,7 +90,11 @@ class _BackupFoldersScreenState extends ConsumerState<BackupFoldersScreen> {
     );
     final rawFolders = allRawFolders.where((f) {
       final nameLower = f.name.trim().toLowerCase();
-      return !f.isAll && nameLower != 'recent' && nameLower != 'all';
+      return !f.isAll &&
+          nameLower != 'recent' &&
+          nameLower != 'all' &&
+          nameLower != 'recent photos' &&
+          nameLower.isNotEmpty;
     }).toList();
 
     // Parallel instant count resolution

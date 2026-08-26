@@ -21,6 +21,7 @@ class TelegramUploadService {
     int? topicId,
     String? albumName,
     void Function(String recoveryMessage)? onRecoveryEvent,
+    void Function(int messageId, String? fileId)? onUploaded,
   }) async {
     try {
       TeleCloudLogger.upload(
@@ -77,6 +78,7 @@ class TelegramUploadService {
         content: content,
         item: item,
         onRecoveryEvent: onRecoveryEvent,
+        onUploaded: onUploaded,
       );
     } catch (e) {
       TeleCloudLogger.upload('TelegramUploadService exception', error: e);
@@ -92,6 +94,7 @@ class TelegramUploadService {
     required td.InputMessageContent content,
     required MediaItem item,
     void Function(String recoveryMessage)? onRecoveryEvent,
+    void Function(int messageId, String? fileId)? onUploaded,
   }) async {
     int currentTopicId = topicId;
     int recoveryAttempts = 0;
@@ -107,6 +110,16 @@ class TelegramUploadService {
           TeleCloudLogger.upload(
             'Upload successful! Telegram Message ID: ${event.id}',
           );
+          String? fileId;
+          if (event.content is td.MessageDocument) {
+            fileId = (event.content as td.MessageDocument).document.document.id.toString();
+          } else if (event.content is td.MessagePhoto) {
+            final photoSizes = (event.content as td.MessagePhoto).photo.sizes;
+            if (photoSizes.isNotEmpty) {
+              fileId = photoSizes.last.photo.id.toString();
+            }
+          }
+          onUploaded?.call(event.id, fileId);
           completer.complete(true);
           sub.cancel();
         } else if (event is td.TdError) {

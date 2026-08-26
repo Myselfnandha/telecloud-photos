@@ -563,4 +563,110 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
           ..orderBy([(t) => OrderingTerm.desc(t.capturedAt)]))
         .watch();
   }
+
+  /// Streams all collection counts from a single query pass.
+  /// Eliminates redundant stream subscriptions in the Library screen.
+  Stream<Map<String, int>> watchMediaCollectionCounts() {
+    return watchAllMedia().map((items) {
+      int photos = 0;
+      int videos = 0;
+      int livePhotos = 0;
+      int screenshots = 0;
+      int selfies = 0;
+      int panoramas = 0;
+      int raw = 0;
+
+      for (final i in items) {
+        final fn = i.filename.toUpperCase();
+        final fnLower = i.filename.toLowerCase();
+
+        // Live Photos detection
+        final isMotionName = fn.startsWith('MVIMG_') ||
+            fn.startsWith('LIVE_') ||
+            fn.contains('_MOTION_PHOTO') ||
+            fn.contains('_LIVEPHOTO') ||
+            fn.contains('_MP.JPG') ||
+            fn.contains('_MP.JPEG') ||
+            fn.contains('.MOTION.');
+        final isMotionMime = i.mimeType == 'image/x-motion-photo' ||
+            i.mimeType == 'image/x-livephoto';
+        if (isMotionName || isMotionMime) {
+          livePhotos++;
+          continue; // Don't double-count as photo
+        }
+
+        // Videos
+        final isVideo = i.mimeType.startsWith('video') ||
+            fn.endsWith('.MP4') ||
+            fn.endsWith('.MOV') ||
+            fn.endsWith('.MKV') ||
+            fn.endsWith('.AVI') ||
+            fn.endsWith('.WEBM');
+        if (isVideo) {
+          videos++;
+          continue;
+        }
+
+        // RAW
+        if (fnLower.endsWith('.dng') ||
+            fnLower.endsWith('.cr2') ||
+            fnLower.endsWith('.arw') ||
+            fnLower.endsWith('.nef') ||
+            fnLower.endsWith('.raw') ||
+            fnLower.endsWith('.orf') ||
+            fnLower.endsWith('.rw2')) {
+          raw++;
+          continue;
+        }
+
+        // Screenshots
+        if (fnLower.contains('screenshot') ||
+            fnLower.contains('screen_shot')) {
+          screenshots++;
+          continue;
+        }
+
+        // Selfies & Portraits
+        if (fnLower.startsWith('selfie_') ||
+            fnLower.contains('_selfie_') ||
+            fnLower.contains('_portrait_')) {
+          selfies++;
+        }
+
+        // Panoramas
+        final isPanoAspect = i.width != null &&
+            i.height != null &&
+            i.height! > 0 &&
+            (i.width! / i.height! >= 2.4 || i.height! / i.width! >= 2.4);
+        if (fn.startsWith('PANO_') ||
+            fn.contains('_PANO_') ||
+            fn.contains('_PANORAMA') ||
+            isPanoAspect) {
+          panoramas++;
+        }
+
+        // Photos (images that aren't motion/screenshot/raw)
+        final isImg = i.mimeType.startsWith('image') ||
+            fn.endsWith('.JPG') ||
+            fn.endsWith('.JPEG') ||
+            fn.endsWith('.PNG') ||
+            fn.endsWith('.WEBP') ||
+            fn.endsWith('.HEIC');
+        if (isImg) {
+          photos++;
+        }
+      }
+
+      return {
+        'photos': photos,
+        'videos': videos,
+        'livePhotos': livePhotos,
+        'screenshots': screenshots,
+        'selfies': selfies,
+        'panoramas': panoramas,
+        'raw': raw,
+      };
+    });
+  }
 }
+

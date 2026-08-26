@@ -350,5 +350,70 @@ void main() {
       expect(unlinkedItem, isNotNull);
       expect(unlinkedItem?.albumId, isNull);
     });
+
+    test('11. watchMediaCollectionCounts computes single-pass category counts accurately', () async {
+      final now = DateTime.now();
+      await dao.insertOrIgnoreBatch([
+        MediaItemsCompanion.insert(
+          localId: 'c_photo',
+          filename: 'IMG_normal.jpg',
+          capturedAt: now,
+          mimeType: 'image/jpeg',
+          uploadStatus: UploadStatus.done,
+        ),
+        MediaItemsCompanion.insert(
+          localId: 'c_video',
+          filename: 'VID_holiday.mp4',
+          capturedAt: now,
+          mimeType: 'video/mp4',
+          uploadStatus: UploadStatus.done,
+        ),
+        MediaItemsCompanion.insert(
+          localId: 'c_livephoto',
+          filename: 'MVIMG_20240101.jpg',
+          capturedAt: now,
+          mimeType: 'image/jpeg',
+          uploadStatus: UploadStatus.done,
+        ),
+        MediaItemsCompanion.insert(
+          localId: 'c_screenshot',
+          filename: 'Screenshot_2024.png',
+          capturedAt: now,
+          mimeType: 'image/png',
+          uploadStatus: UploadStatus.done,
+        ),
+        MediaItemsCompanion.insert(
+          localId: 'c_selfie',
+          filename: 'selfie_with_friends.jpg',
+          capturedAt: now,
+          mimeType: 'image/jpeg',
+          uploadStatus: UploadStatus.done,
+        ),
+        MediaItemsCompanion.insert(
+          localId: 'c_raw',
+          filename: 'DSLR_shot.dng',
+          capturedAt: now,
+          mimeType: 'image/x-adobe-dng',
+          uploadStatus: UploadStatus.done,
+        ),
+        MediaItemsCompanion.insert(
+          localId: 'c_pano',
+          filename: 'PANO_mountain.jpg',
+          capturedAt: now,
+          mimeType: 'image/jpeg',
+          uploadStatus: UploadStatus.done,
+        ),
+      ]);
+
+      final counts = await dao.watchMediaCollectionCounts().first;
+      expect(counts['photos'], greaterThanOrEqualTo(1));
+      expect(counts['videos'], greaterThanOrEqualTo(1));
+      expect(counts['livePhotos'], greaterThanOrEqualTo(1));
+      expect(counts['screenshots'], greaterThanOrEqualTo(1));
+      expect(counts['selfies'], greaterThanOrEqualTo(1));
+      expect(counts['raw'], greaterThanOrEqualTo(1));
+      expect(counts['panoramas'], greaterThanOrEqualTo(1));
+    });
   });
 }
+

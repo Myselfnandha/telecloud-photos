@@ -104,6 +104,40 @@ class TdlibClient {
     }
   }
 
+  int _requestIdCounter = 1000;
+
+  /// Deterministically executes an asynchronous TDLib MTProto function using request-ID extra correlation
+  Future<td.TdObject?> sendAsync(
+    td.TdFunction function, {
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    if (_clientId == 0) {
+      await initClient();
+      if (_clientId == 0) return null;
+    }
+
+    final reqId = ++_requestIdCounter;
+    final completer = Completer<td.TdObject?>();
+    late StreamSubscription sub;
+
+    sub = events.listen((event) {
+      if (event.extra == reqId) {
+        completer.complete(event);
+        sub.cancel();
+      }
+    });
+
+    send(function, reqId);
+
+    return await completer.future.timeout(
+      timeout,
+      onTimeout: () {
+        sub.cancel();
+        return null;
+      },
+    );
+  }
+
   td.TdObject? execute(td.TdFunction event) {
     try {
       TeleCloudLogger.tdlib(

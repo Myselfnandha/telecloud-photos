@@ -258,16 +258,25 @@ class _MediaTileState extends State<MediaTile> {
               ),
             ),
 
-          // 4-State Sync Status Badge
-          if (widget.showSyncBadges && !isYearly && !widget.isSelectionMode)
-            Positioned(
-              top: isSinglePhoto ? 10 : 4,
-              left: isSinglePhoto ? 10 : 4,
-              child: SyncStatusBadge(
-                status: SyncStatusBadge.fromMediaItem(widget.item),
-                compact: true,
-              ),
+          // Sync Status Badge (Only shown when Synced, Cloud-Only, or Uploading)
+          if (widget.showSyncBadges && !isYearly && !widget.isSelectionMode) ...[
+            Builder(
+              builder: (context) {
+                final status = SyncStatusBadge.fromMediaItem(widget.item);
+                if (status == SyncStatus.localOnly) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  top: isSinglePhoto ? 10 : 4,
+                  left: isSinglePhoto ? 10 : 4,
+                  child: SyncStatusBadge(
+                    status: status,
+                    compact: true,
+                  ),
+                );
+              },
             ),
+          ],
 
           // Multi-Select Checkmark Overlay
           if (widget.isSelectionMode)

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/app_database.dart';
 import '../database/daos/media_dao.dart';
+import '../database/tables/media_table.dart';
 import '../telegram/tdlib_client.dart';
 import '../telegram/telegram_auth_manager.dart';
 import '../telegram/telegram_account_service.dart';
@@ -222,6 +223,14 @@ final backupManagerProvider =
             albumName: albumName,
             onRecoveryEvent: (notice) {
               telemetryNotifier.logRecoveryEvent(notice);
+            },
+            onUploaded: (msgId, fileId) async {
+              await mediaDao.updateUploadStatus(
+                item.localId,
+                UploadStatus.done,
+                msgId: msgId,
+                fileId: fileId,
+              );
             },
           );
           return res;

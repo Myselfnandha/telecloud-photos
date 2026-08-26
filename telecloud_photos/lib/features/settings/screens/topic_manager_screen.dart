@@ -38,9 +38,15 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
         type: RequestType.common,
         hasAll: false,
       );
+      final validFolders = paths.where((f) {
+        final nameLower = f.name.trim().toLowerCase();
+        return nameLower.isNotEmpty &&
+            nameLower != 'recent' &&
+            nameLower != 'all';
+      }).toList();
       if (mounted) {
         setState(() {
-          _deviceFolders = paths;
+          _deviceFolders = validFolders;
           _loadingFolders = false;
         });
       }
@@ -450,6 +456,158 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
     );
   }
 
+  void _showGroupPickerSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select Storage Supergroup',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Choose which Telegram Supergroup to use for backing up your photos and albums:',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              FutureBuilder<List<td.Chat>>(
+                future: ref
+                    .read(channelManagerProvider)
+                    .getAvailableSupergroups(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 120,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF0A84FF),
+                        ),
+                      ),
+                    );
+                  }
+                  final groups = snapshot.data ?? [];
+                  if (groups.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24.0),
+                      child: Center(
+                        child: Text(
+                          'No other supergroups found on your account',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    );
+                  }
+                  final currentChannelId =
+                      ref.read(channelManagerProvider).channelId;
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: groups.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final chat = groups[index];
+                      final isSelected = chat.id == currentChannelId;
+                      return ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: isSelected
+                                ? const Color(0xFF0A84FF)
+                                : const Color(0xFF2C2C2E),
+                          ),
+                        ),
+                        tileColor: isSelected
+                            ? const Color(0xFF0A84FF).withValues(alpha: 0.12)
+                            : const Color(0xFF2C2C2E),
+                        leading: Icon(
+                          Icons.groups_rounded,
+                          color: isSelected
+                              ? const Color(0xFF0A84FF)
+                              : Colors.white70,
+                        ),
+                        title: Text(
+                          chat.title,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Chat ID: ${chat.id}',
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF0A84FF),
+                              )
+                            : null,
+                        onTap: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          Navigator.pop(ctx);
+                          final channelMgr = ref.read(channelManagerProvider);
+                          final mediaDao = ref.read(mediaDaoProvider);
+                          final ok = await channelMgr.switchStorageChannel(
+                            chat.id,
+                            mediaDao: mediaDao,
+                          );
+                          if (ok && mounted) {
+                            setState(() {});
+                            ref.invalidate(supergroupTopicsProvider);
+                            messenger.clearSnackBars();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Switched storage to "${chat.title}"!',
+                                ),
+                                backgroundColor: const Color(0xFF30D158),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopicsTab({
     required AsyncValue<List<td.ForumTopic>> topicsAsync,
     required Color cardBg,
@@ -457,185 +615,268 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
     required Color primaryTextColor,
     required Color secondaryTextColor,
   }) {
-    return topicsAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryBlue),
+    final currentChannelId = ref.watch(channelManagerProvider).channelId;
+
+    Widget storageDestinationCard = Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder),
       ),
-      error: (err, _) => Center(
-        child: Text(
-          'Error loading topics: $err',
-          style: TextStyle(color: secondaryTextColor),
-        ),
-      ),
-      data: (topics) {
-        if (topics.isEmpty) {
-          return Center(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF30D158).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.cloud_done_rounded,
+              color: Color(0xFF30D158),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.forum_outlined,
-                  size: 64,
-                  color: secondaryTextColor.withValues(alpha: 0.4),
-                ),
-                const SizedBox(height: 16),
                 Text(
-                  'No Forum Topics Found',
+                  'Active Storage Group',
                   style: TextStyle(
                     color: primaryTextColor,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 2),
                 Text(
-                  'Tap "Create Topic" below to create one.',
-                  style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  currentChannelId != null
+                      ? 'Chat ID: $currentChannelId'
+                      : 'Connecting...',
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
-          );
-        }
+          ),
+          TextButton(
+            onPressed: _showGroupPickerSheet,
+            child: const Text(
+              'Switch',
+              style: TextStyle(
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
 
-        return RefreshIndicator(
-          onRefresh: () async => ref.refresh(supergroupTopicsProvider.future),
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            itemCount: topics.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final topic = topics[index];
-              final info = topic.info;
-              final iconColor = info.icon.color != 0
-                  ? Color(0xFF000000 | info.icon.color)
-                  : AppColors.primaryBlue;
+    return Column(
+      children: [
+        storageDestinationCard,
+        Expanded(
+          child: topicsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryBlue),
+            ),
+            error: (err, _) => Center(
+              child: Text(
+                'Error loading topics: $err',
+                style: TextStyle(color: secondaryTextColor),
+              ),
+            ),
+            data: (topics) {
+              if (topics.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.forum_outlined,
+                        size: 64,
+                        color: secondaryTextColor.withValues(alpha: 0.4),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No Forum Topics Found',
+                        style: TextStyle(
+                          color: primaryTextColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Tap "Create Topic" below to create one.',
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: cardBorder),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
+              return RefreshIndicator(
+                onRefresh: () async =>
+                    ref.refresh(supergroupTopicsProvider.future),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  itemCount: topics.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final topic = topics[index];
+                    final info = topic.info;
+                    final iconColor = info.icon.color != 0
+                        ? Color(0xFF000000 | info.icon.color)
+                        : AppColors.primaryBlue;
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
-                        color: iconColor.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cardBorder),
                       ),
-                      child: Icon(
-                        Icons.tag_rounded,
-                        color: iconColor,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  info.name,
-                                  style: TextStyle(
-                                    color: primaryTextColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (info.isClosed) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'Closed',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: iconColor.withValues(alpha: 0.18),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.tag_rounded,
+                              color: iconColor,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        info.name,
+                                        style: TextStyle(
+                                          color: primaryTextColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                    if (info.isClosed) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Closed',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  'Thread ID: ${info.messageThreadId} • ${topic.unreadCount} unread',
+                                  style: TextStyle(
+                                    color: secondaryTextColor,
+                                    fontSize: 11,
                                   ),
                                 ),
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Thread ID: ${info.messageThreadId} • ${topic.unreadCount} unread',
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 11,
                             ),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: Icon(
+                              Icons.more_vert_rounded,
+                              color: secondaryTextColor,
+                              size: 20,
+                            ),
+                            onSelected: (action) {
+                              if (action == 'rename') {
+                                _showEditTopicDialog(topic);
+                              } else if (action == 'delete') {
+                                _confirmDeleteTopic(topic);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'rename',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_rounded, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Rename Topic'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Delete Topic',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                    PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert_rounded,
-                        color: secondaryTextColor,
-                        size: 20,
-                      ),
-                      onSelected: (action) {
-                        if (action == 'rename') {
-                          _showEditTopicDialog(topic);
-                        } else if (action == 'delete') {
-                          _confirmDeleteTopic(topic);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_rounded, size: 18),
-                              SizedBox(width: 8),
-                              Text('Rename Topic'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete_outline_rounded,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Delete Topic',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    );
+                  },
                 ),
               );
             },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:video_player/video_player.dart';
 
@@ -271,7 +272,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
           ? ViewerTopBar(
               currentItem: currentItem,
               isFavorite: currentItem?.isFavorite ?? false,
-              onBack: () => Navigator.of(context).pop(),
+              onBack: () => context.pop(),
               onToggleFavorite: _toggleFavorite,
               onShowInfo: () {
                 if (currentItem != null) _showInfoSheet(context, currentItem);
@@ -348,7 +349,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
                       (details.primaryVelocity != null &&
                           details.primaryVelocity! > 400)) {
                     HapticFeedback.lightImpact();
-                    Navigator.of(context).pop();
+                    if (context.mounted) {
+                      context.pop();
+                    }
                   } else if (_dragOffsetY > 0) {
                     _snapBack(_dragOffsetY);
                   } else {

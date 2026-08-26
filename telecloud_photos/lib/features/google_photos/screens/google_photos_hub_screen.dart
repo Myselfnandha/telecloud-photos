@@ -74,7 +74,9 @@ class _GooglePhotosHubScreenState extends ConsumerState<GooglePhotosHubScreen> {
       for (final entity in entities) {
         if (entity is File) {
           final path = entity.path;
-          final ext = path.substring(path.lastIndexOf('.')).toLowerCase();
+          final dotIdx = path.lastIndexOf('.');
+          if (dotIdx == -1) continue;
+          final ext = path.substring(dotIdx).toLowerCase();
           if (validExtensions.contains(ext)) {
             final filename = path.split(Platform.pathSeparator).last;
             final stat = entity.statSync();

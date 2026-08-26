@@ -33,7 +33,7 @@ class ChannelManager {
           await _storage.write(
               key: _channelKey, value: prefsSavedId.toString());
           TeleCloudLogger.auth(
-              'Verified existing backup channel from prefs: $prefsSavedId');
+              'Verified existing backup channel from prefs: $prefsSavedId ("${chat.title}")');
           return prefsSavedId;
         }
       }
@@ -47,7 +47,7 @@ class ChannelManager {
           if (chat != null) {
             _channelId = id;
             await prefs.setInt(AppConstants.channelIdKey, id);
-            TeleCloudLogger.auth('Verified existing backup channel: $id');
+            TeleCloudLogger.auth('Verified existing backup channel: $id ("${chat.title}")');
             return id;
           }
         }
@@ -80,116 +80,178 @@ class ChannelManager {
     TeleCloudLogger.auth(
       'Searching for existing "${AppConstants.telegramChannelTitle}" in user account...',
     );
-    final candidateChatIds = <int>{};
-    late StreamSubscription sub;
-
-    sub = client.events.listen((event) {
-      if (event is td.Chats) {
-        candidateChatIds.addAll(event.chatIds);
-      }
-    });
-
     try {
+      // 1. Trigger TDLib to load chats in background
       client.send(const td.LoadChats(chatList: td.ChatListMain(), limit: 100));
-      client.send(const td.GetChats(chatList: td.ChatListMain(), limit: 100));
-      client.send(const td.SearchChats(query: 'TeleCloud', limit: 50));
-      client.send(const td.SearchChats(query: 'Photos', limit: 50));
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      await Future.delayed(const Duration(milliseconds: 1500));
+      final candidateChatIds = <int>{};
+
+      // 2. Query main chat list
+      final getChatsRes = await client.sendAsync(
+        const td.GetChats(chatList: td.ChatListMain(), limit: 100),
+        timeout: const Duration(seconds: 4),
+      );
+      if (getChatsRes is td.Chats) {
+        candidateChatIds.addAll(getChatsRes.chatIds);
+      }
+
+      // 3. Search local and server chats
+      final searchRes = await client.sendAsync(
+        const td.SearchChats(query: 'TeleCloud', limit: 50),
+        timeout: const Duration(seconds: 4),
+      );
+      if (searchRes is td.Chats) {
+        candidateChatIds.addAll(searchRes.chatIds);
+      }
+
+      final searchServerRes = await client.sendAsync(
+        const td.SearchChatsOnServer(query: 'TeleCloud', limit: 50),
+        timeout: const Duration(seconds: 4),
+      );
+      if (searchServerRes is td.Chats) {
+        candidateChatIds.addAll(searchServerRes.chatIds);
+      }
+
+      final searchPhotosRes = await client.sendAsync(
+        const td.SearchChats(query: 'Photos', limit: 50),
+        timeout: const Duration(seconds: 4),
+      );
+      if (searchPhotosRes is td.Chats) {
+        candidateChatIds.addAll(searchPhotosRes.chatIds);
+      }
 
       final targetTitle =
           AppConstants.telegramChannelTitle.trim().toLowerCase();
+      final matchingChats = <td.Chat>[];
+
       for (final id in candidateChatIds) {
         final chat = await _verifyChannelExists(id);
         if (chat != null) {
           final title = chat.title.trim().toLowerCase();
-          if (title == targetTitle || title.contains('telecloud')) {
-            TeleCloudLogger.auth(
-                'Found existing matching supergroup: "${chat.title}" ($id)');
-            return id;
+          if (title == targetTitle ||
+              title.contains('telecloud') ||
+              title.contains('telecloud photos')) {
+            matchingChats.add(chat);
           }
         }
       }
+
+      if (matchingChats.isNotEmpty) {
+        // Sort to pick the most active/recent group (highest lastMessage date or ID)
+        matchingChats.sort((a, b) {
+          final dateA = a.lastMessage?.date ?? 0;
+          final dateB = b.lastMessage?.date ?? 0;
+          if (dateA != dateB) return dateB.compareTo(dateA);
+          return b.id.compareTo(a.id);
+        });
+
+        final bestChat = matchingChats.first;
+        TeleCloudLogger.auth(
+          'Found and selected best existing storage supergroup: "${bestChat.title}" (${bestChat.id}) out of ${matchingChats.length} candidates.',
+        );
+        return bestChat.id;
+      }
     } catch (e) {
       TeleCloudLogger.auth('Error while searching existing chats: $e');
-    } finally {
-      sub.cancel();
     }
 
     return null;
   }
 
   Future<td.Chat?> _verifyChannelExists(int chatId) async {
-    final completer = Completer<td.Chat?>();
-    late StreamSubscription sub;
-
-    sub = client.events.listen((event) {
-      if (event is td.Chat && event.id == chatId) {
-        completer.complete(event);
-        sub.cancel();
-      } else if (event is td.TdError) {
-        completer.complete(null);
-        sub.cancel();
+    try {
+      final res = await client.sendAsync(
+        td.GetChat(chatId: chatId),
+        timeout: const Duration(seconds: 4),
+      );
+      if (res is td.Chat) {
+        return res;
       }
-    });
-
-    client.send(td.GetChat(chatId: chatId));
-
-    return await completer.future.timeout(
-      const Duration(seconds: 4),
-      onTimeout: () {
-        sub.cancel();
-        return null;
-      },
-    );
+      return null;
+    } catch (e) {
+      TeleCloudLogger.auth('Error verifying channel $chatId: $e');
+      return null;
+    }
   }
 
   Future<int?> _createNewBackupChannel() async {
     TeleCloudLogger.auth(
       'Creating private supergroup forum channel: "${AppConstants.telegramChannelTitle}"',
     );
-    final completer = Completer<int?>();
-    late StreamSubscription sub;
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final res = await client.sendAsync(
+        const td.CreateNewSupergroupChat(
+          title: AppConstants.telegramChannelTitle,
+          isForum: true,
+          isChannel: false,
+          description: 'TeleCloud Private Photo & Video Backup Storage',
+          location: null,
+          messageAutoDeleteTime: 0,
+          forImport: false,
+        ),
+        timeout: const Duration(seconds: 12),
+      );
 
-    sub = client.events.listen((event) async {
-      if (event is td.Chat) {
-        if (event.title == AppConstants.telegramChannelTitle) {
-          _channelId = event.id;
-          await _storage.write(key: _channelKey, value: event.id.toString());
-          await prefs.setInt(AppConstants.channelIdKey, event.id);
-          TeleCloudLogger.auth('Channel created and stored: ${event.id}');
-          completer.complete(event.id);
-          sub.cancel();
-        }
-      } else if (event is td.TdError) {
+      if (res is td.Chat) {
+        _channelId = res.id;
+        final prefs = await SharedPreferences.getInstance();
+        await _storage.write(key: _channelKey, value: res.id.toString());
+        await prefs.setInt(AppConstants.channelIdKey, res.id);
+        TeleCloudLogger.auth('Channel created and stored: ${res.id}');
+        return res.id;
+      } else if (res is td.TdError) {
         TeleCloudLogger.auth(
-          'Create channel error: [${event.code}] ${event.message}',
+          'Create channel error: [${res.code}] ${res.message}',
         );
-        completer.complete(null);
-        sub.cancel();
       }
-    });
+    } catch (e) {
+      TeleCloudLogger.auth('Create channel exception: $e');
+    }
+    return null;
+  }
 
-    client.send(
-      const td.CreateNewSupergroupChat(
-        title: AppConstants.telegramChannelTitle,
-        isForum: true,
-        isChannel: false,
-        description: 'TeleCloud Private Photo & Video Backup Storage',
-        location: null,
-        messageAutoDeleteTime: 0,
-        forImport: false,
-      ),
+  /// Returns list of all Supergroups / Forum chats on the user's account for switching
+  Future<List<td.Chat>> getAvailableSupergroups() async {
+    final list = <td.Chat>[];
+    try {
+      final getChatsRes = await client.sendAsync(
+        const td.GetChats(chatList: td.ChatListMain(), limit: 100),
+        timeout: const Duration(seconds: 4),
+      );
+      final ids = <int>{};
+      if (getChatsRes is td.Chats) {
+        ids.addAll(getChatsRes.chatIds);
+      }
+      for (final id in ids) {
+        final chat = await _verifyChannelExists(id);
+        if (chat != null && chat.type is td.ChatTypeSupergroup) {
+          list.add(chat);
+        }
+      }
+    } catch (_) {}
+    return list;
+  }
+
+  /// Switches active backup storage group to another existing supergroup
+  Future<bool> switchStorageChannel(int newChatId, {MediaDao? mediaDao}) async {
+    final chat = await _verifyChannelExists(newChatId);
+    if (chat == null) return false;
+
+    _channelId = newChatId;
+    final prefs = await SharedPreferences.getInstance();
+    await _storage.write(key: _channelKey, value: newChatId.toString());
+    await prefs.setInt(AppConstants.channelIdKey, newChatId);
+
+    TeleCloudLogger.auth(
+      'Switched active storage supergroup to: "${chat.title}" ($newChatId)',
     );
 
-    return await completer.future.timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        sub.cancel();
-        return null;
-      },
-    );
+    if (mediaDao != null) {
+      // Rehydrate media in background
+      syncFromCloud(mediaDao);
+    }
+    return true;
   }
 
   /// Re-opens a closed forum topic thread in the supergroup

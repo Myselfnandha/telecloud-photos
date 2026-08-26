@@ -54,6 +54,9 @@ jobs:
         working-directory: ./telecloud_photos
         run: flutter analyze
 
+      - name: Install Linux Test Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
       - name: Run Unit & Integration Tests
         working-directory: ./telecloud_photos
         run: flutter test

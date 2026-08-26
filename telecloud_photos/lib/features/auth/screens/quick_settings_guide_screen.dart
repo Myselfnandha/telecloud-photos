@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/theme/app_colors.dart';
+import '../../settings/widgets/telecloud_group_selector_sheet.dart';
 
 class QuickSettingsGuideScreen extends ConsumerStatefulWidget {
   const QuickSettingsGuideScreen({super.key});
@@ -82,6 +83,16 @@ class _QuickSettingsGuideScreenState
             .scheduleBackgroundWorker(forceReschedule: true);
       } else {
         ref.read(backupManagerProvider.notifier).cancelBackgroundWorker();
+      }
+      // If multiple duplicate TeleCloud groups are detected, prompt user to pick their desired one
+      final channelMgr = ref.read(channelManagerProvider);
+      final duplicateGroups = await channelMgr.findTeleCloudGroupsWithTopics();
+      if (duplicateGroups.length > 1 && mounted) {
+        await TeleCloudGroupSelectorSheet.show(
+          context,
+          preloadedGroups: duplicateGroups,
+          isInitialSetup: true,
+        );
       }
     } catch (_) {}
 

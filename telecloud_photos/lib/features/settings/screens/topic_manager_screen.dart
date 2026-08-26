@@ -5,6 +5,7 @@ import 'package:tdlib/td_api.dart' as td;
 import '../../../core/di/providers.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
+import '../widgets/telecloud_group_selector_sheet.dart';
 
 class TopicManagerScreen extends ConsumerStatefulWidget {
   const TopicManagerScreen({super.key});
@@ -456,156 +457,12 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
     );
   }
 
-  void _showGroupPickerSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1C1C1E),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Select Storage Supergroup',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Choose which Telegram Supergroup to use for backing up your photos and albums:',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              FutureBuilder<List<td.Chat>>(
-                future: ref
-                    .read(channelManagerProvider)
-                    .getAvailableSupergroups(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 120,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF0A84FF),
-                        ),
-                      ),
-                    );
-                  }
-                  final groups = snapshot.data ?? [];
-                  if (groups.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24.0),
-                      child: Center(
-                        child: Text(
-                          'No other supergroups found on your account',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    );
-                  }
-                  final currentChannelId =
-                      ref.read(channelManagerProvider).channelId;
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: groups.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final chat = groups[index];
-                      final isSelected = chat.id == currentChannelId;
-                      return ListTile(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: isSelected
-                                ? const Color(0xFF0A84FF)
-                                : const Color(0xFF2C2C2E),
-                          ),
-                        ),
-                        tileColor: isSelected
-                            ? const Color(0xFF0A84FF).withValues(alpha: 0.12)
-                            : const Color(0xFF2C2C2E),
-                        leading: Icon(
-                          Icons.groups_rounded,
-                          color: isSelected
-                              ? const Color(0xFF0A84FF)
-                              : Colors.white70,
-                        ),
-                        title: Text(
-                          chat.title,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Chat ID: ${chat.id}',
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 12,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(
-                                Icons.check_circle_rounded,
-                                color: Color(0xFF0A84FF),
-                              )
-                            : null,
-                        onTap: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          Navigator.pop(ctx);
-                          final channelMgr = ref.read(channelManagerProvider);
-                          final mediaDao = ref.read(mediaDaoProvider);
-                          final ok = await channelMgr.switchStorageChannel(
-                            chat.id,
-                            mediaDao: mediaDao,
-                          );
-                          if (ok && mounted) {
-                            setState(() {});
-                            ref.invalidate(supergroupTopicsProvider);
-                            messenger.clearSnackBars();
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Switched storage to "${chat.title}"!',
-                                ),
-                                backgroundColor: const Color(0xFF30D158),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _showGroupPickerSheet() async {
+    final switched = await TeleCloudGroupSelectorSheet.show(context);
+    if (switched == true && mounted) {
+      setState(() {});
+      ref.invalidate(supergroupTopicsProvider);
+    }
   }
 
   Widget _buildTopicsTab({

@@ -29,37 +29,39 @@ class TimelinePhotoGrid extends StatelessWidget {
     this.showSyncBadges = true,
   });
 
+  static double getAspectRatio(MediaItem item) {
+    final w = item.width ?? 0;
+    final h = item.height ?? 0;
+    if (w > 0 && h > 0) {
+      // Keep natural photo aspect ratio clamped to safe aesthetic bounds (0.5 to 2.0)
+      return (w / h).clamp(0.5, 2.0);
+    }
+    return 1.0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isYearly = tier == TimelineTier.yearlyMosaic;
-    final isSingle = tier == TimelineTier.singlePhoto;
+    if (tier == TimelineTier.singlePhoto) {
+      return _buildSinglePhotoList(context);
+    }
 
-    final boxFit = isSingle ? BoxFit.fitWidth : BoxFit.cover;
+    if (tier == TimelineTier.dailyGrid || tier == TimelineTier.monthlyGrid) {
+      final columns = tier == TimelineTier.dailyGrid ? 3 : 4;
+      return _buildStaggeredGrid(context, columns);
+    }
 
-    final childAspectRatio =
-        isSingle ? 1.25 : (tier == TimelineTier.monthlyGrid ? 1.0 : 1.0);
-
+    // Yearly Mosaic: Ultra-dense 6-column square grid
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isSingle ? 12 : 2,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 1),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: tier.columns,
-          mainAxisSpacing: isYearly
-              ? 1.0
-              : (tier == TimelineTier.monthlyGrid
-                  ? 1.5
-                  : (isSingle ? 12.0 : 2.0)),
-          crossAxisSpacing: isYearly
-              ? 1.0
-              : (tier == TimelineTier.monthlyGrid
-                  ? 1.5
-                  : (isSingle ? 12.0 : 2.0)),
-          childAspectRatio: childAspectRatio,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 6,
+          mainAxisSpacing: 1.0,
+          crossAxisSpacing: 1.0,
+          childAspectRatio: 1.0,
         ),
         itemBuilder: (context, itemIdx) {
           final item = items[itemIdx];
@@ -69,7 +71,7 @@ class TimelinePhotoGrid extends StatelessWidget {
             child: MediaTile(
               key: ValueKey(item.localId),
               item: item,
-              boxFit: boxFit,
+              boxFit: BoxFit.cover,
               tier: tier,
               isSelectionMode: isSelectionMode,
               isSelected: isSelected,
@@ -79,6 +81,100 @@ class TimelinePhotoGrid extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSinglePhotoList(BuildContext context) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, itemIdx) {
+        final item = items[itemIdx];
+        final isSelected = selectedIds.contains(item.localId);
+        final aspect = getAspectRatio(item);
+
+        return AspectRatio(
+          aspectRatio: aspect,
+          child: RepaintBoundary(
+            child: MediaTile(
+              key: ValueKey(item.localId),
+              item: item,
+              boxFit: BoxFit.cover,
+              tier: tier,
+              isSelectionMode: isSelectionMode,
+              isSelected: isSelected,
+              showSyncBadges: showSyncBadges,
+              onTap: () => onItemTap(item),
+              onLongPress: () => onItemLongPress(item),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStaggeredGrid(BuildContext context, int columns) {
+    final List<List<MediaItem>> columnItems = List.generate(columns, (_) => []);
+    final List<double> columnHeights = List.filled(columns, 0.0);
+
+    for (final item in items) {
+      int minCol = 0;
+      for (int i = 1; i < columns; i++) {
+        if (columnHeights[i] < columnHeights[minCol]) {
+          minCol = i;
+        }
+      }
+      columnItems[minCol].add(item);
+      final aspect = getAspectRatio(item);
+      columnHeights[minCol] += (1.0 / aspect) + 0.02;
+    }
+
+    final double spacing = columns == 3 ? 2.5 : 1.5;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < columns; i++)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: i == 0 ? 0 : spacing / 2,
+                  right: i == columns - 1 ? 0 : spacing / 2,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final item in columnItems[i])
+                      Padding(
+                        padding: EdgeInsets.only(bottom: spacing),
+                        child: AspectRatio(
+                          aspectRatio: getAspectRatio(item),
+                          child: RepaintBoundary(
+                            child: MediaTile(
+                              key: ValueKey(item.localId),
+                              item: item,
+                              boxFit: BoxFit.cover,
+                              tier: tier,
+                              isSelectionMode: isSelectionMode,
+                              isSelected: selectedIds.contains(item.localId),
+                              showSyncBadges: showSyncBadges,
+                              onTap: () => onItemTap(item),
+                              onLongPress: () => onItemLongPress(item),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -169,8 +265,10 @@ class _MediaTileState extends State<MediaTile> {
     final isSinglePhoto = widget.tier == TimelineTier.singlePhoto;
 
     final int cacheDim = isYearly
-        ? 80
-        : (widget.tier == TimelineTier.monthlyGrid ? 140 : 250);
+        ? 100
+        : (widget.tier == TimelineTier.monthlyGrid
+            ? 250
+            : (isSinglePhoto ? 1200 : 700));
 
     Widget imageWidget;
     if (_thumbBytes != null) {
@@ -178,7 +276,7 @@ class _MediaTileState extends State<MediaTile> {
         _thumbBytes!,
         fit: widget.boxFit,
         cacheWidth: cacheDim,
-        cacheHeight: cacheDim,
+        filterQuality: FilterQuality.medium,
         errorBuilder: (context, error, stackTrace) => const ShimmerLoading(),
       );
     } else if (widget.item.thumbnailPath != null &&
@@ -187,7 +285,7 @@ class _MediaTileState extends State<MediaTile> {
         File(widget.item.thumbnailPath!),
         fit: widget.boxFit,
         cacheWidth: cacheDim,
-        cacheHeight: cacheDim,
+        filterQuality: FilterQuality.medium,
         errorBuilder: (context, error, stackTrace) => const ShimmerLoading(),
       );
     } else {

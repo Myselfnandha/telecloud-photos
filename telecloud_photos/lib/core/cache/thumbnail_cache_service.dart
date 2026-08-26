@@ -125,8 +125,12 @@ class ThumbnailCacheService {
       try {
         final asset = await AssetEntity.fromId(id);
         if (asset != null) {
-          final bytes = await asset.thumbnailDataWithSize(
-            const ThumbnailSize.square(256),
+          final bytes = await asset.thumbnailDataWithOption(
+            const ThumbnailOption(
+              size: ThumbnailSize(600, 600),
+              format: ThumbnailFormat.jpeg,
+              quality: 92,
+            ),
           );
           if (bytes != null && bytes.isNotEmpty) {
             putInMemory(id, bytes);

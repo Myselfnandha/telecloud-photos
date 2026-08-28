@@ -767,6 +767,15 @@ class _MediaItemViewerState extends ConsumerState<_MediaItemViewer> {
           onLongPressEnd: (_) => _stopLivePlayback(),
           child: Hero(
             tag: 'media_${widget.item.localId}',
+            flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+              return Material(
+                color: Colors.transparent,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: toHeroContext.widget,
+                ),
+              );
+            },
             child: InteractiveViewer(
               transformationController: _transformationController,
               minScale: 0.5,

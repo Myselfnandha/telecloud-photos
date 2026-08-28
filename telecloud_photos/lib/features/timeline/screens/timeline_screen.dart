@@ -133,8 +133,9 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
       return 'Yesterday';
     }
 
-    if (_currentTier == TimelineTier.yearlyMosaic) {
-      return '${dt.year}';
+    if (_currentTier == TimelineTier.yearlyMosaic ||
+        _currentTier == TimelineTier.allPhotos) {
+      return '';
     }
     if (_currentTier == TimelineTier.monthlyGrid) {
       return '${months[dt.month - 1]} ${dt.year}';
@@ -507,6 +508,8 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                       final entry = dateEntries[index];
                       final isYearly =
                           _currentTier == TimelineTier.yearlyMosaic;
+                      final isAllPhotos =
+                          _currentTier == TimelineTier.allPhotos || isYearly;
                       final isSingle = _currentTier == TimelineTier.singlePhoto;
 
                       return Column(
@@ -518,6 +521,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
                             itemCount: entry.value.length,
                             isYearly: isYearly,
                             isSingle: isSingle,
+                            isAllPhotos: isAllPhotos,
                           ),
                           TimelinePhotoGrid(
                             items: entry.value,
@@ -560,21 +564,9 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
 
               Widget body = scrollView;
               if (_isPinching) {
-                body = Transform(
-                  transform: Matrix4.identity()
-                    ..translateByDouble(
-                      _pinchFocalPoint.dx,
-                      _pinchFocalPoint.dy,
-                      0.0,
-                      0.0,
-                    )
-                    ..scaleByDouble(_pinchScale, _pinchScale, 1.0, 1.0)
-                    ..translateByDouble(
-                      -_pinchFocalPoint.dx,
-                      -_pinchFocalPoint.dy,
-                      0.0,
-                      0.0,
-                    ),
+                body = Transform.scale(
+                  scale: _pinchScale,
+                  origin: _pinchFocalPoint,
                   alignment: Alignment.center,
                   child: body,
                 );
@@ -659,7 +651,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen>
           // Floating Selection Action Bar (Feature 5)
           if (_isSelectionMode)
             Positioned(
-              bottom: 24,
+              bottom: MediaQuery.of(context).padding.bottom + 78,
               left: 20,
               right: 20,
               child: asyncMedia.maybeWhen(

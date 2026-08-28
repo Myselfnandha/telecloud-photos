@@ -33,7 +33,7 @@ class TimelinePhotoGrid extends StatelessWidget {
     final w = item.width ?? 0;
     final h = item.height ?? 0;
     if (w > 0 && h > 0) {
-      // Keep natural photo aspect ratio clamped to safe aesthetic bounds (0.5 to 2.0)
+      // Keep natural photo aspect ratio clamped to safe bounds (0.5 to 2.0)
       return (w / h).clamp(0.5, 2.0);
     }
     return 1.0;
@@ -41,48 +41,53 @@ class TimelinePhotoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
     if (tier == TimelineTier.singlePhoto) {
       return _buildSinglePhotoList(context);
     }
 
-    if (tier == TimelineTier.dailyGrid || tier == TimelineTier.monthlyGrid) {
-      final columns = tier == TimelineTier.dailyGrid ? 3 : 4;
-      return _buildStaggeredGrid(context, columns);
+    if (tier == TimelineTier.yearlyMosaic || tier == TimelineTier.allPhotos) {
+      // Ultra-dense 6-column continuous mosaic with 1px micro-spacing
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 1),
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: items.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 6,
+            mainAxisSpacing: 1.0,
+            crossAxisSpacing: 1.0,
+            childAspectRatio: 1.0,
+          ),
+          itemBuilder: (context, itemIdx) {
+            final item = items[itemIdx];
+            final isSelected = selectedIds.contains(item.localId);
+
+            return RepaintBoundary(
+              child: MediaTile(
+                key: ValueKey(item.localId),
+                item: item,
+                boxFit: BoxFit.cover,
+                tier: tier,
+                isSelectionMode: isSelectionMode,
+                isSelected: isSelected,
+                showSyncBadges: showSyncBadges,
+                onTap: () => onItemTap(item),
+                onLongPress: () => onItemLongPress(item),
+              ),
+            );
+          },
+        ),
+      );
     }
 
-    // Yearly Mosaic: Ultra-dense 6-column square grid
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 6,
-          mainAxisSpacing: 1.0,
-          crossAxisSpacing: 1.0,
-          childAspectRatio: 1.0,
-        ),
-        itemBuilder: (context, itemIdx) {
-          final item = items[itemIdx];
-          final isSelected = selectedIds.contains(item.localId);
+    // Adaptive column count based on available item count in this section
+    final maxCols = tier == TimelineTier.monthlyGrid ? 4 : 3;
+    final columns = items.length < maxCols ? items.length.clamp(1, maxCols) : maxCols;
 
-          return RepaintBoundary(
-            child: MediaTile(
-              key: ValueKey(item.localId),
-              item: item,
-              boxFit: BoxFit.cover,
-              tier: tier,
-              isSelectionMode: isSelectionMode,
-              isSelected: isSelected,
-              showSyncBadges: showSyncBadges,
-              onTap: () => onItemTap(item),
-              onLongPress: () => onItemLongPress(item),
-            ),
-          );
-        },
-      ),
-    );
+    return _buildStaggeredGrid(context, columns);
   }
 
   Widget _buildSinglePhotoList(BuildContext context) {
@@ -118,6 +123,29 @@ class TimelinePhotoGrid extends StatelessWidget {
   }
 
   Widget _buildStaggeredGrid(BuildContext context, int columns) {
+    if (columns == 1) {
+      final item = items.first;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: AspectRatio(
+          aspectRatio: getAspectRatio(item),
+          child: RepaintBoundary(
+            child: MediaTile(
+              key: ValueKey(item.localId),
+              item: item,
+              boxFit: BoxFit.cover,
+              tier: tier,
+              isSelectionMode: isSelectionMode,
+              isSelected: selectedIds.contains(item.localId),
+              showSyncBadges: showSyncBadges,
+              onTap: () => onItemTap(item),
+              onLongPress: () => onItemLongPress(item),
+            ),
+          ),
+        ),
+      );
+    }
+
     final List<List<MediaItem>> columnItems = List.generate(columns, (_) => []);
     final List<double> columnHeights = List.filled(columns, 0.0);
 
@@ -300,6 +328,15 @@ class _MediaTileState extends State<MediaTile> {
         children: [
           Hero(
             tag: 'media_${widget.item.localId}',
+            flightShuttleBuilder: (flightContext, animation, flightDirection, fromHeroContext, toHeroContext) {
+              return Material(
+                color: Colors.transparent,
+                child: FittedBox(
+                  fit: BoxFit.contain,
+                  child: toHeroContext.widget,
+                ),
+              );
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               decoration: BoxDecoration(

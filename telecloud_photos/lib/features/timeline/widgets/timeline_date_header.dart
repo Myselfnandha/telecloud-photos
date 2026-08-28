@@ -7,6 +7,7 @@ class TimelineDateHeader extends StatelessWidget {
   final int itemCount;
   final bool isYearly;
   final bool isSingle;
+  final bool isAllPhotos;
 
   const TimelineDateHeader({
     super.key,
@@ -14,19 +15,24 @@ class TimelineDateHeader extends StatelessWidget {
     required this.itemCount,
     this.isYearly = false,
     this.isSingle = false,
+    this.isAllPhotos = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (isYearly || isAllPhotos) {
+      return const SizedBox.shrink();
+    }
+
     final primaryTextColor = AppColors.textPrimary(context);
     final secondaryTextColor = AppColors.textSecondary(context);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
         isSingle ? 16 : 8,
-        isYearly ? 10 : (isSingle ? 24 : 16),
+        isSingle ? 20 : 12,
         isSingle ? 16 : 8,
-        isYearly ? 4 : (isSingle ? 10 : 6),
+        isSingle ? 8 : 4,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -35,7 +41,7 @@ class TimelineDateHeader extends StatelessWidget {
             dateLabel,
             style: TextStyle(
               color: primaryTextColor,
-              fontSize: isYearly ? 14 : (isSingle ? 20 : 18),
+              fontSize: isSingle ? 19 : 16,
               fontWeight: FontWeight.bold,
               letterSpacing: -0.3,
             ),
@@ -44,7 +50,7 @@ class TimelineDateHeader extends StatelessWidget {
             '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
             style: TextStyle(
               color: secondaryTextColor,
-              fontSize: isYearly ? 11 : 12,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -53,3 +59,4 @@ class TimelineDateHeader extends StatelessWidget {
     );
   }
 }
+

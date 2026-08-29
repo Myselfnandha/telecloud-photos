@@ -29,6 +29,24 @@ class CloudVideoStreamService {
       return _activeDownloads[telegramFileId]!.future;
     }
 
+    // 3. Pre-check if TDLib already downloaded/cached this file on disk
+    try {
+      final existingFileObj =
+          _client.execute(td.GetFile(fileId: telegramFileId));
+      if (existingFileObj is td.File &&
+          existingFileObj.local.isDownloadingCompleted &&
+          existingFileObj.local.path.isNotEmpty) {
+        final f = File(existingFileObj.local.path);
+        if (f.existsSync() && f.lengthSync() > 0) {
+          TeleCloudLogger.log(
+            'CloudStream',
+            'Video already cached locally by TDLib: ${existingFileObj.local.path}',
+          );
+          return existingFileObj.local.path;
+        }
+      }
+    } catch (_) {}
+
     final completer = Completer<String?>();
     _activeDownloads[telegramFileId] = completer;
 

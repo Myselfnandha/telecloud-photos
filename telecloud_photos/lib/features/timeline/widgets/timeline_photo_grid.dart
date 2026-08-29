@@ -255,7 +255,12 @@ class _MediaTileState extends State<MediaTile> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.item.localId != widget.item.localId ||
         oldWidget.item.thumbnailPath != widget.item.thumbnailPath) {
-      _loadThumbnail();
+      final cached = ThumbnailCacheService().getFromMemory(widget.item.localId);
+      _thumbBytes = cached;
+      _isLoading = false;
+      if (cached == null) {
+        _loadThumbnail();
+      }
     }
   }
 

@@ -22,6 +22,7 @@ import '../../features/settings/screens/sub_screens/cloud_migration_settings_scr
 import '../../features/settings/screens/sub_screens/backup_engine_settings_screen.dart';
 import '../../features/settings/screens/sub_screens/power_battery_settings_screen.dart';
 import '../../features/settings/screens/sub_screens/storage_maintenance_settings_screen.dart';
+import '../../features/settings/screens/storage_cleaner_screen.dart';
 import '../../features/albums/screens/albums_list_screen.dart';
 import '../../features/albums/screens/album_detail_screen.dart';
 import '../../features/albums/screens/favorites_screen.dart';
@@ -326,6 +327,14 @@ final appRouter = GoRouter(
         context: context,
         state: state,
         child: const StorageMaintenanceSettingsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/storage-cleaner',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const StorageCleanerScreen(),
       ),
     ),
   ],

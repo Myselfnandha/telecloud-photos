@@ -224,6 +224,41 @@ class ThumbnailCacheService {
     builder.add(crcData.buffer.asUint8List());
   }
 
+  /// Ensures the thumbnail for [id] is saved to persistent disk cache and returns the disk file path.
+  Future<String?> ensureDiskThumbnailCached(
+    String id, {
+    String? diskPath,
+    bool isVideo = false,
+  }) async {
+    if (_diskCacheDir == null) {
+      await init();
+    }
+
+    final safeId = id.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    if (_diskCacheDir != null) {
+      final cachedFile = File(p.join(_diskCacheDir!.path, '$safeId.jpg'));
+      if (await cachedFile.exists()) {
+        return cachedFile.path;
+      }
+    }
+
+    final bytes = await getThumbnail(
+      id: id,
+      diskPath: diskPath,
+      isVideo: isVideo,
+    );
+
+    if (bytes != null && bytes.isNotEmpty && _diskCacheDir != null) {
+      final cachedFile = File(p.join(_diskCacheDir!.path, '$safeId.jpg'));
+      try {
+        await cachedFile.writeAsBytes(bytes);
+        return cachedFile.path;
+      } catch (_) {}
+    }
+
+    return diskPath;
+  }
+
   void clearMemory() {
     _memoryCache.clear();
   }

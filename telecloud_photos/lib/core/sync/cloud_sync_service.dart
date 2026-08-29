@@ -44,14 +44,23 @@ class CloudSyncService {
   void _startLiveMessageListener() {
     _liveMessageSub?.cancel();
     _liveMessageSub = tdlibClient.events.listen((event) async {
+      final channelId = channelManager.channelId;
+      if (channelId == null) return;
+
       if (event is td.UpdateNewMessage) {
         final msg = event.message;
-        final channelId = channelManager.channelId;
-        if (channelId != null && msg.chatId == channelId) {
+        if (msg.chatId == channelId) {
           TeleCloudLogger.tdlib(
             'Received real-time cloud message from Telegram: ${msg.id}',
           );
           await _processIncomingCloudMessage(msg);
+        }
+      } else if (event is td.UpdateDeleteMessages) {
+        if (event.chatId == channelId && event.isPermanent) {
+          TeleCloudLogger.tdlib(
+            'Received real-time remote deletion for messages: ${event.messageIds}',
+          );
+          await mediaDao.deleteByTelegramMsgIds(event.messageIds);
         }
       }
     });

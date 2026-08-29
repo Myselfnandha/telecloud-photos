@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tdlib/td_api.dart' as td;
+import '../../../core/cache/thumbnail_cache_service.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/theme/app_colors.dart';
@@ -12,6 +13,7 @@ import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../../../shared/theme/app_elevation.dart';
 import '../../../shared/theme/app_icons.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 
 class TrashScreen extends ConsumerStatefulWidget {
   const TrashScreen({super.key});
@@ -314,33 +316,7 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Container(
-                              color: const Color(0xFF1C1C1E),
-                              child: item.thumbnailPath != null &&
-                                      item.thumbnailPath!.isNotEmpty
-                                  ? Image.file(
-                                      File(item.thumbnailPath!),
-                                      fit: BoxFit.cover,
-                                      cacheWidth: 256,
-                                      cacheHeight: 256,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              const Center(
-                                        child: Icon(
-                                          Icons.image,
-                                          color: Colors.white24,
-                                          size: 28,
-                                        ),
-                                      ),
-                                    )
-                                  : const Center(
-                                      child: Icon(
-                                        Icons.image,
-                                        color: Colors.white24,
-                                        size: 28,
-                                      ),
-                                    ),
-                            ),
+                            _TrashThumbnailTile(item: item),
                             if (isSelected)
                               Container(
                                 color: AppColors.primaryBlue.withValues(
@@ -461,5 +437,94 @@ class _TrashScreenState extends ConsumerState<TrashScreen> {
         },
       ),
     );
+  }
+}
+
+class _TrashThumbnailTile extends StatefulWidget {
+  final MediaItem item;
+
+  const _TrashThumbnailTile({required this.item});
+
+  @override
+  State<_TrashThumbnailTile> createState() => _TrashThumbnailTileState();
+}
+
+class _TrashThumbnailTileState extends State<_TrashThumbnailTile>
+    with AutomaticKeepAliveClientMixin {
+  Uint8List? _bytes;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrashThumbnailTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.localId != widget.item.localId ||
+        oldWidget.item.thumbnailPath != widget.item.thumbnailPath) {
+      _loadThumbnail();
+    }
+  }
+
+  Future<void> _loadThumbnail() async {
+    final cached = ThumbnailCacheService().getFromMemory(widget.item.localId);
+    if (cached != null) {
+      if (mounted) {
+        setState(() {
+          _bytes = cached;
+        });
+      }
+      return;
+    }
+
+    final isVideo = widget.item.mimeType.startsWith('video') ||
+        widget.item.filename.toLowerCase().endsWith('.mp4') ||
+        widget.item.filename.toLowerCase().endsWith('.mov');
+
+    final bytes = await ThumbnailCacheService().getThumbnail(
+      id: widget.item.localId,
+      diskPath: widget.item.thumbnailPath,
+      isVideo: isVideo,
+    );
+
+    if (mounted) {
+      setState(() {
+        _bytes = bytes;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    if (_bytes != null) {
+      return Image.memory(
+        _bytes!,
+        fit: BoxFit.cover,
+        cacheWidth: 256,
+        cacheHeight: 256,
+        errorBuilder: (context, error, stackTrace) => const ShimmerLoading(),
+      );
+    }
+
+    if (widget.item.thumbnailPath != null &&
+        widget.item.thumbnailPath!.isNotEmpty &&
+        File(widget.item.thumbnailPath!).existsSync()) {
+      return Image.file(
+        File(widget.item.thumbnailPath!),
+        fit: BoxFit.cover,
+        cacheWidth: 256,
+        cacheHeight: 256,
+        errorBuilder: (context, error, stackTrace) => const ShimmerLoading(),
+      );
+    }
+
+    return const ShimmerLoading();
   }
 }

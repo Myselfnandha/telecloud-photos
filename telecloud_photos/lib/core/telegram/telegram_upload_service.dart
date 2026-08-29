@@ -104,30 +104,72 @@ class TelegramUploadService {
       final requestId =
           DateTime.now().millisecondsSinceEpoch + recoveryAttempts;
 
+      int? initialTempMsgId;
       late StreamSubscription sub;
-      sub = client.events.listen((event) {
-        if (event is td.Message) {
-          TeleCloudLogger.upload(
-            'Upload successful! Telegram Message ID: ${event.id}',
-          );
-          String? fileId;
-          if (event.content is td.MessageDocument) {
-            fileId = (event.content as td.MessageDocument).document.document.id.toString();
-          } else if (event.content is td.MessagePhoto) {
-            final photoSizes = (event.content as td.MessagePhoto).photo.sizes;
-            if (photoSizes.isNotEmpty) {
-              fileId = photoSizes.last.photo.id.toString();
-            }
+
+      void onFinished(int finalMsgId, String? fileId) {
+        TeleCloudLogger.upload(
+          'Upload successful! Telegram Message ID: $finalMsgId (fileId: $fileId)',
+        );
+        onUploaded?.call(finalMsgId, fileId);
+        if (!completer.isCompleted) completer.complete(true);
+        sub.cancel();
+      }
+
+      String? extractFileId(td.MessageContent content) {
+        if (content is td.MessageDocument) {
+          return content.document.document.id.toString();
+        } else if (content is td.MessagePhoto) {
+          final photoSizes = content.photo.sizes;
+          if (photoSizes.isNotEmpty) {
+            return photoSizes.last.photo.id.toString();
           }
-          onUploaded?.call(event.id, fileId);
-          completer.complete(true);
-          sub.cancel();
-        } else if (event is td.TdError) {
-          TeleCloudLogger.upload(
-            'Upload response error: [${event.code}] ${event.message}',
-          );
-          completer.complete(event);
-          sub.cancel();
+        } else if (content is td.MessageVideo) {
+          return content.video.video.id.toString();
+        }
+        return null;
+      }
+
+      sub = client.events.listen((event) {
+        // 1. Correlate with our SendMessage request ID
+        if (event.extra == requestId) {
+          if (event is td.Message) {
+            initialTempMsgId = event.id;
+            // If already sent, extract details immediately
+            if (event.sendingState == null) {
+              final fileId = extractFileId(event.content);
+              onFinished(event.id, fileId);
+            }
+          } else if (event is td.TdError) {
+            TeleCloudLogger.upload(
+              'Upload response error: [${event.code}] ${event.message}',
+            );
+            if (!completer.isCompleted) completer.complete(event);
+            sub.cancel();
+          }
+        }
+
+        // 2. Correlate with background upload completion update
+        if (initialTempMsgId != null) {
+          if (event is td.UpdateMessageSendSucceeded &&
+              (event.oldMessageId == initialTempMsgId ||
+                  event.message.id == initialTempMsgId)) {
+            final fileId = extractFileId(event.message.content);
+            onFinished(event.message.id, fileId);
+          } else if (event is td.UpdateMessageSendFailed &&
+              (event.oldMessageId == initialTempMsgId ||
+                  event.message.id == initialTempMsgId)) {
+            TeleCloudLogger.upload(
+              'Upload send failed: [${event.errorCode}] ${event.errorMessage}',
+            );
+            if (!completer.isCompleted) {
+              completer.complete(td.TdError(
+                code: event.errorCode,
+                message: event.errorMessage,
+              ));
+            }
+            sub.cancel();
+          }
         }
       });
 
@@ -302,18 +344,39 @@ class TelegramUploadService {
       );
 
       final completer = Completer<int?>();
+      final requestId = DateTime.now().millisecondsSinceEpoch;
+      int? initialTempMsgId;
       late StreamSubscription sub;
 
       sub = client.events.listen((event) {
-        if (event is td.Message) {
-          completer.complete(event.id);
-          sub.cancel();
-        } else if (event is td.TdError) {
-          TeleCloudLogger.upload(
-            'uploadDirectFile error: [${event.code}] ${event.message}',
-          );
-          completer.complete(null);
-          sub.cancel();
+        if (event.extra == requestId) {
+          if (event is td.Message) {
+            initialTempMsgId = event.id;
+            if (event.sendingState == null) {
+              if (!completer.isCompleted) completer.complete(event.id);
+              sub.cancel();
+            }
+          } else if (event is td.TdError) {
+            TeleCloudLogger.upload(
+              'uploadDirectFile error: [${event.code}] ${event.message}',
+            );
+            if (!completer.isCompleted) completer.complete(null);
+            sub.cancel();
+          }
+        }
+
+        if (initialTempMsgId != null) {
+          if (event is td.UpdateMessageSendSucceeded &&
+              (event.oldMessageId == initialTempMsgId ||
+                  event.message.id == initialTempMsgId)) {
+            if (!completer.isCompleted) completer.complete(event.message.id);
+            sub.cancel();
+          } else if (event is td.UpdateMessageSendFailed &&
+              (event.oldMessageId == initialTempMsgId ||
+                  event.message.id == initialTempMsgId)) {
+            if (!completer.isCompleted) completer.complete(null);
+            sub.cancel();
+          }
         }
       });
 
@@ -333,6 +396,7 @@ class TelegramUploadService {
           replyMarkup: null,
           inputMessageContent: content,
         ),
+        requestId,
       );
 
       return await completer.future.timeout(

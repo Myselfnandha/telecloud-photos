@@ -18,6 +18,7 @@ import '../sync/upload_telemetry.dart';
 import '../media/motion_photo_extractor.dart';
 import '../telegram/cloud_video_stream_service.dart';
 import '../storage/storage_cleanup_service.dart';
+import '../storage/storage_cleaner_service.dart';
 import '../sync/cloud_sync_service.dart';
 import '../backup/thumbnail_generator.dart';
 import '../backup/media_deduplicator.dart';
@@ -27,6 +28,7 @@ import '../constants/app_constants.dart';
 import '../media/batch_operations_service.dart';
 import '../telegram/telegram_download_service.dart';
 import '../sync/deleted_media_detector.dart';
+import '../takeout/takeout_parser_service.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError(
@@ -306,3 +308,42 @@ final deletedMediaDetectorProvider = Provider<DeletedMediaDetector>((ref) {
   final mediaDao = ref.watch(mediaDaoProvider);
   return DeletedMediaDetector(mediaDao: mediaDao);
 });
+
+final storageCleanerServiceProvider = Provider<StorageCleanerService>((ref) {
+  final dao = ref.watch(mediaDaoProvider);
+  final service = StorageCleanerService(mediaDao: dao);
+  ref.onDispose(() => service.dispose());
+  return service;
+});
+
+final reclaimableStorageStreamProvider = StreamProvider<int>((ref) {
+  final dao = ref.watch(mediaDaoProvider);
+  return dao.watchReclaimableStorageBytes();
+});
+
+final storageCleanProgressStreamProvider =
+    StreamProvider<StorageCleanProgress>((ref) {
+  final service = ref.watch(storageCleanerServiceProvider);
+  return service.progressStream;
+});
+
+final takeoutParserServiceProvider = Provider<TakeoutParserService>((ref) {
+  final mediaDao = ref.watch(mediaDaoProvider);
+  final uploadService = ref.watch(telegramUploadServiceProvider);
+  final channelManager = ref.watch(channelManagerProvider);
+  final service = TakeoutParserService(
+    mediaDao: mediaDao,
+    uploadService: uploadService,
+    channelManager: channelManager,
+  );
+  ref.onDispose(() => service.dispose());
+  return service;
+});
+
+final takeoutImportProgressStreamProvider =
+    StreamProvider<TakeoutImportProgress>((ref) {
+  final service = ref.watch(takeoutParserServiceProvider);
+  return service.progressStream;
+});
+
+

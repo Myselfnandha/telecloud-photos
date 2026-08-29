@@ -392,6 +392,20 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             child: Column(
               children: [
                 _buildMediaTypeRow(
+                  title: 'Free Up Space',
+                  icon: Icons.cleaning_services_rounded,
+                  iconColor: const Color(0xFF0A84FF),
+                  subtitle: 'Delete backed-up device copies safely',
+                  streamCount: mediaDao
+                      .watchFreeUpSpaceEligibleItems()
+                      .map((l) => l.length),
+                  onTap: () => context.push('/storage-cleaner'),
+                  isLight: isLight,
+                  primaryTextColor: primaryTextColor,
+                  secondaryTextColor: secondaryTextColor,
+                ),
+                _buildDivider(isLight),
+                _buildMediaTypeRow(
                   title: 'Device Folders & Sync',
                   icon: Icons.sync_rounded,
                   iconColor: const Color(0xFF30D158),

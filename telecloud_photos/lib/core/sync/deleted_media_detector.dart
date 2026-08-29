@@ -51,4 +51,13 @@ class DeletedMediaDetector {
     );
     return deletedItems;
   }
+
+  /// Automatically reconciles items deleted from device so the timeline remains seamless
+  Future<int> reconcileDeletedFromDevice() async {
+    final deleted = await detectDeletedFromDevice();
+    if (deleted.isEmpty) return 0;
+    // Mark as cloud items or preserve thumbnail path
+    final ids = deleted.map((e) => e.localId).toList();
+    return await mediaDao.markAsCloudOnly(ids);
+  }
 }

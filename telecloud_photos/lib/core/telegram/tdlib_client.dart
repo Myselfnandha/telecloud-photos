@@ -65,9 +65,18 @@ class TdlibClient {
             if (res == null) break;
             if (res is td.UpdateConnectionState) {
               _currentConnectionState = res.state;
-              _connectionStateController.add(res.state);
+              if (!_connectionStateController.isClosed) {
+                _connectionStateController.add(res.state);
+              }
             }
-            _eventController.add(res);
+            if (res is td.UpdateAuthorizationState &&
+                res.authorizationState is td.AuthorizationStateClosed) {
+              TeleCloudLogger.tdlib('TDLib authorization state closed.');
+              stopClient();
+            }
+            if (!_eventController.isClosed) {
+              _eventController.add(res);
+            }
             drainedCount++;
           }
         } catch (e) {

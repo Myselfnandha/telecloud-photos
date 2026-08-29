@@ -10,7 +10,6 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_typography.dart';
 import '../../../../shared/theme/app_elevation.dart';
 import '../../../../shared/theme/app_icons.dart';
-import '../../widgets/free_up_space_sheet.dart';
 
 class StorageMaintenanceSettingsScreen extends ConsumerStatefulWidget {
   const StorageMaintenanceSettingsScreen({super.key});
@@ -226,12 +225,7 @@ class _StorageMaintenanceSettingsScreenState
                 Icons.chevron_right_rounded,
                 color: Colors.grey,
               ),
-              onTap: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => const FreeUpSpaceSheet(),
-              ),
+              onTap: () => context.push('/storage-cleaner'),
             ),
           ),
           const SizedBox(height: 24),

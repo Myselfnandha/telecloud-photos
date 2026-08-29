@@ -223,6 +223,71 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
         .get();
   }
 
+  /// Retrieves all local items that are safely backed up to Telegram Cloud and eligible to have local space freed.
+  Future<List<MediaItem>> getFreeUpSpaceEligibleItems() {
+    return (select(mediaItems)
+          ..where(
+            (t) =>
+                t.uploadStatus.equals(UploadStatus.done.index) &
+                (t.telegramMsgId.isNotNull() | t.telegramFileId.isNotNull()) &
+                t.isTrashed.equals(false) &
+                t.localId.like('tg_%').not() &
+                t.localId.like('gp_%').not(),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.fileSizeBytes)]))
+        .get();
+  }
+
+  /// Streams list of items eligible to free up device space.
+  Stream<List<MediaItem>> watchFreeUpSpaceEligibleItems() {
+    return (select(mediaItems)
+          ..where(
+            (t) =>
+                t.uploadStatus.equals(UploadStatus.done.index) &
+                (t.telegramMsgId.isNotNull() | t.telegramFileId.isNotNull()) &
+                t.isTrashed.equals(false) &
+                t.localId.like('tg_%').not() &
+                t.localId.like('gp_%').not(),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.fileSizeBytes)]))
+        .watch();
+  }
+
+  /// Streams the real-time sum of reclaimable device storage in bytes.
+  Stream<int> watchReclaimableStorageBytes() {
+    return watchFreeUpSpaceEligibleItems().map((items) {
+      return items.fold<int>(0, (sum, item) => sum + (item.fileSizeBytes ?? 0));
+    });
+  }
+
+  /// Marks local records as freed while keeping cached thumbnail paths and Telegram cloud linkages.
+  Future<int> markAsCloudOnly(
+    List<String> localIds, {
+    Map<String, String>? updatedThumbnailPaths,
+  }) async {
+    int updatedCount = 0;
+    for (final id in localIds) {
+      final thumbPath = updatedThumbnailPaths?[id];
+      if (thumbPath != null && thumbPath.isNotEmpty) {
+        final count = await (update(mediaItems)..where((t) => t.localId.equals(id))).write(
+          MediaItemsCompanion(
+            thumbnailPath: Value(thumbPath),
+          ),
+        );
+        updatedCount += count;
+      }
+    }
+    return updatedCount;
+  }
+
+  /// Deletes or removes media items whose Telegram message IDs were deleted remotely.
+  Future<int> deleteByTelegramMsgIds(List<int> msgIds) async {
+    if (msgIds.isEmpty) return 0;
+    return await (delete(mediaItems)
+          ..where((t) => t.telegramMsgId.isIn(msgIds)))
+        .go();
+  }
+
   Future<List<MediaItem>> getMemoriesForDate(int month, int day) async {
     final all = await (select(
       mediaItems,

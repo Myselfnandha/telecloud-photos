@@ -58,7 +58,13 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     _snapController = AnimationController(
       vsync: this,
       duration: AppMotion.durationDismiss,
-    );
+    )..addListener(() {
+        if (_snapAnimation != null && mounted) {
+          setState(() {
+            _dragOffsetY = _snapAnimation!.value;
+          });
+        }
+      });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
@@ -77,11 +83,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
         parent: _snapController,
         curve: AppMotion.curveSwipeDismiss,
       ),
-    )..addListener(() {
-        setState(() {
-          _dragOffsetY = _snapAnimation!.value;
-        });
-      });
+    );
 
     _snapController.forward(from: 0.0).then((_) {
       if (mounted) {

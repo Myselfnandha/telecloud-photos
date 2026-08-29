@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../../core/cache/thumbnail_cache_service.dart';
 import '../../../../core/di/providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -68,6 +69,7 @@ class _StorageMaintenanceSettingsScreenState
           } catch (_) {}
         }
       }
+      ThumbnailCacheService().clearMemory();
       await _calculateCacheSize();
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);

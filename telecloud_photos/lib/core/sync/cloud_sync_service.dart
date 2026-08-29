@@ -143,29 +143,35 @@ class CloudSyncService {
 
   /// Full Historical Import: Scans entire channel history and topics to rebuild timeline
   Future<int> rebuildTimelineFromCloud() async {
-    _progressController.add(
-      const CloudSyncProgress(
-        status: CloudSyncStatus.syncing,
-        message: 'Connecting to Telegram Cloud...',
-      ),
-    );
+    if (!_progressController.isClosed) {
+      _progressController.add(
+        const CloudSyncProgress(
+          status: CloudSyncStatus.syncing,
+          message: 'Connecting to Telegram Cloud...',
+        ),
+      );
+    }
     try {
       final restored = await channelManager.syncFromCloud(mediaDao);
-      _progressController.add(
-        CloudSyncProgress(
-          status: CloudSyncStatus.completed,
-          syncedCount: restored,
-          message: 'Successfully synced $restored items from Telegram Cloud.',
-        ),
-      );
+      if (!_progressController.isClosed) {
+        _progressController.add(
+          CloudSyncProgress(
+            status: CloudSyncStatus.completed,
+            syncedCount: restored,
+            message: 'Successfully synced $restored items from Telegram Cloud.',
+          ),
+        );
+      }
       return restored;
     } catch (e) {
-      _progressController.add(
-        CloudSyncProgress(
-          status: CloudSyncStatus.error,
-          message: 'Sync error: $e',
-        ),
-      );
+      if (!_progressController.isClosed) {
+        _progressController.add(
+          CloudSyncProgress(
+            status: CloudSyncStatus.error,
+            message: 'Sync error: $e',
+          ),
+        );
+      }
       return 0;
     }
   }

@@ -73,9 +73,13 @@ class BatchOperationsService {
     if (destinationFolderPath != null && destinationFolderPath.isNotEmpty) {
       targetDir = Directory(destinationFolderPath);
     } else {
-      final extDir = await getExternalStorageDirectory();
-      targetDir = Directory(
-          '${extDir?.path ?? (await getApplicationDocumentsDirectory()).path}/TeleCloud_Export');
+      try {
+        final extDir = await getExternalStorageDirectory();
+        final basePath = extDir?.path ?? (await getApplicationDocumentsDirectory()).path;
+        targetDir = Directory('$basePath/TeleCloud_Export');
+      } catch (_) {
+        targetDir = Directory('${Directory.systemTemp.path}/TeleCloud_Export');
+      }
     }
 
     if (!targetDir.existsSync()) {

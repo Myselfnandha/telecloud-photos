@@ -265,10 +265,13 @@ class UploadQueue {
                   );
                 } else {
                   final delaySecs = (1 << attempts); // 2s, 4s, 8s backoff
+                  final jitterMs = DateTime.now().microsecondsSinceEpoch % 400;
                   TeleCloudLogger.upload(
                     'Upload failed for "${item.filename}". Retrying in ${delaySecs}s...',
                   );
-                  await Future.delayed(Duration(seconds: delaySecs));
+                  await Future.delayed(
+                    Duration(seconds: delaySecs, milliseconds: jitterMs),
+                  );
                 }
               }
 

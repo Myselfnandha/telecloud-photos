@@ -840,6 +840,25 @@ class ChannelManager {
     TeleCloudLogger.tdlib('Removed custom topic mapping for "$folderName"');
   }
 
+  /// Returns a clean emoji representing common device photo folders
+  static String getFolderDisplayEmoji(String folderName) {
+    final lower = folderName.trim().toLowerCase();
+    if (lower.contains('camera') || lower == 'dcim') return '📷';
+    if (lower.contains('screenshot')) return '📸';
+    if (lower.contains('whatsapp')) return '💬';
+    if (lower.contains('download')) return '⬇️';
+    if (lower.contains('instagram')) return '📱';
+    if (lower.contains('telegram')) return '✈️';
+    if (lower.contains('snapchat')) return '👻';
+    if (lower.contains('twitter') || lower.contains('x')) return '🐦';
+    if (lower.contains('facebook') || lower.contains('fb')) return '👥';
+    if (lower.contains('video') || lower.contains('movie')) return '🎬';
+    if (lower.contains('raw') || lower.contains('dng')) return '🎞️';
+    if (lower.contains('favorite') || lower.contains('fav')) return '⭐';
+    if (lower.contains('document') || lower.contains('receipt')) return '📄';
+    return '📁';
+  }
+
   /// Fetches all active custom folder-to-topic mappings for the active supergroup
   Future<Map<String, int>> getAllFolderTopicMappings() async {
     if (_channelId == null) return {};
@@ -858,4 +877,55 @@ class ChannelManager {
     }
     return result;
   }
+
+  /// Automatically creates topics with emoji badges and maps all unmapped folders
+  Future<Map<String, int>> autoCreateAndMapAllFolders(
+    List<String> folderNames,
+  ) async {
+    if (_channelId == null) {
+      await ensureBackupChannel();
+    }
+    if (_channelId == null) return {};
+
+    final existingMappings = await getAllFolderTopicMappings();
+    final existingTopics = await _fetchForumTopics();
+    final Map<String, int> resultMap = Map.from(existingMappings);
+
+    for (final rawName in folderNames) {
+      final cleanName = rawName.trim();
+      if (cleanName.isEmpty) continue;
+      final key = cleanName.toLowerCase();
+
+      // If already mapped, keep existing mapping
+      if (existingMappings.containsKey(key)) {
+        resultMap[key] = existingMappings[key]!;
+        continue;
+      }
+
+      final emoji = getFolderDisplayEmoji(cleanName);
+      final topicTitle = '$emoji $cleanName';
+
+      // Check if a topic with this title or name already exists in Telegram
+      int? matchedThreadId;
+      for (final t in existingTopics) {
+        final tName = t.info.name.trim().toLowerCase();
+        if (tName == topicTitle.toLowerCase() ||
+            tName == cleanName.toLowerCase()) {
+          matchedThreadId = t.info.messageThreadId;
+          break;
+        }
+      }
+
+      // If not found, create new topic
+      matchedThreadId ??= await createAlbumTopic(topicTitle);
+
+      if (matchedThreadId != null) {
+        await setFolderTopicMapping(cleanName, matchedThreadId);
+        resultMap[key] = matchedThreadId;
+      }
+    }
+
+    return resultMap;
+  }
 }
+

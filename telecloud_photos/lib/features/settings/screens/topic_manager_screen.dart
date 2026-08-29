@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:tdlib/td_api.dart' as td;
 import '../../../core/di/providers.dart';
+import '../../../core/telegram/channel_manager.dart';
 import '../../../shared/theme/app_colors.dart';
 import '../../../shared/theme/app_typography.dart';
 import '../widgets/telecloud_group_selector_sheet.dart';
@@ -15,10 +16,11 @@ class TopicManagerScreen extends ConsumerStatefulWidget {
 }
 
 class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
-    with SingleTickerProviderStateMixin {
+  with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<AssetPathEntity> _deviceFolders = [];
   bool _loadingFolders = true;
+  bool _isAutoOrganizing = false;
 
   @override
   void initState() {
@@ -54,6 +56,52 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
     } catch (_) {
       if (mounted) {
         setState(() => _loadingFolders = false);
+      }
+    }
+  }
+
+  Future<void> _autoOrganizeAllFolders() async {
+    if (_deviceFolders.isEmpty) return;
+    setState(() => _isAutoOrganizing = true);
+
+    try {
+      final channelMgr = ref.read(channelManagerProvider);
+      final folderNames = _deviceFolders
+          .map((f) => f.name.trim())
+          .where((n) => n.isNotEmpty)
+          .toList();
+
+      final results = await channelMgr.autoCreateAndMapAllFolders(folderNames);
+
+      ref.invalidate(supergroupTopicsProvider);
+      ref.invalidate(folderTopicMappingsProvider);
+
+      if (mounted) {
+        setState(() => _isAutoOrganizing = false);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              '🎉 Successfully organized & mapped ${results.length} device folders to Telegram topics!',
+            ),
+            backgroundColor: const Color(0xFF30D158),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isAutoOrganizing = false);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Auto-organize error: $e'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
@@ -758,33 +806,82 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // 1-Tap Auto-Organize Banner
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: AppColors.primaryBlue.withValues(alpha: 0.3),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0A84FF), Color(0xFF30D158)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.info_outline_rounded,
-                color: AppColors.primaryBlue,
-                size: 20,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0A84FF).withValues(alpha: 0.25),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Map local camera roll or device albums to dedicated Telegram Supergroup topics for structured cloud backups.',
-                  style: TextStyle(color: primaryTextColor, fontSize: 12),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
+                  SizedBox(width: 10),
+                  Text(
+                    '1-Tap Auto-Organize Folders',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Automatically create Telegram Supergroup topics with matching emojis for all device albums (Camera, WhatsApp, Screenshots, etc.) and route uploads.',
+                style: TextStyle(color: Colors.white, fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF0A84FF),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: _isAutoOrganizing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF0A84FF),
+                          ),
+                        )
+                      : const Icon(Icons.flash_on_rounded, size: 18),
+                  label: Text(
+                    _isAutoOrganizing
+                        ? 'Creating Topics in Telegram...'
+                        : 'Auto-Create & Map All Folders',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                  ),
+                  onPressed: _isAutoOrganizing ? null : _autoOrganizeAllFolders,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         if (_deviceFolders.isEmpty) ...[
           Container(
             padding: const EdgeInsets.all(32),
@@ -800,6 +897,7 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
             final folderName = rawName.isEmpty ? 'Main Storage' : rawName;
             final mappedTopicId = mappings[folderName.toLowerCase()] ??
                 mappings[folder.name.toLowerCase()];
+            final folderEmoji = ChannelManager.getFolderDisplayEmoji(folderName);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 14),
@@ -815,16 +913,16 @@ class _TopicManagerScreenState extends ConsumerState<TopicManagerScreen>
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF30D158).withValues(alpha: 0.15),
+                          color: const Color(0xFF30D158).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
-                          Icons.folder_rounded,
-                          color: Color(0xFF30D158),
-                          size: 20,
+                        child: Text(
+                          folderEmoji,
+                          style: const TextStyle(fontSize: 20),
                         ),
                       ),
                       const SizedBox(width: 12),

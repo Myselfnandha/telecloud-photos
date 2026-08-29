@@ -59,7 +59,7 @@ jobs:
 
       - name: Run Unit & Integration Tests
         working-directory: ./telecloud_photos
-        run: flutter test --concurrency=4 test/backup_engine_test.dart test/sync_suite_test.dart test/database_test.dart test/account_and_topic_test.dart test/unit/
+        run: flutter test --concurrency=4
 
       - name: Build Universal Release APK
         working-directory: ./telecloud_photos

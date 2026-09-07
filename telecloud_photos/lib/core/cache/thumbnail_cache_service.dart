@@ -262,4 +262,18 @@ class ThumbnailCacheService {
   void clearMemory() {
     _memoryCache.clear();
   }
+
+  Future<void> clearDiskCache() async {
+    _memoryCache.clear();
+    if (_diskCacheDir != null && await _diskCacheDir!.exists()) {
+      try {
+        final entities = _diskCacheDir!.listSync();
+        for (final entity in entities) {
+          if (entity is File) {
+            await entity.delete();
+          }
+        }
+      } catch (_) {}
+    }
+  }
 }

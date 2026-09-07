@@ -6,26 +6,12 @@ import 'package:telecloud_photos/features/auth/screens/onboarding_screen.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('OnboardingScreen widget tests', () {
+  group('OnboardingScreen Material 3 Expressive widget tests', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('renders first page elements correctly', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: OnboardingScreen(),
-        ),
-      );
-
-      expect(find.text('TeleCloud'), findsOneWidget);
-      expect(find.text('Skip'), findsOneWidget);
-      expect(find.text('SMART TIMELINE'), findsOneWidget);
-      expect(find.text('Your Photos,\nYour Cloud'), findsOneWidget);
-      expect(find.text('Continue'), findsOneWidget);
-    });
-
-    testWidgets('navigates to next pages and shows Get Started on last page', (
+    testWidgets('renders all M3 Expressive Onboarding & Auth elements correctly', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -34,20 +20,29 @@ void main() {
         ),
       );
 
-      // Page 1 -> Page 2
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+      // App Bar title
+      expect(find.text('TeleCloud Photos'), findsOneWidget);
 
-      expect(find.text('UNLIMITED & FREE'), findsOneWidget);
-      expect(find.text('Unlimited Telegram\nCloud Backup'), findsOneWidget);
+      // Filled card headline
+      expect(find.text('Unlimited Private Photo Cloud'), findsOneWidget);
 
-      // Page 2 -> Page 3
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+      // Chip group
+      expect(find.text('Unlimited Storage'), findsOneWidget);
+      expect(find.text('Zero Compression'), findsOneWidget);
+      expect(find.text('E2EE Privacy'), findsOneWidget);
 
-      expect(find.text('COMPLETE CONTROL'), findsOneWidget);
-      expect(find.text('Privacy-First &\nTotal Control'), findsOneWidget);
-      expect(find.text('Get Started'), findsOneWidget);
+      // Text field
+      expect(find.text('Telegram Phone Number'), findsOneWidget);
+
+      // Buttons
+      expect(find.text('Continue with Telegram Code'), findsOneWidget);
+      expect(find.text('Enter Telegram API ID & Hash Key'), findsOneWidget);
+
+      // Caption
+      expect(
+        find.text('Instant setup • Powered by TDLib & MTProto Client'),
+        findsOneWidget,
+      );
     });
   });
 }

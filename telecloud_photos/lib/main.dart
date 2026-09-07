@@ -5,6 +5,7 @@ import 'core/app_initializer.dart';
 import 'core/di/providers.dart';
 import 'shared/navigation/app_router.dart';
 import 'shared/theme/app_theme.dart';
+import 'shared/theme/m3e/m3e_theme.dart';
 import 'shared/theme/theme_provider.dart';
 
 void main() async {
@@ -31,23 +32,23 @@ class TeleCloudApp extends ConsumerWidget {
 
     switch (themeModeState) {
       case AppThemeMode.light:
-        activeTheme = AppTheme.lightTheme;
-        activeDarkTheme = AppTheme.lightTheme;
+        activeTheme = M3ETheme.lightTheme;
+        activeDarkTheme = M3ETheme.lightTheme;
         activeMaterialMode = ThemeMode.light;
         break;
       case AppThemeMode.dark:
-        activeTheme = AppTheme.darkTheme;
-        activeDarkTheme = AppTheme.darkTheme;
+        activeTheme = M3ETheme.darkTheme;
+        activeDarkTheme = M3ETheme.darkTheme;
         activeMaterialMode = ThemeMode.dark;
         break;
       case AppThemeMode.pureBlack:
-        activeTheme = AppTheme.pureBlackTheme;
-        activeDarkTheme = AppTheme.pureBlackTheme;
+        activeTheme = M3ETheme.amoledTheme;
+        activeDarkTheme = M3ETheme.amoledTheme;
         activeMaterialMode = ThemeMode.dark;
         break;
       case AppThemeMode.system:
-        activeTheme = AppTheme.lightTheme;
-        activeDarkTheme = AppTheme.pureBlackTheme;
+        activeTheme = M3ETheme.lightTheme;
+        activeDarkTheme = M3ETheme.darkTheme;
         activeMaterialMode = ThemeMode.system;
         break;
     }

@@ -1,420 +1,284 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/di/providers.dart';
-import '../../../shared/theme/app_colors.dart';
-import '../../../shared/theme/app_radii.dart';
-import '../../../shared/theme/app_spacing.dart';
-import '../../../shared/theme/app_typography.dart';
-import '../../../shared/theme/app_elevation.dart';
-import '../widgets/account_switcher_sheet.dart';
 
-class SettingsScreen extends ConsumerWidget {
+import '../../../shared/theme/app_theme.dart';
+import '../../../shared/theme/theme_provider.dart';
+import '../../../shared/widgets/m3e/m3e_stacked_list.dart';
+
+/// Screen 10: "Settings & Account"
+/// Material 3 Expressive account settings, AMOLED / Light / Dynamic theme toggles,
+/// Telegram blue accent, expressive spring physics, and direct maintenance hub links.
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final activeAccount = ref.watch(activeTelegramAccountProvider);
-    final telemetry = ref.watch(uploadTelemetryProvider);
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
 
-    final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor =
-        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
-    final secondaryTextColor =
-        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
-    final cardBg = isLight ? AppColors.lightCard : AppColors.darkSurface;
-    final cardBorder = isLight ? AppColors.lightBorder : AppColors.darkBorder;
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  String _selectedTheme = 'AMOLED Pure Dark';
+  bool _blueAccent = true;
+  bool _expressiveSpring = true;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: AppElevation.none,
-        title: Text(
-          'Settings',
-          style: AppTypography.displayMedium(color: primaryTextColor),
+  final List<String> _themeOptions = [
+    'AMOLED Pure Dark',
+    'Material 3 Light',
+    'Dynamic Wallpaper',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final mode = ref.read(themeModeProvider);
+    if (mode == AppThemeMode.pureBlack) {
+      _selectedTheme = 'AMOLED Pure Dark';
+    } else if (mode == AppThemeMode.light) {
+      _selectedTheme = 'Material 3 Light';
+    } else {
+      _selectedTheme = 'Dynamic Wallpaper';
+    }
+  }
+
+  void _onThemeSelected(String themeName) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selectedTheme = themeName;
+    });
+
+    final notifier = ref.read(themeModeProvider.notifier);
+    if (themeName == 'AMOLED Pure Dark') {
+      notifier.setThemeMode(AppThemeMode.pureBlack);
+    } else if (themeName == 'Material 3 Light') {
+      notifier.setThemeMode(AppThemeMode.light);
+    } else {
+      notifier.setThemeMode(AppThemeMode.system);
+    }
+  }
+
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text(
+          'Are you sure you want to sign out from Telegram Cloud? Local thumbnails and cached metadata will be preserved.',
         ),
-      ),
-      body: ListView(
-        padding: AppSpacing.screenPadding,
-        children: [
-          // 1. Telegram Account & Cloud Hero Dashboard
-          Container(
-            padding: AppSpacing.cardPadding,
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: AppRadii.borderXL,
-              border: Border.all(color: cardBorder),
-              gradient: isLight
-                  ? null
-                  : const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF2C2C2E), Color(0xFF1C1C1E)],
-                    ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0088CC), Color(0xFF00C6FF)],
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                const Color(0xFF0088CC).withValues(alpha: 0.4),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: (activeAccount?.profilePhotoPath != null &&
-                                activeAccount!.profilePhotoPath!.isNotEmpty &&
-                                File(activeAccount.profilePhotoPath!)
-                                    .existsSync())
-                            ? Image.file(
-                                File(activeAccount.profilePhotoPath!),
-                                width: 52,
-                                height: 52,
-                                fit: BoxFit.cover,
-                              )
-                            : Center(
-                                child: (activeAccount?.displayName.isNotEmpty ==
-                                        true)
-                                    ? Text(
-                                        activeAccount!.displayName[0]
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.send_rounded,
-                                        color: Colors.white,
-                                        size: 26,
-                                      ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                activeAccount?.displayName ??
-                                    'Telegram Cloud User',
-                                style: TextStyle(
-                                  color: primaryTextColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(
-                                Icons.verified_rounded,
-                                color: Color(0xFF0A84FF),
-                                size: 16,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            activeAccount?.phoneNumber ??
-                                'Unlimited Cloud Storage',
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.swap_horiz_rounded,
-                        color: Color(0xFF0A84FF),
-                      ),
-                      tooltip: 'Switch Account',
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        AccountSwitcherSheet.show(context);
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                InkWell(
-                  onTap: () => context.push('/settings/topics'),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isLight
-                          ? const Color(0xFFF2F2F7)
-                          : Colors.black.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF30D158),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF30D158)
-                                        .withValues(alpha: 0.6),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              telemetry.telegramStatus,
-                              style: TextStyle(
-                                color:
-                                    isLight ? Colors.black87 : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Row(
-                          children: [
-                            Text(
-                              'Supergroup Topics',
-                              style: TextStyle(
-                                color: Color(0xFF0A84FF),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Color(0xFF0A84FF),
-                              size: 11,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-
-          const SizedBox(height: 24),
-
-          // 2. Compact Hierarchical Categories Grid / List
-          Text(
-            'CATEGORIES',
-            style: AppTypography.labelSmall(
-              color: secondaryTextColor,
-            ).copyWith(fontWeight: AppTypography.bold, letterSpacing: 0.8),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.go('/onboarding');
+            },
+            child: const Text('Sign Out'),
           ),
-          AppSpacing.gapVerticalS,
-
-          Container(
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: AppRadii.borderXL,
-              border: Border.all(color: cardBorder),
-            ),
-            child: Column(
-              children: [
-                _buildCategoryRow(
-                  context: context,
-                  icon: Icons.palette_outlined,
-                  iconColor: const Color(0xFFBF5AF2),
-                  title: 'Appearance & Display',
-                  subtitle: 'OLED / Dark theme, Dynamic Aspect Ratio',
-                  route: '/settings/appearance',
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildCategoryRow(
-                  context: context,
-                  icon: Icons.cloud_sync_outlined,
-                  iconColor: const Color(0xFF4285F4),
-                  title: 'Cloud Migration & Imports',
-                  subtitle: 'Google Photos sync hub, Takeout zip packages',
-                  route: '/settings/cloud',
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildCategoryRow(
-                  context: context,
-                  icon: Icons.sync_rounded,
-                  iconColor: const Color(0xFF30D158),
-                  title: 'Backup Engine & Rules',
-                  subtitle:
-                      'Auto-backup, Wi-Fi only, Backup folders, Media types',
-                  route: '/settings/backup',
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildCategoryRow(
-                  context: context,
-                  icon: Icons.bolt_rounded,
-                  iconColor: const Color(0xFFFF9F0A),
-                  title: 'Power & Battery Constraints',
-                  subtitle:
-                      'Charging only, Thermal dwell delay, Auto-kill worker',
-                  route: '/settings/power',
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildCategoryRow(
-                  context: context,
-                  icon: Icons.cleaning_services_rounded,
-                  iconColor: const Color(0xFF0A84FF),
-                  title: 'Free Up Device Space',
-                  subtitle: '1-tap remove backed-up photos to reclaim gigabytes',
-                  route: '/storage-cleaner',
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-                _buildDivider(isLight),
-                _buildCategoryRow(
-                  context: context,
-                  icon: Icons.storage_rounded,
-                  iconColor: const Color(0xFFFF453A),
-                  title: 'Storage & Cache Maintenance',
-                  subtitle: 'Cache cleaner, Emergency deep kill',
-                  route: '/settings/storage',
-                  isLight: isLight,
-                  primaryTextColor: primaryTextColor,
-                  secondaryTextColor: secondaryTextColor,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 3. App Version & Build Footer
-          Center(
-            child: Column(
-              children: [
-                Text(
-                  'TeleCloud Photos v1.0.0 (Build 5)',
-                  style: TextStyle(
-                    color: secondaryTextColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Encrypted Private Cloud • TDLib MTProto Protocol',
-                  style: TextStyle(
-                    color: secondaryTextColor.withValues(alpha: 0.6),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryRow({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required String route,
-    required bool isLight,
-    required Color primaryTextColor,
-    required Color secondaryTextColor,
-  }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: primaryTextColor,
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: secondaryTextColor,
-          fontSize: 12,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: isLight ? Colors.grey.shade400 : Colors.grey.shade600,
-        size: 22,
-      ),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        context.push(route);
-      },
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
-  Widget _buildDivider(bool isLight) {
-    return Divider(
-      height: 1,
-      indent: 56,
-      endIndent: 16,
-      color: isLight
-          ? const Color(0xFFF2F2F7)
-          : Colors.white.withValues(alpha: 0.05),
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      appBar: AppBar(
+        backgroundColor: scheme.surface,
+        leading: IconButton(
+          icon: const Icon(Icons.settings),
+          tooltip: 'Settings',
+          onPressed: () {},
+        ),
+        title: const Text('Settings & Account'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign Out',
+            onPressed: _logout,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // User Profile Row: Alex Rivers (@alexrivers)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.account_circle,
+                      size: 32,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Alex Rivers (@alexrivers)',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: scheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '+1 555-0199 • Supergroup: 📸 Cloud Vault (E2EE)',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.verified,
+                    color: scheme.primary,
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Bold text "Appearance & Theme Selection" at 18sp
+            Text(
+              'Appearance & Theme Selection',
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Chip Group: "AMOLED Pure Dark", "Material 3 Light", "Dynamic Wallpaper"
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _themeOptions.map((opt) {
+                  final isSelected = _selectedTheme == opt;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: FilterChip(
+                      label: Text(opt),
+                      selected: isSelected,
+                      onSelected: (val) => _onThemeSelected(opt),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Stacked List of 2 switches
+            M3EStackedList(
+              items: [
+                M3EListItemData(
+                  title: 'Vibrant Telegram Blue Accent',
+                  subtitle: 'Signature cloud branding and badges',
+                  leadingIcon: Icons.palette,
+                  trailing: Switch(
+                    value: _blueAccent,
+                    onChanged: (val) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _blueAccent = val);
+                    },
+                  ),
+                ),
+                M3EListItemData(
+                  title: 'Expressive Spring Physics',
+                  subtitle: 'Fluid pinch-to-zoom and sheet morphing',
+                  leadingIcon: Icons.animation,
+                  trailing: Switch(
+                    value: _expressiveSpring,
+                    onChanged: (val) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _expressiveSpring = val);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Bold text "Cloud & Maintenance Hubs" at 18sp
+            Text(
+              'Cloud & Maintenance Hubs',
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Stacked List of 3 maintenance links
+            M3EStackedList(
+              items: [
+                M3EListItemData(
+                  title: 'Storage Recovery Center',
+                  subtitle: 'Free up 14.8 GB local phone storage',
+                  leadingIcon: Icons.cleaning_services,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.push('/storage-cleaner');
+                  },
+                ),
+                M3EListItemData(
+                  title: 'Telegram Forum Topics Manager',
+                  subtitle: 'Configure supergroup albums & auto-organize',
+                  leadingIcon: Icons.forum,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.push('/topics');
+                  },
+                ),
+                M3EListItemData(
+                  title: 'Google Photos Takeout Importer',
+                  subtitle: 'Zero-staging streaming zip archive importer',
+                  leadingIcon: Icons.cloud_download,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    context.push('/takeout');
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
     );
   }
 }

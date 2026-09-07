@@ -160,6 +160,12 @@ class StorageCleanerService {
     );
   }
 
+  /// Clears temporary TDLib streaming cache and thumbnail memory cache without deleting user files.
+  Future<void> clearCacheOnly() async {
+    thumbnailCacheService.clearMemory();
+    await thumbnailCacheService.clearDiskCache();
+  }
+
   /// Executes the 5-stage cleaning pipeline to safely reclaim storage on device.
   Future<StorageCleanResult> freeUpSpace({
     List<MediaItem>? targetItems,

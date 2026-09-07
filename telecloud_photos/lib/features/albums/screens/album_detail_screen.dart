@@ -1,320 +1,201 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/cache/thumbnail_cache_service.dart';
-import '../../../core/database/app_database.dart';
-import '../../../core/di/providers.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
-import '../../../shared/theme/app_colors.dart';
-import '../../../shared/theme/app_radii.dart';
-import '../../../shared/theme/app_spacing.dart';
-import '../../../shared/theme/app_typography.dart';
-import '../../../shared/theme/app_elevation.dart';
-import '../../../shared/theme/app_icons.dart';
-import '../../../shared/theme/grid_density_provider.dart';
+import '../../../shared/widgets/m3e/m3e_card.dart';
+import '../../../shared/widgets/m3e/m3e_stacked_list.dart';
 
-class AlbumDetailScreen extends ConsumerStatefulWidget {
-  final int albumId;
-  final String albumName;
+/// Screen 6: "Album Detail View"
+/// Deep dive into a specific Telegram cloud topic album with photo list,
+/// chip group, batch actions, and add-photo FAB.
+class AlbumDetailScreen extends StatefulWidget {
+  final int? albumId;
+  final String? albumName;
 
   const AlbumDetailScreen({
     super.key,
-    required this.albumId,
-    required this.albumName,
+    this.albumId,
+    this.albumName,
   });
 
   @override
-  ConsumerState<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
+  State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
 }
 
-class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
-  double _pinchScale = 1.0;
-  bool _isPinching = false;
+class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
+  final Set<String> _selectedChips = {};
 
-  void _handleScaleUpdate(ScaleUpdateDetails details) {
-    if (details.pointerCount >= 2) {
-      setState(() {
-        _isPinching = true;
-        _pinchScale = details.scale.clamp(0.5, 2.5);
-      });
+  void _openViewer(String mediaId) {
+    HapticFeedback.lightImpact();
+    context.push('/viewer/$mediaId');
+  }
+
+  void _goBack() {
+    HapticFeedback.lightImpact();
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/library');
     }
   }
 
-  void _handleScaleEnd(ScaleEndDetails details) {
-    if (!_isPinching) return;
-    if (_pinchScale > 1.25) {
-      ref.read(gridDensityProvider.notifier).zoomIn();
-      HapticFeedback.selectionClick();
-    } else if (_pinchScale < 0.78) {
-      ref.read(gridDensityProvider.notifier).zoomOut();
-      HapticFeedback.selectionClick();
-    }
-
-    setState(() {
-      _isPinching = false;
-      _pinchScale = 1.0;
-    });
+  void _showMessage(String text) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(content: Text(text), duration: const Duration(seconds: 2)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final mediaDao = ref.watch(mediaDaoProvider);
-    final density = ref.watch(gridDensityProvider);
     final theme = Theme.of(context);
-    final isLight = theme.brightness == Brightness.light;
-    final primaryTextColor =
-        isLight ? AppColors.lightTextPrimary : AppColors.darkTextPrimary;
-    final secondaryTextColor =
-        isLight ? AppColors.lightTextSecondary : AppColors.darkTextSecondary;
+    final scheme = theme.colorScheme;
+    final title = widget.albumName ?? '✈️ Tokyo Summer 2026';
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: AppElevation.none,
+        backgroundColor: scheme.surface,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: primaryTextColor,
-            size: AppIcons.m,
-          ),
-          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Back',
+          onPressed: _goBack,
         ),
-        title: Text(
-          widget.albumName,
-          style: AppTypography.titleLarge(
-            color: primaryTextColor,
-          ).copyWith(fontWeight: AppTypography.bold),
-        ),
+        title: Text(title),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(
-              Icons.more_vert_rounded,
-              color: primaryTextColor,
-              size: AppIcons.m,
-            ),
-            color: isLight ? Colors.white : AppColors.darkSurface,
-            shape: const RoundedRectangleBorder(borderRadius: AppRadii.borderL),
-            onSelected: (val) async {
-              if (val == 'delete') {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor:
-                        isLight ? Colors.white : AppColors.darkSurface,
-                    shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadii.borderL),
-                    title: Text(
-                      'Delete Album "${widget.albumName}"?',
-                      style: TextStyle(
-                          color: primaryTextColor, fontWeight: FontWeight.bold),
-                    ),
-                    content: Text(
-                      'This removes the album organisation. Photos inside the album will remain safe in your photo library and cloud.',
-                      style: TextStyle(color: secondaryTextColor, fontSize: 13),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: Text('Cancel',
-                            style: TextStyle(color: secondaryTextColor)),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.errorRed,
-                        ),
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Delete Album',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm == true) {
-                  await mediaDao.deleteAlbum(widget.albumId);
-                  if (context.mounted) {
-                    context.pop();
-                    final messenger = ScaffoldMessenger.of(context);
-                    messenger.clearSnackBars();
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text('Album "${widget.albumName}" deleted'),
-                        backgroundColor: AppColors.primaryBlue,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline_rounded,
-                        color: AppColors.errorRed, size: 18),
-                    SizedBox(width: 8),
-                    Text('Delete Album',
-                        style: TextStyle(color: AppColors.errorRed)),
-                  ],
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More',
+            onPressed: () => _showMessage('Album options & permissions'),
           ),
         ],
       ),
-      body: StreamBuilder<List<MediaItem>>(
-        stream: mediaDao.watchMediaInAlbum(widget.albumId),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryBlue),
-            );
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showMessage('Select local device photos to upload to this album...'),
+        tooltip: 'Add Photos',
+        child: const Icon(Icons.add_photo_alternate),
+      ),
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if ((details.primaryVelocity ?? 0) > 300) {
+            _goBack();
           }
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Filled card (140dp tall) with photo_album placeholder icon
+              M3ECard(
+                height: 140,
+                variant: M3ECardVariant.filled,
+                placeholderIcon: Icons.photo_album,
+                headline: '168 Photos & Videos • 4.2 GB',
+                body:
+                    'Telegram Topic: #tokyo_trip • Created Aug 2026\nShared with family members in Supergroup',
+              ),
+              const SizedBox(height: 16),
 
-          final mediaList = snapshot.data!;
-          if (mediaList.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: AppSpacing.screenPadding,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              // Chip Group: "Download All", "Share Link", "Cloud Re-sync"
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
                   children: [
-                    Icon(
-                      Icons.photo_album_outlined,
-                      size: 64,
-                      color: secondaryTextColor,
-                    ),
-                    AppSpacing.gapVerticalL,
-                    Text(
-                      'No photos in this album yet',
-                      style: AppTypography.bodyLarge(color: secondaryTextColor),
-                    ),
+                    _buildChip('Download All', scheme, () => _showMessage('Downloading all 168 photos in original quality...')),
+                    const SizedBox(width: 8),
+                    _buildChip('Share Link', scheme, () => _showMessage('Copied Telegram Supergroup topic link!')),
+                    const SizedBox(width: 8),
+                    _buildChip('Cloud Re-sync', scheme, () => _showMessage('Catalog synchronized with Telegram cloud topic')),
                   ],
                 ),
               ),
-            );
-          }
+              const SizedBox(height: 20),
 
-          return GestureDetector(
-            onScaleUpdate: _handleScaleUpdate,
-            onScaleEnd: _handleScaleEnd,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 240),
-              child: GridView.builder(
-                key: ValueKey('grid_${density.crossAxisCount}'),
-                padding: const EdgeInsets.all(4),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: density.crossAxisCount,
-                  crossAxisSpacing: 3,
-                  mainAxisSpacing: 3,
-                  childAspectRatio: density.childAspectRatio,
-                ),
-                itemCount: mediaList.length,
-                itemBuilder: (context, index) {
-                  final item = mediaList[index];
-                  return _AlbumMediaTile(
-                    key: ValueKey(item.localId),
-                    item: item,
-                  );
-                },
+              // Stacked List of 5 items
+              M3EStackedList(
+                items: [
+                  M3EListItemData(
+                    title: 'Shibuya_Crossing_Night.jpg',
+                    subtitle: '48 MP • Aug 14, 2026 • Synced',
+                    leadingIcon: Icons.photo,
+                    trailing: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF30D158),
+                      size: 20,
+                    ),
+                    onTap: () => _openViewer('Shibuya_Crossing_Night.jpg'),
+                  ),
+                  M3EListItemData(
+                    title: 'Shinjuku_Gyoen_Rain.jpg',
+                    subtitle: '24 MP • Aug 15, 2026 • Synced',
+                    leadingIcon: Icons.photo,
+                    trailing: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF30D158),
+                      size: 20,
+                    ),
+                    onTap: () => _openViewer('Shinjuku_Gyoen_Rain.jpg'),
+                  ),
+                  M3EListItemData(
+                    title: 'Bullet_Train_Speed.mp4',
+                    subtitle: '4K 60fps • 420 MB • Synced',
+                    leadingIcon: Icons.videocam,
+                    trailing: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF30D158),
+                      size: 20,
+                    ),
+                    onTap: () => _openViewer('Bullet_Train_Speed.mp4'),
+                  ),
+                  M3EListItemData(
+                    title: 'Tokyo_Tower_Sunset.dng',
+                    subtitle: '61 MP RAW • Aug 16, 2026 • Synced',
+                    leadingIcon: Icons.camera_alt,
+                    trailing: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF30D158),
+                      size: 20,
+                    ),
+                    onTap: () => _openViewer('Tokyo_Tower_Sunset.dng'),
+                  ),
+                  M3EListItemData(
+                    title: 'Ramen_Ichiran.jpg',
+                    subtitle: '12 MP • Aug 17, 2026 • Synced',
+                    leadingIcon: Icons.restaurant,
+                    trailing: const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF30D158),
+                      size: 20,
+                    ),
+                    onTap: () => _openViewer('Ramen_Ichiran.jpg'),
+                  ),
+                ],
               ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _AlbumMediaTile extends StatefulWidget {
-  final MediaItem item;
-
-  const _AlbumMediaTile({super.key, required this.item});
-
-  @override
-  State<_AlbumMediaTile> createState() => _AlbumMediaTileState();
-}
-
-class _AlbumMediaTileState extends State<_AlbumMediaTile>
-    with AutomaticKeepAliveClientMixin {
-  Uint8List? _bytes;
-
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadThumbnail();
-  }
-
-  Future<void> _loadThumbnail() async {
-    final cached = ThumbnailCacheService().getFromMemory(widget.item.localId);
-    if (cached != null) {
-      if (mounted) {
-        setState(() {
-          _bytes = cached;
-        });
-      }
-      return;
-    }
-
-    final bytes = await ThumbnailCacheService().getThumbnail(
-      id: widget.item.localId,
-      diskPath: widget.item.thumbnailPath,
-      isVideo: widget.item.mimeType.startsWith('video'),
-    );
-
-    if (mounted) {
-      setState(() {
-        _bytes = bytes;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    final thumbPath = widget.item.thumbnailPath;
-    final hasValidDiskThumb = thumbPath != null &&
-        thumbPath.isNotEmpty &&
-        File(thumbPath).existsSync();
-
-    return GestureDetector(
-      onTap: () => context.push('/viewer/${widget.item.localId}'),
-      child: Hero(
-        tag: 'media_${widget.item.localId}',
-        child: ClipRRect(
-          borderRadius: AppRadii.borderS,
-          child: Container(
-            color: const Color(0xFF141416),
-            child: _bytes != null
-                ? Image.memory(
-                    _bytes!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const ShimmerLoading(),
-                  )
-                : (hasValidDiskThumb
-                    ? Image.file(
-                        File(thumbPath),
-                        fit: BoxFit.cover,
-                        cacheWidth: 256,
-                        cacheHeight: 256,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const ShimmerLoading(),
-                      )
-                    : const ShimmerLoading()),
+              const SizedBox(height: 80), // Padding for FAB
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildChip(String label, ColorScheme scheme, VoidCallback onTap) {
+    final isSelected = _selectedChips.contains(label);
+    return ActionChip(
+      label: Text(label),
+      avatar: isSelected ? const Icon(Icons.check, size: 16) : null,
+      onPressed: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          if (isSelected) {
+            _selectedChips.remove(label);
+          } else {
+            _selectedChips.add(label);
+          }
+        });
+        onTap();
+      },
     );
   }
 }

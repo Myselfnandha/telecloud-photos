@@ -136,16 +136,16 @@ final appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/library',
-              builder: (context, state) => const LibraryScreen(),
+              path: '/uploads',
+              builder: (context, state) => const UploadsScreen(),
             ),
           ],
         ),
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/uploads',
-              builder: (context, state) => const UploadsScreen(),
+              path: '/library',
+              builder: (context, state) => const LibraryScreen(),
             ),
           ],
         ),
@@ -232,7 +232,18 @@ final appRouter = GoRouter(
         context: context,
         state: state,
         child: AlbumDetailScreen(
-          albumId: int.parse(state.pathParameters['id']!),
+          albumId: int.tryParse(state.pathParameters['id'] ?? '0') ?? 0,
+          albumName: state.extra as String? ?? 'Album',
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/album/:id',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: AlbumDetailScreen(
+          albumId: int.tryParse(state.pathParameters['id'] ?? '0') ?? 0,
           albumName: state.extra as String? ?? 'Album',
         ),
       ),
@@ -267,6 +278,22 @@ final appRouter = GoRouter(
         context: context,
         state: state,
         child: const GooglePhotosHubScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/takeout',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const GooglePhotosHubScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/topics',
+      pageBuilder: (context, state) => buildTransitionPage(
+        context: context,
+        state: state,
+        child: const TopicManagerScreen(),
       ),
     ),
     GoRoute(

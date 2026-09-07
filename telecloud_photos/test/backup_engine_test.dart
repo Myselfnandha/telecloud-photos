@@ -8,6 +8,7 @@ import 'package:telecloud_photos/core/database/daos/media_dao.dart';
 import 'package:telecloud_photos/core/database/tables/media_table.dart';
 import 'package:telecloud_photos/core/backup/upload_queue.dart';
 import 'package:telecloud_photos/core/backup/backup_manager.dart';
+import 'package:telecloud_photos/core/constants/app_constants.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -245,6 +246,48 @@ void main() {
 
       final item = await dao.getMediaById('album_item_1');
       expect(item?.uploadStatus, UploadStatus.pending);
+    });
+  });
+
+  group('Backup Policy Presets — Configuration Tests', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('1. Smart Mode configures Wi-Fi true, cellular false, chargingOnly false', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.keyBackupProfile, AppConstants.backupProfileSmart);
+      await prefs.setBool(AppConstants.keyWifiOnly, true);
+      await prefs.setBool(AppConstants.keyAllowMobileData, false);
+      await prefs.setBool(AppConstants.keyChargingOnly, false);
+
+      expect(prefs.getString(AppConstants.keyBackupProfile), AppConstants.backupProfileSmart);
+      expect(prefs.getBool(AppConstants.keyWifiOnly), isTrue);
+      expect(prefs.getBool(AppConstants.keyAllowMobileData), isFalse);
+      expect(prefs.getBool(AppConstants.keyChargingOnly), isFalse);
+    });
+
+    test('2. Battery Saver Mode configures chargingOnly true and 30m dwell', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.keyBackupProfile, AppConstants.backupProfileBatterySaver);
+      await prefs.setBool(AppConstants.keyChargingOnly, true);
+      await prefs.setInt(AppConstants.keyChargingDwellMins, 30);
+      await prefs.setBool(AppConstants.keyWifiOnly, true);
+
+      expect(prefs.getString(AppConstants.keyBackupProfile), AppConstants.backupProfileBatterySaver);
+      expect(prefs.getBool(AppConstants.keyChargingOnly), isTrue);
+      expect(prefs.getInt(AppConstants.keyChargingDwellMins), 30);
+    });
+
+    test('3. Real-Time Mode enables mobile data and sets wifiOnly false', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(AppConstants.keyBackupProfile, AppConstants.backupProfileRealTime);
+      await prefs.setBool(AppConstants.keyWifiOnly, false);
+      await prefs.setBool(AppConstants.keyAllowMobileData, true);
+
+      expect(prefs.getString(AppConstants.keyBackupProfile), AppConstants.backupProfileRealTime);
+      expect(prefs.getBool(AppConstants.keyWifiOnly), isFalse);
+      expect(prefs.getBool(AppConstants.keyAllowMobileData), isTrue);
     });
   });
 }

@@ -17,22 +17,21 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build & Release APK
+  # ============================================================================
+  # Fast Pre-Flight Quality Gate (Analyzes and tests before compiling APKs)
+  # ============================================================================
+  quality-check:
+    name: Lint & Test Gate
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -40,13 +39,15 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Verify Flutter & Environment
-        working-directory: ./telecloud_photos
-        run: |
-          flutter --version
-          java -version
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('telecloud_photos/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
 
-      - name: Install Flutter Dependencies
+      - name: Install Dependencies
         working-directory: ./telecloud_photos
         run: flutter pub get
 
@@ -55,25 +56,109 @@ jobs:
         run: flutter analyze
 
       - name: Install Linux Test Dependencies
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libsqlite3-dev
 
-      - name: Run Unit & Integration Tests
+      - name: Run Tests
         working-directory: ./telecloud_photos
         run: flutter test --concurrency=4
 
-      - name: Build Universal Release APK
-        working-directory: ./telecloud_photos
-        run: flutter build apk --release
+  # ============================================================================
+  # High-Speed Parallel Build Matrix (Universal & ABI-Split APKs build concurrently)
+  # ============================================================================
+  build-apk:
+    name: Build (${{ matrix.target_name }})
+    needs: quality-check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_name: 'Universal APK'
+            build_flag: '--release'
+            artifact_key: 'universal'
+          - target_name: 'ABI-Split APKs'
+            build_flag: '--release --split-per-abi'
+            artifact_key: 'split'
 
-      - name: Build ABI-Split Release APKs (arm64, arm32, x86_64)
-        working-directory: ./telecloud_photos
-        run: flutter build apk --release --split-per-abi
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Prepare & Rename Release Binaries
-        id: prepare_apks
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle Cache Engine
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          gradle-home-cache-cleanup: true
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('telecloud_photos/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install Flutter Dependencies
+        working-directory: ./telecloud_photos
+        run: flutter pub get
+
+      - name: Compile ${{ matrix.target_name }}
+        working-directory: ./telecloud_photos
         run: |
-          mkdir -p release_binaries
-          
+          flutter build apk ${{ matrix.build_flag }}
+
+      - name: Stage Artifacts
+        run: |
+          mkdir -p staging_apks
+          find telecloud_photos/build/app/outputs/flutter-apk/ -type f -name "*.apk" -exec cp {} staging_apks/ \;
+          ls -lh staging_apks/
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks-${{ matrix.artifact_key }}
+          path: staging_apks/*.apk
+          retention-days: 7
+
+  # ============================================================================
+  # Release Publisher (Collects parallel outputs & creates GitHub Release)
+  # ============================================================================
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-apk
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Universal APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apks-universal
+          path: release_binaries
+
+      - name: Download Split APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: apks-split
+          path: release_binaries
+
+      - name: Process & Standardize Release Binaries
+        id: prepare_release
+        run: |
           # Determine Version Tag
           if [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${{ github.ref_name }}"
@@ -82,46 +167,59 @@ jobs:
           else
             VERSION="v1.0.0-build.${{ github.run_number }}"
           fi
-          
-          # Universal Release APK
-          cp telecloud_photos/build/app/outputs/flutter-apk/app-release.apk release_binaries/TeleCloud-Photos-${VERSION}.apk
-          
-          # ABI-specific APKs
-          if [ -f "telecloud_photos/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk" ]; then
-            cp telecloud_photos/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release_binaries/TeleCloud-Photos-${VERSION}-arm64-v8a.apk
+
+          cd release_binaries
+
+          # Rename universal APK
+          if [ -f "app-release.apk" ]; then
+            mv app-release.apk TeleCloud-Photos-${VERSION}-universal.apk
           fi
-          if [ -f "telecloud_photos/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk" ]; then
-            cp telecloud_photos/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release_binaries/TeleCloud-Photos-${VERSION}-armeabi-v7a.apk
+
+          # Rename ABI split APKs
+          if [ -f "app-arm64-v8a-release.apk" ]; then
+            mv app-arm64-v8a-release.apk TeleCloud-Photos-${VERSION}-arm64-v8a.apk
           fi
-          if [ -f "telecloud_photos/build/app/outputs/flutter-apk/app-x86_64-release.apk" ]; then
-            cp telecloud_photos/build/app/outputs/flutter-apk/app-x86_64-release.apk release_binaries/TeleCloud-Photos-${VERSION}-x86_64.apk
+          if [ -f "app-armeabi-v7a-release.apk" ]; then
+            mv app-armeabi-v7a-release.apk TeleCloud-Photos-${VERSION}-armeabi-v7a.apk
           fi
+          if [ -f "app-x86_64-release.apk" ]; then
+            mv app-x86_64-release.apk TeleCloud-Photos-${VERSION}-x86_64.apk
+          fi
+
+          # Generate SHA-256 Checksums
+          sha256sum *.apk > SHA256SUMS.txt
 
           echo "VERSION_TAG=${VERSION}" >> $GITHUB_OUTPUT
-          ls -lh release_binaries/
+          ls -lh
 
-      - name: Create GitHub Release & Upload APKs
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.prepare_apks.outputs.VERSION_TAG }}
-          name: "TeleCloud Photos ${{ steps.prepare_apks.outputs.VERSION_TAG }}"
+          tag_name: ${{ steps.prepare_release.outputs.VERSION_TAG }}
+          name: "TeleCloud Photos ${{ steps.prepare_release.outputs.VERSION_TAG }}"
           body: |
-            ## 🌌 TeleCloud Photos ${{ steps.prepare_apks.outputs.VERSION_TAG }}
-            
-            ### ✨ What's New in this Release:
-            - **📸 High-Performance Timeline**: Silky-smooth two-finger pinch-to-zoom density scaling (1–6 columns) with locked 120Hz refresh rate.
-            - **🎨 iOS & Modern Adaptive Icon**: Full-bleed glassmorphism squircle app icon without white circle borders.
-            - **📁 Monitored Backup Folders**: Live folder scanning (<50ms), status indicators, and dedicated "Manual Folder Upload" trigger.
-            - **⚙️ Hierarchical Settings**: Compact 5-category master dashboard with dedicated sub-screens for Appearance, Cloud Migration, Backup Rules, Power Policies, and Storage Maintenance.
-            - **🎯 Strict Media Classification**: Enhanced detection for Live Photos (`MVIMG_`, motion photos) and ultra-wide Panoramas (aspect ratio ≥ 2.4:1).
-            - **🔄 Authentic Google Photos Sync**: Bit-for-bit original resolution cloud migration directly from Google OAuth2 endpoints.
-            - **🏷️ Supergroup Topic Management**: Real-time forum channel synchronization with fallback naming for root storage folders.
-            
+            ## 🌌 TeleCloud Photos ${{ steps.prepare_release.outputs.VERSION_TAG }}
+
+            ### 🚀 High-Speed CI/CD Build Improvements:
+            - **⚡ Parallel Matrix Compilation**: Universal and ABI-split APKs compiled concurrently in separate runners.
+            - **📦 Advanced Gradle Caching**: Native Gradle build-cache and Pub package caching enabled for ultra-fast CI turnaround.
+            - **🛡️ Strict Quality Gate**: Pre-flight test and static analysis gate before compiling binaries.
+
+            ### ✨ Features Included:
+            - **🔒 Strict Telegram Authentication**: Enforced Telegram API ID & Hash Key setup + Phone OTP verification before timeline access.
+            - **⚙️ 3 Backup Policy Presets**: Intelligent Smart Mode, Conservative Battery Saver, and Instant Real-Time mode in Settings.
+            - **🎨 Material 3 Expressive UI**: Complete 10-screen design system with wavy progress indicators, pill buttons, and connected cards.
+            - **📁 Forum Topic Mirroring**: Direct folder-to-topic mapping in private Supergroups.
+            - **🔄 Zero-Staging Google Takeout**: Memory-streamed Google Photos archives with JSON EXIF restoration.
+
             ---
-            ### 📦 Download Assets:
-            - **`TeleCloud-Photos-${{ steps.prepare_apks.outputs.VERSION_TAG }}.apk`** (Universal — Recommended for all Android devices)
-            - **`TeleCloud-Photos-${{ steps.prepare_apks.outputs.VERSION_TAG }}-arm64-v8a.apk`** (Optimized for modern 64-bit phones)
-          files: release_binaries/*.apk
+            ### 📦 Download Assets & Checksums:
+            - **`TeleCloud-Photos-${{ steps.prepare_release.outputs.VERSION_TAG }}-arm64-v8a.apk`** (Recommended for all modern 64-bit phones)
+            - **`TeleCloud-Photos-${{ steps.prepare_release.outputs.VERSION_TAG }}-universal.apk`** (Compatible with all Android devices)
+            - **`SHA256SUMS.txt`** (Cryptographic verification checksums)
+          files: |
+            release_binaries/*.apk
+            release_binaries/SHA256SUMS.txt
           draft: false
           prerelease: false
           generate_release_notes: true

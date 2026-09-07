@@ -27,10 +27,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _navigateToTimeline() {
+  void _navigateToPhoneLogin() {
     HapticFeedback.lightImpact();
-    // Navigate with fade to Photos Timeline
-    context.go('/timeline');
+    // Strict authentication gate: proceed to Telegram API credentials setup
+    context.go('/setup');
+  }
+
+  void _navigateToApiSetup() {
+    HapticFeedback.lightImpact();
+    // Direct configuration of Telegram API credentials
+    context.go('/setup');
   }
 
   void _showHelpDialog() {
@@ -127,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: 380,
                 height: 56,
                 child: FilledButton.icon(
-                  onPressed: _navigateToTimeline,
+                  onPressed: _navigateToPhoneLogin,
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('Continue with Telegram Code'),
                 ),
@@ -139,7 +145,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: 380,
                 height: 56,
                 child: OutlinedButton.icon(
-                  onPressed: _navigateToTimeline,
+                  onPressed: _navigateToApiSetup,
                   icon: const Icon(Icons.edit_square),
                   label: const Text('Enter Telegram API ID & Hash Key'),
                 ),

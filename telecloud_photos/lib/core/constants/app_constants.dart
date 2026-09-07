@@ -143,7 +143,12 @@ class AppConstants {
   static const bool defaultIncludeMp4Videos = true;
   static const bool defaultIncludeMovVideos = true;
   static const bool defaultIncludeScreenshots = true;
-
   static const int defaultWaitConnectMins = 5;
   static const int defaultWaitDisconnectMins = 5;
+
+  // Backup Policy Profiles
+  static const String keyBackupProfile = 'telecloud_backup_profile';
+  static const String backupProfileSmart = 'smart';
+  static const String backupProfileBatterySaver = 'battery_saver';
+  static const String backupProfileRealTime = 'real_time';
 }

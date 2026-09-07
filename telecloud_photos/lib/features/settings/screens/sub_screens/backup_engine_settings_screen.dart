@@ -32,6 +32,7 @@ class _BackupEngineSettingsScreenState
   bool _uploadMp4Videos = true;
   bool _uploadMovVideos = true;
   bool _uploadScreenshots = true;
+  String _activeProfile = AppConstants.backupProfileSmart;
 
   @override
   void initState() {
@@ -42,6 +43,8 @@ class _BackupEngineSettingsScreenState
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
+      _activeProfile = prefs.getString(AppConstants.keyBackupProfile) ??
+          AppConstants.backupProfileSmart;
       _autoBackupEnabled = prefs.getBool(AppConstants.keyAutoBackupEnabled) ??
           AppConstants.defaultAutoBackupEnabled;
       _wifiOnly = prefs.getBool(AppConstants.keyWifiOnly) ??
@@ -68,6 +71,45 @@ class _BackupEngineSettingsScreenState
       _uploadScreenshots = prefs.getBool(AppConstants.keyIncludeScreenshots) ??
           AppConstants.defaultIncludeScreenshots;
     });
+  }
+
+  Future<void> _applyProfile(String profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _activeProfile = profile;
+      if (profile == AppConstants.backupProfileSmart) {
+        _wifiOnly = true;
+        _allowMobileData = false;
+        _dailyCellularLimitMb = 0;
+      } else if (profile == AppConstants.backupProfileBatterySaver) {
+        _wifiOnly = true;
+        _allowMobileData = false;
+      } else if (profile == AppConstants.backupProfileRealTime) {
+        _wifiOnly = false;
+        _allowMobileData = true;
+        _dailyCellularLimitMb = 0;
+      }
+    });
+
+    await prefs.setString(AppConstants.keyBackupProfile, profile);
+    await prefs.setBool(AppConstants.keyWifiOnly, _wifiOnly);
+    await prefs.setBool(AppConstants.keyAllowMobileData, _allowMobileData);
+    await prefs.setInt(
+      AppConstants.keyDailyCellularDataLimitMb,
+      _dailyCellularLimitMb,
+    );
+
+    if (profile == AppConstants.backupProfileBatterySaver) {
+      await prefs.setBool(AppConstants.keyChargingOnly, true);
+      await prefs.setInt(AppConstants.keyChargingDwellMins, 30);
+    } else {
+      await prefs.setBool(AppConstants.keyChargingOnly, false);
+    }
+
+    await ref
+        .read(backupManagerProvider.notifier)
+        .scheduleBackgroundWorker(forceReschedule: true);
   }
 
   Future<void> _saveSetting(String key, dynamic value) async {
@@ -144,6 +186,55 @@ class _BackupEngineSettingsScreenState
                 HapticFeedback.selectionClick();
               },
             ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Text(
+            'BACKUP POLICY PRESETS',
+            style: AppTypography.labelSmall(
+              color: secondaryTextColor,
+            ).copyWith(fontWeight: AppTypography.bold, letterSpacing: 0.8),
+          ),
+          AppSpacing.gapVerticalS,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildPresetChip(
+                label: 'Smart Mode',
+                icon: Icons.auto_awesome_rounded,
+                subtitle: 'Wi-Fi • Live Telemetry',
+                preset: AppConstants.backupProfileSmart,
+                isSelected: _activeProfile == AppConstants.backupProfileSmart,
+                cardBg: cardBg,
+                cardBorder: cardBorder,
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+              ),
+              _buildPresetChip(
+                label: 'Battery Saver',
+                icon: Icons.battery_charging_full_rounded,
+                subtitle: 'Charging + Wi-Fi Only',
+                preset: AppConstants.backupProfileBatterySaver,
+                isSelected: _activeProfile == AppConstants.backupProfileBatterySaver,
+                cardBg: cardBg,
+                cardBorder: cardBorder,
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+              ),
+              _buildPresetChip(
+                label: 'Real-Time',
+                icon: Icons.bolt_rounded,
+                subtitle: 'Cellular + Wi-Fi Direct',
+                preset: AppConstants.backupProfileRealTime,
+                isSelected: _activeProfile == AppConstants.backupProfileRealTime,
+                cardBg: cardBg,
+                cardBorder: cardBorder,
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+              ),
+            ],
           ),
 
           const SizedBox(height: 24),
@@ -620,6 +711,69 @@ class _BackupEngineSettingsScreenState
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetChip({
+    required String label,
+    required IconData icon,
+    required String subtitle,
+    required String preset,
+    required bool isSelected,
+    required Color cardBg,
+    required Color cardBorder,
+    required Color primaryTextColor,
+    required Color secondaryTextColor,
+  }) {
+    return InkWell(
+      onTap: () => _applyProfile(preset),
+      borderRadius: AppRadii.borderL,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primaryBlue.withValues(alpha: 0.15)
+              : cardBg,
+          borderRadius: AppRadii.borderL,
+          border: Border.all(
+            color: isSelected ? AppColors.primaryBlue : cardBorder,
+            width: isSelected ? 1.8 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.primaryBlue : secondaryTextColor,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? AppColors.primaryBlue : primaryTextColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

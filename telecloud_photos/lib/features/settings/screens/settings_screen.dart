@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/di/providers.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../../shared/theme/theme_provider.dart';
 import '../../../shared/widgets/m3e/m3e_stacked_list.dart';
@@ -39,6 +41,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } else {
       _selectedTheme = 'Dynamic Wallpaper';
     }
+
+    Future.microtask(() {
+      try {
+        ref.read(telegramAuthManagerProvider).refreshAccountProfile();
+      } catch (_) {}
+    });
   }
 
   void _onThemeSelected(String themeName) {
@@ -57,27 +65,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _logout() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text(
-          'Are you sure you want to sign out from Telegram Cloud? Local thumbnails and cached metadata will be preserved.',
+  Widget _buildInitialsAvatar(String name, ColorScheme scheme) {
+    final initials = name.isNotEmpty
+        ? name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
+        : 'TC';
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.primary,
+            scheme.tertiary,
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: scheme.onPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.go('/onboarding');
-            },
-            child: const Text('Sign Out'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -86,31 +101,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final activeAccount = ref.watch(activeTelegramAccountProvider);
+
+    final uname = activeAccount?.username;
+    final displayName = (activeAccount?.firstName != null || activeAccount?.lastName != null)
+        ? '${activeAccount?.firstName ?? ""} ${activeAccount?.lastName ?? ""}'.trim()
+        : (uname != null && uname.isNotEmpty
+            ? '@$uname'
+            : 'Telegram User');
+
+    final usernameTag = (uname != null && uname.isNotEmpty)
+        ? ' (@$uname)'
+        : '';
+    final phone = activeAccount?.phoneNumber ?? '';
+    final photoPath = activeAccount?.profilePhotoPath;
+    final hasValidPhoto = photoPath != null && photoPath.isNotEmpty && File(photoPath).existsSync();
+
+    Widget avatarWidget;
+    if (hasValidPhoto) {
+      avatarWidget = ClipOval(
+        child: Image.file(
+          File(photoPath),
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildInitialsAvatar(displayName, scheme),
+        ),
+      );
+    } else {
+      avatarWidget = _buildInitialsAvatar(displayName, scheme);
+    }
+
+    final supergroupSubtitle = phone.isNotEmpty
+        ? '$phone • Supergroup: 📸 TeleCloud Photos (E2EE)'
+        : 'Supergroup: 📸 TeleCloud Photos (E2EE)';
 
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: scheme.surface,
         leading: IconButton(
-          icon: const Icon(Icons.settings),
-          tooltip: 'Settings',
-          onPressed: () {},
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
         ),
         title: const Text('Settings & Account'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign Out',
-            onPressed: _logout,
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Sign Out of Telegram Cloud?'),
+                  content: const Text(
+                    'Your local media database will remain cached, but Telegram Cloud supergroup sync will be paused until you sign back in.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true && context.mounted) {
+                HapticFeedback.heavyImpact();
+                ref.read(telegramAuthManagerProvider).logout();
+                if (context.mounted) context.go('/onboarding');
+              }
+            },
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User Profile Row: Alex Rivers (@alexrivers)
+            // Live Real User Profile Row
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
@@ -119,39 +193,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.account_circle,
-                      size: 32,
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
+                  avatarWidget,
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Alex Rivers (@alexrivers)',
+                          '$displayName$usernameTag',
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: scheme.onSurface,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '+1 555-0199 • Supergroup: 📸 Cloud Vault (E2EE)',
+                          supergroupSubtitle,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),

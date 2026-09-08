@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 import '../cache/thumbnail_cache_service.dart';
@@ -58,15 +61,21 @@ class StorageCleanSummary {
   final int photoCount;
   final int videoCount;
   final int totalBytes;
+  final int tdlibCacheBytes;
+  final int thumbnailCacheBytes;
 
   const StorageCleanSummary({
     this.totalItems = 0,
     this.photoCount = 0,
     this.videoCount = 0,
     this.totalBytes = 0,
+    this.tdlibCacheBytes = 0,
+    this.thumbnailCacheBytes = 0,
   });
 
   String get formattedSize => StorageCleanProgress.formatBytes(totalBytes);
+  String get formattedTdlibCache => StorageCleanProgress.formatBytes(tdlibCacheBytes);
+  String get formattedThumbnailCache => StorageCleanProgress.formatBytes(thumbnailCacheBytes);
   bool get hasReclaimableSpace => totalItems > 0 && totalBytes > 0;
 }
 
@@ -131,7 +140,23 @@ class StorageCleanerService {
     }
   }
 
-  /// Calculates real-time breakdown of reclaimable media.
+  Future<int> _calculateDirSize(Directory dir) async {
+    if (!await dir.exists()) return 0;
+    int total = 0;
+    try {
+      final entities = dir.listSync(recursive: true, followLinks: false);
+      for (final entity in entities) {
+        if (entity is File) {
+          try {
+            total += entity.lengthSync();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    return total;
+  }
+
+  /// Calculates real-time breakdown of reclaimable media and device caches.
   Future<StorageCleanSummary> getStorageSummary() async {
     final eligible = await mediaDao.getFreeUpSpaceEligibleItems();
     int photoCount = 0;
@@ -152,11 +177,27 @@ class StorageCleanerService {
       totalBytes += item.fileSizeBytes ?? 0;
     }
 
+    int tdlibCacheBytes = 0;
+    int thumbnailCacheBytes = 0;
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      tdlibCacheBytes = await _calculateDirSize(tempDir);
+    } catch (_) {}
+
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final thumbDir = Directory(p.join(docDir.path, 'thumbnails'));
+      thumbnailCacheBytes = await _calculateDirSize(thumbDir);
+    } catch (_) {}
+
     return StorageCleanSummary(
       totalItems: eligible.length,
       photoCount: photoCount,
       videoCount: videoCount,
       totalBytes: totalBytes,
+      tdlibCacheBytes: tdlibCacheBytes,
+      thumbnailCacheBytes: thumbnailCacheBytes,
     );
   }
 
@@ -164,6 +205,17 @@ class StorageCleanerService {
   Future<void> clearCacheOnly() async {
     thumbnailCacheService.clearMemory();
     await thumbnailCacheService.clearDiskCache();
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        final entities = tempDir.listSync(followLinks: false);
+        for (final entity in entities) {
+          try {
+            await entity.delete(recursive: true);
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
   }
 
   /// Executes the 5-stage cleaning pipeline to safely reclaim storage on device.

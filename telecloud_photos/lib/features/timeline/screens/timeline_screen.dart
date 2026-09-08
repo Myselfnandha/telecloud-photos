@@ -24,17 +24,12 @@ class TimelineScreen extends ConsumerStatefulWidget {
 }
 
 class _TimelineScreenState extends ConsumerState<TimelineScreen> {
-  String _selectedFilter = 'All Photos';
+  final String _selectedFilter = 'All Photos';
   TimelineTier _tier = TimelineTier.dailyGrid;
   final Set<String> _selectedIds = {};
   bool _isSelectionMode = false;
 
-  final List<String> _filters = [
-    'All Photos',
-    'Cloud Synced',
-    'Motion Photos',
-    'Favorites',
-  ];
+
 
   @override
   void initState() {
@@ -195,39 +190,13 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             physics: const BouncingScrollPhysics(),
             slivers: [
               // Real "On This Day" Memories Carousel (auto-hides if no memories exist)
-              if (!_isSelectionMode && _selectedFilter == 'All Photos')
+              if (!_isSelectionMode)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.only(top: 8.0),
                     child: MemoriesCarousel(),
                   ),
                 ),
-
-              // Filter Chips
-              SliverToBoxAdapter(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Row(
-                    children: _filters.map((filter) {
-                      final isSelected = _selectedFilter == filter;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: FilterChip(
-                          label: Text(filter),
-                          selected: isSelected,
-                          onSelected: (val) {
-                            HapticFeedback.selectionClick();
-                            setState(() {
-                              _selectedFilter = filter;
-                            });
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
 
               // Empty State or Grouped Photo Grid
               if (filteredItems.isEmpty)

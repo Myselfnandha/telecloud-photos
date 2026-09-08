@@ -28,6 +28,11 @@ class BackupManager extends StateNotifier<BackupState> {
   void Function()? onStartUploading;
   void Function()? onStopUploading;
 
+  Future<void> triggerSync() async {
+    TeleCloudLogger.backup('triggerSync() called: starting immediate upload');
+    await _transitionTo(BackupState.uploading);
+  }
+
   void initForegroundTask() {
     TeleCloudLogger.backup('Initializing Android foreground task options...');
     FlutterForegroundTask.init(

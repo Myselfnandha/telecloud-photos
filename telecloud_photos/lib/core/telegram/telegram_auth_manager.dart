@@ -220,6 +220,41 @@ class TelegramAuthManager extends ChangeNotifier {
       );
 
       if (user != null) {
+        String? avatarLocalPath = user.profilePhoto?.small.local.path;
+        if ((avatarLocalPath == null || avatarLocalPath.isEmpty) &&
+            user.profilePhoto?.small.id != null) {
+          final fileId = user.profilePhoto!.small.id;
+          try {
+            final downloadCompleter = Completer<String?>();
+            late StreamSubscription fileSub;
+            fileSub = _client.events.listen((event) {
+              if (event is td.UpdateFile && event.file.id == fileId) {
+                if (event.file.local.isDownloadingCompleted &&
+                    event.file.local.path.isNotEmpty) {
+                  if (!downloadCompleter.isCompleted) {
+                    downloadCompleter.complete(event.file.local.path);
+                  }
+                  fileSub.cancel();
+                }
+              }
+            });
+            _client.send(td.DownloadFile(
+              fileId: fileId,
+              priority: 1,
+              offset: 0,
+              limit: 0,
+              synchronous: false,
+            ));
+            avatarLocalPath = await downloadCompleter.future.timeout(
+              const Duration(seconds: 4),
+              onTimeout: () {
+                fileSub.cancel();
+                return null;
+              },
+            );
+          } catch (_) {}
+        }
+
         final account = TelegramAccount(
           id: user.id.toString(),
           telegramUserId: user.id,
@@ -229,7 +264,9 @@ class TelegramAuthManager extends ChangeNotifier {
           username: user.usernames?.activeUsernames.isNotEmpty == true
               ? user.usernames!.activeUsernames.first
               : null,
-          profilePhotoPath: user.profilePhoto?.small.local.path,
+          profilePhotoPath: (avatarLocalPath != null && avatarLocalPath.isNotEmpty)
+              ? avatarLocalPath
+              : null,
           backupChannelId: _targetChannelId,
           sessionDir: _currentSessionDir ?? '',
           isActive: true,
@@ -243,6 +280,10 @@ class TelegramAuthManager extends ChangeNotifier {
         error: e,
       );
     }
+  }
+
+  Future<void> refreshAccountProfile() async {
+    await _fetchAndPersistAccount();
   }
 
   Future<void> _sendTdlibParameters() async {

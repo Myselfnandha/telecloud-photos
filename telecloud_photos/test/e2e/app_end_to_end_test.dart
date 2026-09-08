@@ -218,19 +218,9 @@ void main() {
       expect(find.byType(MemoriesCarousel), findsOneWidget);
       expect(find.text('1 Year Ago Today'), findsOneWidget);
 
-      // Verify Filter Chips
-      expect(find.text('All Photos'), findsOneWidget);
-      expect(find.text('Cloud Synced'), findsOneWidget);
-      expect(find.text('Motion Photos'), findsOneWidget);
-      expect(find.text('Favorites'), findsOneWidget);
-
-      // Tap 'Favorites' filter chip
-      await tester.tap(find.text('Favorites'));
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Tap 'Cloud Synced' filter chip
-      await tester.tap(find.text('Cloud Synced'));
-      await tester.pump(const Duration(milliseconds: 100));
+      // Verify that top filter chips row has been removed from timeline canvas
+      expect(find.text('Motion Photos'), findsNothing);
+      expect(find.text('Cloud Synced'), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
@@ -271,12 +261,6 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Verify real chips & metadata
-      expect(find.text('Synced to Telegram Cloud'), findsOneWidget);
-      expect(find.text('Photo'), findsOneWidget);
-      expect(find.text('Camera'), findsOneWidget);
-      expect(find.text('Camera & Capture Hardware EXIF'), findsOneWidget);
-
       // Toggle favorite action in AppBar
       final favButton = find.byIcon(Icons.favorite_border);
       expect(favButton, findsOneWidget);
@@ -287,10 +271,24 @@ void main() {
       final updated = await dao.getMediaById('tg_test_viewer_media');
       expect(updated?.isFavorite, isTrue);
 
-      // Scroll down to floating toolbar and tap delete action
-      final deleteAction = find.byIcon(Icons.delete_outline);
-      await tester.ensureVisible(deleteAction);
+      // Open EXIF modal sheet via Info action button
+      final infoButton = find.byIcon(Icons.info_outline);
+      expect(infoButton, findsOneWidget);
+      await tester.tap(infoButton);
       await tester.pump(const Duration(milliseconds: 100));
+
+      // Verify real chips & metadata in bottom sheet
+      expect(find.text('Synced to Telegram Cloud'), findsOneWidget);
+      expect(find.text('Photo'), findsOneWidget);
+      expect(find.text('Camera & Capture Hardware EXIF'), findsOneWidget);
+
+      // Close bottom sheet
+      Navigator.of(tester.element(find.text('Synced to Telegram Cloud'))).pop();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Tap delete action in bottom toolbar
+      final deleteAction = find.byIcon(Icons.delete_outline);
+      expect(deleteAction, findsOneWidget);
       await tester.tap(deleteAction);
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -371,7 +369,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Uploads & Telemetry'), findsOneWidget);
-      expect(find.text('All Media Backed Up'), findsOneWidget);
+      expect(find.text('CLOUD SYNCHRONIZED'), findsOneWidget);
       expect(find.text('Pause'), findsOneWidget);
       expect(find.text('Scan Now'), findsOneWidget);
       expect(find.text('Engine'), findsOneWidget);
@@ -382,6 +380,7 @@ void main() {
 
       // Button toggles to 'Resume'
       expect(find.text('Resume'), findsOneWidget);
+      expect(find.text('TRANSMISSION PAUSED'), findsOneWidget);
 
       // Tap Resume button
       await tester.tap(find.text('Resume'));

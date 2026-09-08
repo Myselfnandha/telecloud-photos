@@ -327,6 +327,15 @@ final storageCleanProgressStreamProvider =
   return service.progressStream;
 });
 
+final storageSummaryStreamProvider =
+    StreamProvider<StorageCleanSummary>((ref) {
+  final cleaner = ref.watch(storageCleanerServiceProvider);
+  final dao = ref.watch(mediaDaoProvider);
+  return dao.watchFreeUpSpaceEligibleItems().asyncMap((_) async {
+    return await cleaner.getStorageSummary();
+  });
+});
+
 final takeoutParserServiceProvider = Provider<TakeoutParserService>((ref) {
   final mediaDao = ref.watch(mediaDaoProvider);
   final uploadService = ref.watch(telegramUploadServiceProvider);

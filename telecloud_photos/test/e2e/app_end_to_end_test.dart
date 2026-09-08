@@ -147,7 +147,7 @@ void main() {
 
       // Verify strict auth buttons exist
       expect(find.text('Enter Telegram API ID & Hash Key'), findsOneWidget);
-      expect(find.text('Continue with Telegram Code'), findsOneWidget);
+      expect(find.text('Get Started'), findsOneWidget);
 
       // Verify that direct skip bypass to timeline has been removed
       expect(find.text('Skip to Timeline'), findsNothing);

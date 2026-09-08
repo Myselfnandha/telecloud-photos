@@ -95,6 +95,9 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 15; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36',
+      )
       ..setBackgroundColor(const Color(0xFF0F172A))
       ..addJavaScriptChannel(
         'TeleCloudAuthChannel',

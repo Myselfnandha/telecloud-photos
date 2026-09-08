@@ -31,11 +31,8 @@ void main() {
       expect(find.text('Zero Compression'), findsOneWidget);
       expect(find.text('E2EE Privacy'), findsOneWidget);
 
-      // Text field
-      expect(find.text('Telegram Phone Number'), findsOneWidget);
-
       // Buttons
-      expect(find.text('Continue with Telegram Code'), findsOneWidget);
+      expect(find.text('Get Started'), findsOneWidget);
       expect(find.text('Enter Telegram API ID & Hash Key'), findsOneWidget);
 
       // Caption

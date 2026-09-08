@@ -102,6 +102,11 @@ class TelegramAuthManager extends ChangeNotifier {
       TeleCloudLogger.auth(
         'TDLib Auth Error: [${event.code}] ${event.message}',
       );
+      if (event.message.contains('parameters') ||
+          event.message.contains('lock file') ||
+          event.message.contains('setTdlibParameters')) {
+        _parametersSent = false;
+      }
       String userFriendlyMessage = event.message;
       if (event.message.contains('PASSWORD_HASH_INVALID')) {
         userFriendlyMessage =
@@ -356,14 +361,20 @@ class TelegramAuthManager extends ChangeNotifier {
       'Configuring and activating new TDLib credentials (apiId=$apiId)...',
     );
     await AppConstants.saveCredentials(apiId, apiHash);
-    _parametersSent = false;
     _errorMessage = null;
-    _state = AuthState.uninitialized;
     _qrCodeLink = null;
-    notifyListeners();
 
-    await _client.restartClient();
-    _client.send(const td.GetAuthorizationState());
+    if (_parametersSent) {
+      _parametersSent = false;
+      _state = AuthState.uninitialized;
+      notifyListeners();
+      await _client.restartClient();
+      _client.send(const td.GetAuthorizationState());
+    } else {
+      _state = AuthState.uninitialized;
+      notifyListeners();
+      await _sendTdlibParameters();
+    }
   }
 
   Future<void> restartClient() async {
@@ -393,9 +404,9 @@ class TelegramAuthManager extends ChangeNotifier {
       await _sendTdlibParameters();
     }
 
-    // Wait until TDLib transitions to waitingForPhoneNumber or parameters are acknowledged
+    // Wait until TDLib transitions to waitingForPhoneNumber or up to 4s
     int waitCount = 0;
-    while (_state == AuthState.uninitialized && waitCount < 20) {
+    while (_state != AuthState.waitingForPhoneNumber && waitCount < 40) {
       await Future.delayed(const Duration(milliseconds: 100));
       waitCount++;
     }

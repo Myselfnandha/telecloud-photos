@@ -188,9 +188,32 @@ class TdlibClient {
 
   Future<void> restartClient() async {
     if (_clientId != 0) {
+      final oldClientId = _clientId;
+      final closedCompleter = Completer<void>();
+      late StreamSubscription closeSub;
+      closeSub = events.listen((event) {
+        if (event is td.UpdateAuthorizationState &&
+            event.authorizationState is td.AuthorizationStateClosed) {
+          if (!closedCompleter.isCompleted) {
+            closedCompleter.complete();
+          }
+        }
+      });
+
       try {
-        tdSend(_clientId, const td.Close());
+        tdSend(oldClientId, const td.Close());
       } catch (_) {}
+
+      // Keep receive loop active so C++ TDLib can process Close and release file locks
+      await closedCompleter.future.timeout(
+        const Duration(seconds: 4),
+        onTimeout: () {
+          TeleCloudLogger.tdlib(
+            'Timeout waiting for TDLib AuthorizationStateClosed on client $oldClientId',
+          );
+        },
+      );
+      await closeSub.cancel();
     }
     stopClient();
     await Future.delayed(const Duration(milliseconds: 200));

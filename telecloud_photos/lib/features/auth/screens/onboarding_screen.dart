@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../shared/widgets/m3e/m3e_card.dart';
 
 /// Screen 1: "Onboarding & Auth"
 /// Material 3 Expressive first-run welcome screen highlighting unlimited E2EE
-/// Telegram photo storage, chip group, phone input, and instant setup triggers.
+/// Telegram photo storage, chip group, and single Get Started action.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -14,23 +15,21 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final TextEditingController _phoneController = TextEditingController();
   final Set<String> _selectedChips = {
     'Unlimited Storage',
     'Zero Compression',
     'E2EE Privacy',
   };
 
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  void _navigateToPhoneLogin() {
+  Future<void> _navigateToPhoneLogin() async {
     HapticFeedback.lightImpact();
-    // Strict authentication gate: proceed to Telegram API credentials setup
-    context.go('/setup');
+    final hasSaved = await AppConstants.hasSavedCredentials();
+    if (!mounted) return;
+    if (hasSaved || AppConstants.telegramApiId > 0) {
+      context.go('/login');
+    } else {
+      context.go('/setup');
+    }
   }
 
   void _navigateToApiSetup() {
@@ -110,32 +109,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
-              // Outlined text field: Telegram Phone Number
-              TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: scheme.onSurface,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Telegram Phone Number',
-                  prefixIcon: const Icon(Icons.phone),
-                  helperText: 'Include country code (e.g. +1 555-0199)',
-                  hintText: '+1 555-0199',
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Filled Button (380dp wide): "Continue with Telegram Code"
+              // Filled Button (380dp wide): "Get Started"
               SizedBox(
                 width: 380,
                 height: 56,
                 child: FilledButton.icon(
                   onPressed: _navigateToPhoneLogin,
                   icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Continue with Telegram Code'),
+                  label: const Text(
+                    'Get Started',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

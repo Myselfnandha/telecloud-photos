@@ -47,15 +47,15 @@ void main() {
     );
 
     test('4. In-memory cache evicts oldest entries beyond max limit', () {
-      // Put 601 entries to test LRU eviction of oldest
-      for (int i = 0; i <= 600; i++) {
+      // Put 1201 entries to test LRU eviction of oldest
+      for (int i = 0; i <= 1200; i++) {
         cacheService.putInMemory('item_$i', Uint8List.fromList([i % 256]));
       }
 
       // Oldest item 'item_0' should be evicted
       expect(cacheService.getFromMemory('item_0'), isNull);
-      // Latest item 'item_600' should exist
-      expect(cacheService.getFromMemory('item_600'), isNotNull);
+      // Latest item 'item_1200' should exist
+      expect(cacheService.getFromMemory('item_1200'), isNotNull);
     });
 
     test('5. clearMemory resets in-memory cache', () {

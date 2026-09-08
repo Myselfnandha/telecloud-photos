@@ -65,6 +65,169 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  void _showThemeSelectionSheet(BuildContext context) {
+    HapticFeedback.selectionClick();
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF14171C) : scheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border.all(
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Select Display Theme',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Choose how TeleCloud Photos renders colors and contrast.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ..._themeOptions.map((opt) {
+                    final isSelected = _selectedTheme == opt;
+                    final IconData icon;
+                    final String subtitle;
+                    final Color swatchColor;
+                    if (opt == 'AMOLED Pure Dark') {
+                      icon = Icons.dark_mode_outlined;
+                      subtitle = 'Pitch-black OLED contrast with zero battery draw';
+                      swatchColor = const Color(0xFF000000);
+                    } else if (opt == 'Material 3 Light') {
+                      icon = Icons.light_mode_outlined;
+                      subtitle = 'Clean daytime palette with high legibility';
+                      swatchColor = const Color(0xFFF2F2F7);
+                    } else {
+                      icon = Icons.wallpaper_outlined;
+                      subtitle = 'Adapts dynamically to system wallpaper palette';
+                      swatchColor = scheme.primary;
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: InkWell(
+                        onTap: () {
+                          _onThemeSelected(opt);
+                          setSheetState(() {});
+                          Navigator.of(ctx).pop();
+                        },
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? scheme.primary.withValues(alpha: 0.12)
+                                : scheme.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isSelected
+                                  ? scheme.primary.withValues(alpha: 0.6)
+                                  : scheme.outlineVariant.withValues(alpha: 0.3),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: swatchColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  icon,
+                                  size: 16,
+                                  color: opt == 'Material 3 Light' ? Colors.black87 : Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      opt,
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected ? scheme.primary : scheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      subtitle,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Radio<String>(
+                                value: opt,
+                                groupValue: _selectedTheme,
+                                activeColor: scheme.primary,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    _onThemeSelected(val);
+                                    setSheetState(() {});
+                                    Navigator.of(ctx).pop();
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildInitialsAvatar(String name, ColorScheme scheme) {
     final initials = name.isNotEmpty
         ? name.trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join().toUpperCase()
@@ -231,9 +394,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Bold text "Appearance & Theme Selection" at 18sp
+            // Section header "Appearance & Theme"
             Text(
-              'Appearance & Theme Selection',
+              'Appearance & Theme',
               style: TextStyle(
                 fontFamily: 'Roboto',
                 fontSize: 18,
@@ -243,21 +406,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Chip Group: "AMOLED Pure Dark", "Material 3 Light", "Dynamic Wallpaper"
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _themeOptions.map((opt) {
-                  final isSelected = _selectedTheme == opt;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Text(opt),
-                      selected: isSelected,
-                      onSelected: (val) => _onThemeSelected(opt),
+            // Single Theme Configuration Tile
+            InkWell(
+              onTap: () => _showThemeSelectionSheet(context),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _selectedTheme == 'AMOLED Pure Dark'
+                            ? Icons.dark_mode
+                            : (_selectedTheme == 'Material 3 Light'
+                                ? Icons.light_mode
+                                : Icons.wallpaper),
+                        color: scheme.primary,
+                        size: 22,
+                      ),
                     ),
-                  );
-                }).toList(),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Active Color Palette',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _selectedTheme,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: scheme.onSurfaceVariant,
+                      size: 22,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),

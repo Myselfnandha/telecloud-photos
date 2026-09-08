@@ -13,10 +13,10 @@ class ThumbnailCacheService {
   factory ThumbnailCacheService() => _instance;
   ThumbnailCacheService._internal();
 
-  // In-memory LRU cache: keeps up to 600 decoded thumbnail byte arrays
+  // In-memory LRU cache: keeps up to 1200 decoded thumbnail byte arrays
   final LinkedHashMap<String, Uint8List> _memoryCache =
       LinkedHashMap<String, Uint8List>();
-  static const int _maxMemoryEntries = 600;
+  static const int _maxMemoryEntries = 1200;
 
   // In-flight futures deduplication to prevent redundant concurrent fetches
   final Map<String, Future<Uint8List?>> _inFlightFetches = {};
@@ -57,28 +57,36 @@ class ThumbnailCacheService {
     required String id,
     String? diskPath,
     bool isVideo = false,
+    int width = 240,
+    int height = 240,
+    int quality = 80,
   }) async {
+    final cacheKey = '$id-$width-$height';
     // 1. Check in-memory LRU cache (0ms)
-    final mem = getFromMemory(id);
+    final mem = getFromMemory(cacheKey) ?? getFromMemory(id);
     if (mem != null) return mem;
 
     // 2. Check in-flight request to avoid duplicate parallel fetches
-    if (_inFlightFetches.containsKey(id)) {
-      return _inFlightFetches[id];
+    if (_inFlightFetches.containsKey(cacheKey)) {
+      return _inFlightFetches[cacheKey];
     }
 
     final future = _loadThumbnailInternal(
       id: id,
       diskPath: diskPath,
       isVideo: isVideo,
+      width: width,
+      height: height,
+      quality: quality,
+      cacheKey: cacheKey,
     );
-    _inFlightFetches[id] = future;
+    _inFlightFetches[cacheKey] = future;
 
     try {
       final result = await future;
       return result;
     } finally {
-      _inFlightFetches.remove(id);
+      _inFlightFetches.remove(cacheKey);
     }
   }
 
@@ -86,6 +94,10 @@ class ThumbnailCacheService {
     required String id,
     String? diskPath,
     bool isVideo = false,
+    int width = 240,
+    int height = 240,
+    int quality = 80,
+    required String cacheKey,
   }) async {
     // Check provided disk path
     if (diskPath != null && diskPath.isNotEmpty) {
@@ -94,6 +106,7 @@ class ThumbnailCacheService {
         try {
           final bytes = await file.readAsBytes();
           if (bytes.isNotEmpty) {
+            putInMemory(cacheKey, bytes);
             putInMemory(id, bytes);
             return bytes;
           }
@@ -108,11 +121,12 @@ class ThumbnailCacheService {
 
     final safeId = id.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     if (_diskCacheDir != null) {
-      final cachedFile = File(p.join(_diskCacheDir!.path, '$safeId.jpg'));
+      final cachedFile = File(p.join(_diskCacheDir!.path, '${safeId}_$width.jpg'));
       if (await cachedFile.exists()) {
         try {
           final bytes = await cachedFile.readAsBytes();
           if (bytes.isNotEmpty) {
+            putInMemory(cacheKey, bytes);
             putInMemory(id, bytes);
             return bytes;
           }
@@ -120,24 +134,25 @@ class ThumbnailCacheService {
       }
     }
 
-    // Load from PhotoManager AssetEntity for local device items
+    // Load from PhotoManager AssetEntity for local device items (uses Android native thumbnail cache)
     if (!id.startsWith('tg_') && !id.startsWith('gp_')) {
       try {
         final asset = await AssetEntity.fromId(id);
         if (asset != null) {
           final bytes = await asset.thumbnailDataWithOption(
-            const ThumbnailOption(
-              size: ThumbnailSize(600, 600),
+            ThumbnailOption(
+              size: ThumbnailSize(width, height),
               format: ThumbnailFormat.jpeg,
-              quality: 92,
+              quality: quality,
             ),
           );
           if (bytes != null && bytes.isNotEmpty) {
+            putInMemory(cacheKey, bytes);
             putInMemory(id, bytes);
             // Asynchronously save to disk cache if available
             if (_diskCacheDir != null) {
               final cachedFile = File(
-                p.join(_diskCacheDir!.path, '$safeId.jpg'),
+                p.join(_diskCacheDir!.path, '${safeId}_$width.jpg'),
               );
               cachedFile.writeAsBytes(bytes).catchError((_) => cachedFile);
             }
@@ -151,6 +166,7 @@ class ThumbnailCacheService {
       }
     } else if (id.startsWith('gp_')) {
       final bytes = _generateValidGooglePng(id);
+      putInMemory(cacheKey, bytes);
       putInMemory(id, bytes);
       return bytes;
     }

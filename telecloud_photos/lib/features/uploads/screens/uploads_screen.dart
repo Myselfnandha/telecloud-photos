@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/backup/upload_queue.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/di/providers.dart';
-import '../../../shared/widgets/m3e/m3e_connected_button_group.dart';
 import '../../../shared/widgets/m3e/m3e_stacked_list.dart';
 import '../../../shared/widgets/m3e/m3e_wavy_progress_indicator.dart';
 
@@ -23,8 +22,20 @@ class UploadsScreen extends ConsumerStatefulWidget {
 class _UploadsScreenState extends ConsumerState<UploadsScreen>
     with SingleTickerProviderStateMixin {
   bool _isPaused = false;
+  final Set<String> _expandedFolders = {'Camera Roll'};
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  void _toggleFolderExpanded(String folder) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_expandedFolders.contains(folder)) {
+        _expandedFolders.remove(folder);
+      } else {
+        _expandedFolders.add(folder);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -362,40 +373,113 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen>
                           ],
                         ),
                       ),
+                      // Wavy Progress Indicator (Renders strictly during active upload)
+                      if (isUploading) ...[
+                        const SizedBox(height: 16),
+                        M3EWavyProgressIndicator(
+                          progress: progressValue,
+                          height: 14,
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
-                      // Wavy Progress Indicator
-                      M3EWavyProgressIndicator(
-                        progress: progressValue,
-                        height: 14,
+                      // Docked Telemetry Command Bar inside Card Footer
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.35)
+                              : Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: scheme.outlineVariant.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextButton.icon(
+                                onPressed: _togglePause,
+                                icon: Icon(
+                                  isPaused ? Icons.play_arrow : Icons.pause,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  isPaused ? 'Resume' : 'Pause',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: isPaused
+                                      ? const Color(0xFFFFB300)
+                                      : scheme.onSurface,
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 24,
+                              color: scheme.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                            Expanded(
+                              child: TextButton.icon(
+                                onPressed: _forceScan,
+                                icon: const Icon(Icons.sync, size: 18),
+                                label: const Text(
+                                  'Scan Now',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: scheme.onSurface,
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 24,
+                              color: scheme.outlineVariant.withValues(alpha: 0.3),
+                            ),
+                            Expanded(
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  HapticFeedback.lightImpact();
+                                  context.push('/settings/backup-engine');
+                                },
+                                icon: const Icon(Icons.tune, size: 18),
+                                label: const Text(
+                                  'Engine',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: scheme.onSurface,
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                // Connected Button Group: Pause/Resume, Force Scan, Settings
-                M3EConnectedButtonGroup(
-                  items: [
-                    M3EConnectedButtonItem(
-                      label: isPaused ? 'Resume' : 'Pause',
-                      icon: isPaused ? Icons.play_arrow : Icons.pause,
-                      onPressed: _togglePause,
-                    ),
-                    M3EConnectedButtonItem(
-                      label: 'Scan Now',
-                      icon: Icons.sync,
-                      onPressed: _forceScan,
-                    ),
-                    M3EConnectedButtonItem(
-                      label: 'Engine',
-                      icon: Icons.tune,
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        context.push('/settings/backup-engine');
-                      },
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 24),
 
@@ -508,25 +592,9 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen>
                       ),
                     ),
                   )
-                else
-                  M3EStackedList(
-                    items: pendingItems.take(8).map((item) {
-                      final isVideo = item.mimeType.startsWith('video');
-                      final sizeMB = ((item.fileSizeBytes ?? 0) / (1024 * 1024)).toStringAsFixed(1);
-
-                      return M3EListItemData(
-                        title: item.filename,
-                        subtitle: '$sizeMB MB • Queued for Telegram Supergroup',
-                        leadingIcon: isVideo ? Icons.videocam : Icons.photo,
-                        trailing: Icon(
-                          Icons.cloud_upload_outlined,
-                          color: scheme.primary,
-                          size: 20,
-                        ),
-                        onTap: () => context.push('/viewer/${item.localId}'),
-                      );
-                    }).toList(),
-                  ),
+                else ...[
+                  ..._buildFolderAccordions(pendingItems, scheme, isDark),
+                ],
                 const SizedBox(height: 32),
               ],
             ),
@@ -534,6 +602,120 @@ class _UploadsScreenState extends ConsumerState<UploadsScreen>
         },
       ),
     );
+  }
+
+  List<Widget> _buildFolderAccordions(
+    List<MediaItem> pendingItems,
+    ColorScheme scheme,
+    bool isDark,
+  ) {
+    final Map<String, List<MediaItem>> grouped = {};
+    for (final item in pendingItems) {
+      final folder = (item.folderName != null && item.folderName!.isNotEmpty)
+          ? item.folderName!
+          : 'Camera Roll';
+      grouped.putIfAbsent(folder, () => []).add(item);
+    }
+
+    return grouped.entries.map((entry) {
+      final folderName = entry.key;
+      final items = entry.value;
+      final isExpanded = _expandedFolders.contains(folderName);
+      final double totalFolderBytes = items.fold(0.0, (sum, i) => sum + (i.fileSizeBytes ?? 0));
+      final sizeFormatted = totalFolderBytes > 1024 * 1024 * 1024
+          ? '${(totalFolderBytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB'
+          : '${(totalFolderBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF13171D) : scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              InkWell(
+                onTap: () => _toggleFolderExpanded(folderName),
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          folderName.toLowerCase().contains('camera')
+                              ? Icons.camera_alt_outlined
+                              : Icons.folder_outlined,
+                          size: 20,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              folderName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${items.length} items • $sizeFormatted',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (isExpanded) ...[
+                Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: 0.2)),
+                M3EStackedList(
+                  items: items.take(8).map((item) {
+                    final isVideo = item.mimeType.startsWith('video');
+                    final sizeMB = ((item.fileSizeBytes ?? 0) / (1024 * 1024)).toStringAsFixed(1);
+
+                    return M3EListItemData(
+                      title: item.filename,
+                      subtitle: '$sizeMB MB • Queued for Telegram Supergroup',
+                      leadingIcon: isVideo ? Icons.videocam : Icons.photo,
+                      trailing: Icon(
+                        Icons.cloud_upload_outlined,
+                        color: scheme.primary,
+                        size: 20,
+                      ),
+                      onTap: () => context.push('/viewer/${item.localId}'),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }).toList();
   }
 
   Widget _buildTelemetrySensor({

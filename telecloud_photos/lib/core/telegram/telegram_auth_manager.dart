@@ -41,6 +41,9 @@ class TelegramAuthManager extends ChangeNotifier {
   int? _targetChannelId;
   int? get targetChannelId => _targetChannelId;
 
+  String? _lastPhoneNumber;
+  String? get lastPhoneNumber => _lastPhoneNumber;
+
   td.ConnectionState get connectionState => _client.currentConnectionState;
   Stream<td.ConnectionState> get connectionStateStream =>
       _client.connectionStateStream;
@@ -377,6 +380,35 @@ class TelegramAuthManager extends ChangeNotifier {
     }
   }
 
+  /// Sets credentials and submits phone number in a single unified transaction.
+  /// Smoothly initializes parameters and transitions directly to OTP code state.
+  Future<void> setupAndSendPhone({
+    required int apiId,
+    required String apiHash,
+    required String phoneNumber,
+  }) async {
+    TeleCloudLogger.auth(
+      'setupAndSendPhone: apiId=$apiId, phone=$phoneNumber',
+    );
+    await AppConstants.saveCredentials(apiId, apiHash);
+    _errorMessage = null;
+    _qrCodeLink = null;
+
+    if (_parametersSent) {
+      _parametersSent = false;
+      _state = AuthState.uninitialized;
+      notifyListeners();
+      await _client.restartClient();
+      _client.send(const td.GetAuthorizationState());
+    } else {
+      _state = AuthState.uninitialized;
+      notifyListeners();
+      await _sendTdlibParameters();
+    }
+
+    await sendPhoneNumber(phoneNumber);
+  }
+
   Future<void> restartClient() async {
     TeleCloudLogger.auth('Restarting TDLib client with fresh parameters...');
     _parametersSent = false;
@@ -393,6 +425,7 @@ class TelegramAuthManager extends ChangeNotifier {
     if (!formatted.startsWith('+')) {
       formatted = '+$formatted';
     }
+    _lastPhoneNumber = formatted;
 
     TeleCloudLogger.auth(
       'Submitting phone number: $formatted to Telegram TDLib...',

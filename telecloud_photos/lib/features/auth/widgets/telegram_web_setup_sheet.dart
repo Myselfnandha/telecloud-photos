@@ -26,7 +26,7 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
   bool _isSuccess = false;
   String _statusMessage = 'Log in with your Telegram code';
 
-  // Passive scanner + auto-click "API development tools" link once logged in
+  // Passive scanner + phone interceptor + auto-create app + auto-extract credentials
   static const String _jsAutoToolsAndScanScript = '''
     (function() {
       var hasClickedApps = false;
@@ -35,7 +35,13 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
         try {
           var currentUrl = window.location.href;
 
-          // 1. When code is entered & user reaches portal menu, auto-click "API development tools"
+          // 1. Intercept user's phone number as they type or submit on auth page
+          var phoneEl = document.querySelector('input[name="phone"], #my_login_phone, input[type="tel"]');
+          if (phoneEl && phoneEl.value && phoneEl.value.trim().length >= 8) {
+            window.__telecloud_phone = phoneEl.value.trim();
+          }
+
+          // 2. When code is entered & user reaches portal menu, auto-click "API development tools"
           if (!currentUrl.includes('/apps') && !currentUrl.includes('/auth')) {
             if (!hasClickedApps) {
               var links = document.querySelectorAll('a');
@@ -51,7 +57,28 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             }
           }
 
-          // 2. Scan page contents for api_id and api_hash
+          // 3. Auto-fill and submit "Create new application" form if displayed
+          if (currentUrl.includes('/apps')) {
+            var appTitle = document.querySelector('input[name="app_title"], #app_title');
+            var appShort = document.querySelector('input[name="app_shortname"], #app_shortname');
+            if (appTitle && (!appTitle.value || appTitle.value === '')) {
+              appTitle.value = 'TeleCloud Photos';
+              if (appShort) {
+                appShort.value = 'telecloud' + Math.floor(Math.random() * 10000);
+              }
+              var appDesc = document.querySelector('textarea[name="app_desc"], #app_desc');
+              if (appDesc) appDesc.value = 'TeleCloud Private Photo Cloud';
+              var platformRadio = document.querySelector('input[value="android"], input[value="other"]');
+              if (platformRadio) platformRadio.checked = true;
+              var submitBtn = document.querySelector('button[type="submit"], input[type="submit"]');
+              if (submitBtn) {
+                submitBtn.click();
+                return;
+              }
+            }
+          }
+
+          // 4. Scan page contents for api_id and api_hash
           var bodyText = document.body ? document.body.innerText : '';
           
           var idMatch = bodyText.match(/(?:api[-_]?id|App api_id)\\s*[:=]?\\s*(\\d{5,10})/i);
@@ -71,7 +98,8 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
             if (window.TeleCloudAuthChannel) {
               window.TeleCloudAuthChannel.postMessage(JSON.stringify({
                 api_id: idMatch[1],
-                api_hash: hashMatch[1]
+                api_hash: hashMatch[1],
+                phone_number: window.__telecloud_phone || ''
               }));
               return true;
             }
@@ -145,21 +173,27 @@ class _TelegramWebSetupSheetState extends State<TelegramWebSetupSheet> {
       final data = jsonDecode(payload) as Map<String, dynamic>;
       final apiId = int.tryParse(data['api_id']?.toString() ?? '');
       final apiHash = data['api_hash']?.toString();
+      final phone = data['phone_number']?.toString();
 
       if (apiId != null && apiHash != null && apiHash.length >= 30) {
         setState(() {
           _isSuccess = true;
-          _statusMessage = 'Credentials extracted! Auto-closing...';
+          _statusMessage = 'Credentials extracted! Connecting...';
         });
 
         TeleCloudLogger.auth(
-            'Successfully auto-extracted Telegram API ID: $apiId');
+            'Successfully auto-extracted Telegram API ID: $apiId, Phone: $phone');
 
-        // Auto-close after 600ms success animation
-        Future.delayed(const Duration(milliseconds: 600), () {
+        // Auto-close quickly so user transitions smoothly
+        Future.delayed(const Duration(milliseconds: 350), () {
           if (mounted) {
-            Navigator.of(context)
-                .pop(ParsedCredentials(apiId: apiId, apiHash: apiHash));
+            Navigator.of(context).pop(
+              ParsedCredentials(
+                apiId: apiId,
+                apiHash: apiHash,
+                phoneNumber: phone != null && phone.trim().isNotEmpty ? phone.trim() : null,
+              ),
+            );
           }
         });
       }

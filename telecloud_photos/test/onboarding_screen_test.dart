@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:telecloud_photos/features/auth/screens/onboarding_screen.dart';
@@ -15,8 +16,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: OnboardingScreen(),
+        const ProviderScope(
+          child: MaterialApp(
+            home: OnboardingScreen(),
+          ),
         ),
       );
 
@@ -32,8 +35,8 @@ void main() {
       expect(find.text('E2EE Privacy'), findsOneWidget);
 
       // Buttons
-      expect(find.text('Get Started'), findsOneWidget);
-      expect(find.text('Enter Telegram API ID & Hash Key'), findsOneWidget);
+      expect(find.text('Connect Telegram Cloud'), findsOneWidget);
+      expect(find.text('Enter Credentials Manually'), findsOneWidget);
 
       // Caption
       expect(

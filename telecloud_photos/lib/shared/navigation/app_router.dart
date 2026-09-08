@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/auth/screens/onboarding_screen.dart';
 import '../../features/auth/screens/api_setup_screen.dart';
+import '../../core/utils/telegram_credential_parser.dart';
 import '../../features/auth/screens/auth_method_screen.dart';
 import '../../features/auth/screens/phone_input_screen.dart';
 import '../../features/auth/screens/otp_screen.dart';
@@ -51,7 +52,11 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => buildTransitionPage(
         context: context,
         state: state,
-        child: const ApiSetupScreen(),
+        child: ApiSetupScreen(
+          initialCredentials: state.extra is ParsedCredentials
+              ? state.extra as ParsedCredentials
+              : null,
+        ),
       ),
     ),
     GoRoute(

@@ -1,17 +1,21 @@
 class ParsedCredentials {
   final int? apiId;
   final String? apiHash;
+  final String? phoneNumber;
 
-  const ParsedCredentials({this.apiId, this.apiHash});
+  const ParsedCredentials({this.apiId, this.apiHash, this.phoneNumber});
 
   bool get isValid =>
       (apiId != null && apiId! > 0) &&
       (apiHash != null && apiHash!.length >= 30);
-  bool get hasAny => apiId != null || (apiHash != null && apiHash!.isNotEmpty);
+  bool get hasAny =>
+      apiId != null ||
+      (apiHash != null && apiHash!.isNotEmpty) ||
+      (phoneNumber != null && phoneNumber!.isNotEmpty);
 
   @override
   String toString() =>
-      'ParsedCredentials(apiId: $apiId, apiHash: ${apiHash != null ? "***" : null})';
+      'ParsedCredentials(apiId: $apiId, apiHash: ${apiHash != null ? "***" : null}, phone: $phoneNumber)';
 }
 
 /// Universal multi-format parser for Telegram API credentials.

@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../../core/di/providers.dart';
+import '../../../core/telegram/telegram_auth_manager.dart';
 import '../../../core/utils/telegram_credential_parser.dart';
 import '../widgets/telegram_web_setup_sheet.dart';
 
 class ApiSetupScreen extends ConsumerStatefulWidget {
-  const ApiSetupScreen({super.key});
+  final ParsedCredentials? initialCredentials;
+
+  const ApiSetupScreen({super.key, this.initialCredentials});
 
   @override
   ConsumerState<ApiSetupScreen> createState() => _ApiSetupScreenState();
@@ -19,9 +23,14 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
   final _formKey = GlobalKey<FormState>();
   final _apiIdController = TextEditingController();
   final _apiHashController = TextEditingController();
+  final _phoneRawController = TextEditingController();
+
+  String _phoneNumber = '';
+  String _countryCode = '+91';
+  String _initialCountryCode = 'IN';
 
   bool _obscureHash = true;
-  bool _isTestingCredentials = false;
+  bool _isConnecting = false;
   String? _statusText;
   String? _errorMessage;
   ParsedCredentials? _detectedClipboardCredentials;
@@ -31,11 +40,35 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // Manual credentials are kept empty by default as requested
-    _apiIdController.text = '';
-    _apiHashController.text = '';
+    // Pre-populate if passed from navigation
+    if (widget.initialCredentials != null) {
+      _applyCredentials(widget.initialCredentials!);
+    }
 
     _checkClipboardForCredentials();
+  }
+
+  void _applyCredentials(ParsedCredentials credentials) {
+    if (credentials.apiId != null) {
+      _apiIdController.text = credentials.apiId.toString();
+    }
+    if (credentials.apiHash != null) {
+      _apiHashController.text = credentials.apiHash!;
+    }
+    if (credentials.phoneNumber != null &&
+        credentials.phoneNumber!.trim().isNotEmpty) {
+      final phone = credentials.phoneNumber!.trim();
+      _phoneNumber = phone;
+      if (phone.startsWith('+91') && phone.length > 3) {
+        _countryCode = '+91';
+        _initialCountryCode = 'IN';
+        _phoneRawController.text = phone.substring(3);
+      } else if (phone.startsWith('+') && phone.length > 1) {
+        _phoneRawController.text = phone.substring(1);
+      } else {
+        _phoneRawController.text = phone;
+      }
+    }
   }
 
   @override
@@ -50,6 +83,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
     WidgetsBinding.instance.removeObserver(this);
     _apiIdController.dispose();
     _apiHashController.dispose();
+    _phoneRawController.dispose();
     super.dispose();
   }
 
@@ -70,9 +104,24 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
   Future<void> _launchWebAssistant() async {
     final credentials = await TelegramWebSetupSheet.show(context);
     if (credentials != null && credentials.isValid && mounted) {
-      _apiIdController.text = credentials.apiId.toString();
-      _apiHashController.text = credentials.apiHash!;
-      await _validateAndProceed(credentials.apiId!, credentials.apiHash!);
+      _applyCredentials(credentials);
+
+      // If we have credentials AND phone number, connect and dispatch straight to OTP
+      if (credentials.phoneNumber != null &&
+          credentials.phoneNumber!.trim().isNotEmpty) {
+        await _onSubmit();
+      } else {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✓ Credentials extracted! Enter your phone number below to receive your OTP.',
+            ),
+            backgroundColor: Color(0xFF30D158),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -93,12 +142,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
     }
 
     final parsed = TelegramCredentialParser.parse(data.text!);
-    if (parsed.apiId != null) {
-      _apiIdController.text = parsed.apiId.toString();
-    }
-    if (parsed.apiHash != null) {
-      _apiHashController.text = parsed.apiHash!;
-    }
+    _applyCredentials(parsed);
+    setState(() {});
 
     if (parsed.isValid && mounted) {
       final messenger = ScaffoldMessenger.of(context);
@@ -116,73 +161,103 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
-              'Could not detect full Telegram API credentials in clipboard'),
+            'Could not detect complete Telegram API credentials in clipboard',
+          ),
           duration: Duration(seconds: 2),
         ),
       );
     }
   }
 
-  Future<void> _validateAndProceed(int apiId, String apiHash) async {
+  Future<void> _onSubmit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final apiId = int.tryParse(_apiIdController.text.trim());
+    final apiHash = _apiHashController.text.trim();
+
+    if (apiId == null || apiHash.isEmpty) {
+      setState(() => _errorMessage = 'Please provide valid API ID and API Hash.');
+      return;
+    }
+
+    // Ensure phone number is complete
+    String targetPhone = _phoneNumber.trim();
+    if (targetPhone.isEmpty && _phoneRawController.text.trim().isNotEmpty) {
+      targetPhone = '$_countryCode${_phoneRawController.text.trim()}';
+    }
+    if (!targetPhone.startsWith('+')) {
+      targetPhone = '+$targetPhone';
+    }
+
+    final digitsOnly = targetPhone.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.length < 10) {
+      setState(
+        () => _errorMessage =
+            'Please enter a valid phone number with country code (at least 10 digits).',
+      );
+      return;
+    }
+
     setState(() {
-      _isTestingCredentials = true;
+      _isConnecting = true;
       _errorMessage = null;
-      _statusText = 'Applying credentials to Telegram engine...';
+      _statusText = 'Connecting to Telegram Cloud & sending code...';
     });
 
-    final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
-
     try {
-      // 1. Reconfigure active TDLib engine with custom credentials
       final authManager = ref.read(telegramAuthManagerProvider);
-      await authManager.configureCredentials(apiId: apiId, apiHash: apiHash);
-
-      if (!mounted) return;
-
-      setState(() {
-        _isTestingCredentials = false;
-        _statusText = null;
-      });
-
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-              '✓ API credentials configured! Proceeding to phone verification...'),
-          backgroundColor: Color(0xFF30D158),
-          duration: Duration(seconds: 2),
-        ),
+      await authManager.setupAndSendPhone(
+        apiId: apiId,
+        apiHash: apiHash,
+        phoneNumber: targetPhone,
       );
-
-      // 2. Direct transition to Step 2 (Phone Login)
-      router.go('/login');
+      // Navigation to /otp is driven by ref.listen on AuthState.waitingForCode
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isTestingCredentials = false;
-          _errorMessage = 'Error configuring credentials: $e';
+          _isConnecting = false;
+          _errorMessage = 'Connection error: $e';
           _statusText = null;
         });
       }
     }
   }
 
-  Future<void> _onManualSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final apiId = int.parse(_apiIdController.text.trim());
-    final apiHash = _apiHashController.text.trim();
-    await _validateAndProceed(apiId, apiHash);
-  }
-
   @override
   Widget build(BuildContext context) {
+    ref.listen<TelegramAuthManager>(telegramAuthManagerProvider, (prev, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (next.state == AuthState.waitingForCode) {
+          setState(() => _isConnecting = false);
+          final phone = _phoneNumber.isNotEmpty
+              ? _phoneNumber
+              : (next.lastPhoneNumber ?? '');
+          context.go('/otp', extra: phone);
+        } else if (next.state == AuthState.waitingForPassword) {
+          setState(() => _isConnecting = false);
+          context.go('/password');
+        } else if (next.state == AuthState.authenticated) {
+          setState(() => _isConnecting = false);
+          context.go('/quick-settings');
+        } else if (next.errorMessage != null &&
+            next.errorMessage != prev?.errorMessage) {
+          setState(() {
+            _isConnecting = false;
+            _errorMessage = next.errorMessage;
+            _statusText = null;
+          });
+        }
+      });
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
         backgroundColor: const Color(0xFF000000),
         elevation: 0,
         title: const Text(
-          'Step 1 of 3 · API Setup',
+          'Connect Telegram Cloud',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
         ),
       ),
@@ -194,7 +269,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Step Progress Indicator
+                // Header badge
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -202,16 +277,20 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     color: const Color(0xFF0A84FF).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFF0A84FF).withValues(alpha: 0.4)),
+                      color: const Color(0xFF0A84FF).withValues(alpha: 0.4),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.vpn_key_rounded,
-                          color: Color(0xFF0A84FF), size: 14),
+                      Icon(
+                        Icons.cloud_sync_rounded,
+                        color: Color(0xFF0A84FF),
+                        size: 14,
+                      ),
                       SizedBox(width: 6),
                       Text(
-                        'STEP 1 OF 3 · API CREDENTIALS',
+                        'STEP 1 · CREDENTIALS & PHONE',
                         style: TextStyle(
                           color: Color(0xFF0A84FF),
                           fontSize: 11,
@@ -226,7 +305,7 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
 
                 // Title
                 const Text(
-                  'Telegram API Setup',
+                  'Telegram Setup & Login',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -235,12 +314,12 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Set up your Telegram App credentials to enable unlimited cloud backup.',
+                  'Enter your credentials and phone number to receive your OTP code directly in Telegram.',
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
 
-                // Error message banner if test failed
+                // Error message banner
                 if (_errorMessage != null) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -251,14 +330,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded,
-                            color: Color(0xFFFF453A), size: 20),
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: Color(0xFFFF453A),
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             _errorMessage!,
                             style: const TextStyle(
-                                color: Color(0xFFFF453A), fontSize: 13),
+                              color: Color(0xFFFF453A),
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ],
@@ -287,8 +371,11 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.auto_awesome,
-                            color: Colors.white, size: 24),
+                        const Icon(
+                          Icons.auto_awesome,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -297,15 +384,18 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                               const Text(
                                 'Credentials Detected in Clipboard!',
                                 style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'App ID: ${_detectedClipboardCredentials!.apiId}',
                                 style: const TextStyle(
-                                    color: Colors.white70, fontSize: 11),
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -315,23 +405,24 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF0051A8),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                           onPressed: () {
-                            _apiIdController.text =
-                                _detectedClipboardCredentials!.apiId.toString();
-                            _apiHashController.text =
-                                _detectedClipboardCredentials!.apiHash!;
-                            _validateAndProceed(
-                              _detectedClipboardCredentials!.apiId!,
-                              _detectedClipboardCredentials!.apiHash!,
-                            );
+                            _applyCredentials(_detectedClipboardCredentials!);
+                            setState(() {});
                           },
-                          child: const Text('1-Tap Apply',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12)),
+                          child: const Text(
+                            '1-Tap Fill',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -346,7 +437,8 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     color: const Color(0xFF0F172A),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,8 +452,11 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                                   .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.auto_awesome_rounded,
-                                color: Color(0xFF38BDF8), size: 20),
+                            child: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Color(0xFF38BDF8),
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -371,14 +466,17 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                                 Text(
                                   'Automated In-App Setup',
                                   style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
                                 ),
                                 Text(
-                                  'Zero typing: auto-extracts credentials & auto-closes browser',
+                                  'Logs in to my.telegram.org and extracts ID, Hash & Phone automatically',
                                   style: TextStyle(
-                                      color: Colors.white60, fontSize: 12),
+                                    color: Colors.white60,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -394,18 +492,19 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                             backgroundColor: const Color(0xFF0284C7),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           icon:
                               const Icon(Icons.rocket_launch_rounded, size: 18),
                           label: const Text(
                             'Launch In-App Web Assistant',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
-                          onPressed: _isTestingCredentials
-                              ? null
-                              : _launchWebAssistant,
+                          onPressed: _isConnecting ? null : _launchWebAssistant,
                         ),
                       ),
                     ],
@@ -420,55 +519,74 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(
-                          color: Color(0xFF0A84FF), width: 1.2),
+                        color: Color(0xFF0A84FF),
+                        width: 1.2,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       backgroundColor:
                           const Color(0xFF0A84FF).withValues(alpha: 0.08),
                     ),
-                    icon: const Icon(Icons.content_paste_go_rounded,
-                        color: Color(0xFF0A84FF), size: 20),
+                    icon: const Icon(
+                      Icons.content_paste_go_rounded,
+                      color: Color(0xFF0A84FF),
+                      size: 20,
+                    ),
                     label: const Text(
                       '📋 1-Tap Auto-Paste from Clipboard',
                       style: TextStyle(
-                          color: Color(0xFF0A84FF),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14),
+                        color: Color(0xFF0A84FF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
-                    onPressed: _pasteFromClipboard,
+                    onPressed: _isConnecting ? null : _pasteFromClipboard,
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // CARD 3: Manual Credentials (Empty by default)
+                // Section Title
                 const Text(
-                  'MANUAL CREDENTIALS',
+                  'MANUAL CREDENTIALS & PHONE',
                   style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8),
+                    color: Colors.grey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
-                // API ID
+                // Field 1: API ID
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('API ID (App ID)',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14)),
+                    const Text(
+                      'API ID (App ID)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
                     TextButton.icon(
                       style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 4)),
-                      icon: const Icon(Icons.content_paste_rounded,
-                          size: 14, color: Color(0xFF0A84FF)),
-                      label: const Text('Paste ID',
-                          style: TextStyle(
-                              color: Color(0xFF0A84FF), fontSize: 12)),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      icon: const Icon(
+                        Icons.content_paste_rounded,
+                        size: 14,
+                        color: Color(0xFF0A84FF),
+                      ),
+                      label: const Text(
+                        'Paste ID',
+                        style: TextStyle(
+                          color: Color(0xFF0A84FF),
+                          fontSize: 12,
+                        ),
+                      ),
                       onPressed: () async {
                         final data =
                             await Clipboard.getData(Clipboard.kTextPlain);
@@ -496,12 +614,15 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     filled: true,
                     fillColor: const Color(0xFF1C1C1E),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(
-                          color: Color(0xFF0A84FF), width: 1.5),
+                        color: Color(0xFF0A84FF),
+                        width: 1.5,
+                      ),
                     ),
                     prefixIcon: const Icon(Icons.tag, color: Colors.grey),
                   ),
@@ -517,24 +638,35 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // API HASH
+                // Field 2: API HASH
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('API HASH',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14)),
+                    const Text(
+                      'API HASH',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
                     TextButton.icon(
                       style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 4)),
-                      icon: const Icon(Icons.content_paste_rounded,
-                          size: 14, color: Color(0xFF0A84FF)),
-                      label: const Text('Paste Hash',
-                          style: TextStyle(
-                              color: Color(0xFF0A84FF), fontSize: 12)),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      icon: const Icon(
+                        Icons.content_paste_rounded,
+                        size: 14,
+                        color: Color(0xFF0A84FF),
+                      ),
+                      label: const Text(
+                        'Paste Hash',
+                        style: TextStyle(
+                          color: Color(0xFF0A84FF),
+                          fontSize: 12,
+                        ),
+                      ),
                       onPressed: () async {
                         final data =
                             await Clipboard.getData(Clipboard.kTextPlain);
@@ -559,20 +691,24 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     filled: true,
                     fillColor: const Color(0xFF1C1C1E),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(
-                          color: Color(0xFF0A84FF), width: 1.5),
+                        color: Color(0xFF0A84FF),
+                        width: 1.5,
+                      ),
                     ),
                     prefixIcon: const Icon(Icons.key, color: Colors.grey),
                     suffixIcon: IconButton(
                       icon: Icon(
-                          _obscureHash
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Colors.grey),
+                        _obscureHash
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                      ),
                       onPressed: () =>
                           setState(() => _obscureHash = !_obscureHash),
                     ),
@@ -587,44 +723,151 @@ class _ApiSetupScreenState extends ConsumerState<ApiSetupScreen>
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // Field 3: Phone Number
+                const Text(
+                  'PHONE NUMBER',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                IntlPhoneField(
+                  controller: _phoneRawController,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  dropdownTextStyle: const TextStyle(color: Colors.white),
+                  dropdownIcon:
+                      const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  disableLengthCheck: true,
+                  autovalidateMode: AutovalidateMode.disabled,
+                  decoration: InputDecoration(
+                    hintText: 'Phone number',
+                    hintStyle: TextStyle(color: Colors.grey.shade600),
+                    filled: true,
+                    fillColor: const Color(0xFF1C1C1E),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0A84FF),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  initialCountryCode: _initialCountryCode,
+                  onCountryChanged: (country) {
+                    _countryCode = '+${country.dialCode}';
+                  },
+                  onChanged: (phone) {
+                    _phoneNumber = phone.completeNumber;
+                  },
+                  validator: (phone) {
+                    if (phone == null || phone.number.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    final digits = phone.number.replaceAll(RegExp(r'\D'), '');
+                    if (digits.length < 7) {
+                      return 'Phone number is too short';
+                    }
+                    if (digits.length > 15) {
+                      return 'Phone number is too long (max 15 digits)';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Info banner for Telegram App OTP
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1E),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Color(0xFF0A84FF),
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Telegram delivers your 5-digit verification code directly inside your Telegram App messages.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 28),
 
-                // Save & Proceed Button
+                // Connect & Send OTP Code Button
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: 54,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0A84FF),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    onPressed: _isTestingCredentials ? null : _onManualSubmit,
-                    child: _isTestingCredentials
+                    onPressed: _isConnecting ? null : _onSubmit,
+                    child: _isConnecting
                         ? Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white)),
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
                               const SizedBox(width: 12),
-                              Text(_statusText ?? 'Testing credentials...',
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 14)),
+                              Text(
+                                _statusText ?? 'Connecting to Telegram...',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ],
                           )
-                        : const Text(
-                            'Save & Continue to Step 2 →',
-                            style: TextStyle(
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Connect & Send OTP Code',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(
+                                Icons.arrow_forward_rounded,
                                 color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold),
+                                size: 18,
+                              ),
+                            ],
                           ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
             ),
           ),

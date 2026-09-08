@@ -146,8 +146,8 @@ void main() {
       expect(find.text('Unlimited Private Photo Cloud'), findsOneWidget);
 
       // Verify strict auth buttons exist
-      expect(find.text('Enter Telegram API ID & Hash Key'), findsOneWidget);
-      expect(find.text('Get Started'), findsOneWidget);
+      expect(find.text('Connect Telegram Cloud'), findsOneWidget);
+      expect(find.text('Enter Credentials Manually'), findsOneWidget);
 
       // Verify that direct skip bypass to timeline has been removed
       expect(find.text('Skip to Timeline'), findsNothing);

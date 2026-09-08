@@ -59,7 +59,7 @@ class M3ECard extends StatelessWidget {
     }
 
     final cardContent = Container(
-      height: height,
+      constraints: height != null ? BoxConstraints(minHeight: height!) : null,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(borderRadius),

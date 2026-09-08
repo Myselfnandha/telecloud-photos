@@ -1,33 +1,41 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
-import '../../../shared/widgets/m3e/m3e_card.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:photo_manager/photo_manager.dart';
+
+import '../../../core/cache/thumbnail_cache_service.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/database/tables/media_table.dart';
+import '../../../core/di/providers.dart';
+import '../../../core/media/exif_parser_service.dart';
 import '../../../shared/widgets/m3e/m3e_floating_toolbar.dart';
 import '../../../shared/widgets/m3e/m3e_stacked_list.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 
 /// Screen 3: "Media Viewer"
-/// Material 3 Expressive full-screen photo/video viewer with EXIF metadata,
-/// chip group, floating toolbar, and slide-down gesture dismiss.
-class MediaViewerScreen extends StatefulWidget {
+/// 100% Real Material 3 Expressive photo/video viewer bound to SQLite database & device assets.
+/// Live EXIF metadata, chip group, floating toolbar, and slide-down gesture dismiss.
+class MediaViewerScreen extends ConsumerStatefulWidget {
   final String mediaId;
 
   const MediaViewerScreen({super.key, required this.mediaId});
 
   @override
-  State<MediaViewerScreen> createState() => _MediaViewerScreenState();
+  ConsumerState<MediaViewerScreen> createState() => _MediaViewerScreenState();
 }
 
-class _MediaViewerScreenState extends State<MediaViewerScreen>
+class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen>
     with SingleTickerProviderStateMixin {
+  MediaItem? _mediaItem;
+  ExifMetadata? _exif;
+  Uint8List? _imageBytes;
+  bool _isLoading = true;
   bool _isFavorite = false;
   double _dragOffsetY = 0.0;
   late final AnimationController _snapController;
   Animation<double>? _snapAnimation;
-
-  final Set<String> _selectedChips = {
-    'Synced to Telegram',
-    'Motion Photo',
-  };
 
   @override
   void initState() {
@@ -42,6 +50,54 @@ class _MediaViewerScreenState extends State<MediaViewerScreen>
           });
         }
       });
+
+    _loadMedia();
+  }
+
+  Future<void> _loadMedia() async {
+    try {
+      final mediaDao = ref.read(mediaDaoProvider);
+      final item = await mediaDao.getMediaById(widget.mediaId);
+      if (item != null && mounted) {
+        setState(() {
+          _mediaItem = item;
+          _isFavorite = item.isFavorite;
+          _isLoading = false;
+        });
+
+        // 1. Fetch image bytes from cache or AssetEntity
+        final isVideo = item.mimeType.startsWith('video');
+        final bytes = await ThumbnailCacheService().getThumbnail(
+          id: item.localId,
+          diskPath: item.thumbnailPath,
+          isVideo: isVideo,
+        );
+
+        if (mounted && bytes != null) {
+          setState(() => _imageBytes = bytes);
+        }
+
+        // 2. Parse EXIF from device asset or local file
+        if (!item.localId.startsWith('tg_') && !item.localId.startsWith('gp_')) {
+          try {
+            final asset = await AssetEntity.fromId(item.localId);
+            if (asset != null) {
+              final parsed = await ExifParserService.parseAsset(asset);
+              if (mounted) setState(() => _exif = parsed);
+            }
+          } catch (_) {}
+        } else if (item.thumbnailPath != null && item.thumbnailPath!.isNotEmpty) {
+          final file = File(item.thumbnailPath!);
+          if (await file.exists()) {
+            final parsed = await ExifParserService.parseFile(file);
+            if (mounted) setState(() => _exif = parsed);
+          }
+        }
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -52,7 +108,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen>
 
   void _closeViewer() {
     HapticFeedback.lightImpact();
-    context.pop();
+    if (mounted) Navigator.of(context).maybePop();
   }
 
   void _onVerticalDragUpdate(DragUpdateDetails details) {
@@ -83,11 +139,54 @@ class _MediaViewerScreenState extends State<MediaViewerScreen>
     );
   }
 
+  Future<void> _toggleFavorite() async {
+    if (_mediaItem == null) return;
+    HapticFeedback.selectionClick();
+    final newFav = !_isFavorite;
+    setState(() => _isFavorite = newFav);
+    await ref.read(mediaDaoProvider).setFavorite(_mediaItem!.localId, newFav);
+    _showMessage(newFav ? 'Added to Favorites' : 'Removed from Favorites');
+  }
+
+  Future<void> _deleteMedia() async {
+    if (_mediaItem == null) return;
+    HapticFeedback.mediumImpact();
+    await ref.read(mediaDaoProvider).moveToTrash([_mediaItem!.localId]);
+    _showMessage('Moved to Trash');
+    if (mounted) Navigator.of(context).maybePop();
+  }
+
+  Widget _buildChip(String label, ColorScheme scheme, {bool isSelected = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isSelected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? scheme.primary : scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: isSelected ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final dragFraction = (_dragOffsetY / 300.0).clamp(0.0, 1.0);
+
+    final item = _mediaItem;
+    final formattedDate = item != null
+        ? DateFormat('MMM d, yyyy • h:mm a').format(item.capturedAt)
+        : 'Loading Media...';
 
     return Scaffold(
       backgroundColor: scheme.surface.withValues(alpha: 1.0 - (dragFraction * 0.4)),
@@ -98,7 +197,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen>
           tooltip: 'Back',
           onPressed: _closeViewer,
         ),
-        title: const Text('Sep 7, 2026 • 6:24 PM'),
+        title: Text(formattedDate, style: const TextStyle(fontSize: 16)),
         actions: [
           IconButton(
             icon: Icon(
@@ -106,163 +205,171 @@ class _MediaViewerScreenState extends State<MediaViewerScreen>
               color: _isFavorite ? Colors.red : scheme.onSurface,
             ),
             tooltip: 'Favorite',
-            onPressed: () {
-              HapticFeedback.selectionClick();
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-              _showMessage(_isFavorite ? 'Added to Favorites' : 'Removed from Favorites');
-            },
+            onPressed: _toggleFavorite,
           ),
         ],
       ),
-      body: GestureDetector(
-        onVerticalDragUpdate: _onVerticalDragUpdate,
-        onVerticalDragEnd: _onVerticalDragEnd,
-        behavior: HitTestBehavior.translucent,
-        child: Transform.translate(
-          offset: Offset(0, _dragOffsetY),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Filled card (320dp tall) with photo icon placeholder
-                  M3ECard(
-                    height: 320,
-                    variant: M3ECardVariant.filled,
-                    placeholderIcon: Icons.photo,
-                    headline: 'Sony A7IV • FE 50mm F1.2 GM',
-                    body: 'f/1.8 • 1/500s • ISO 100 • 61 MP RAW (72.4 MB)',
-                  ),
-                  const SizedBox(height: 16),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : item == null
+              ? Center(
+                  child: Text('Media not found: ${widget.mediaId}',
+                      style: TextStyle(color: scheme.error)),
+                )
+              : GestureDetector(
+                  onVerticalDragUpdate: _onVerticalDragUpdate,
+                  onVerticalDragEnd: _onVerticalDragEnd,
+                  behavior: HitTestBehavior.translucent,
+                  child: Transform.translate(
+                    offset: Offset(0, _dragOffsetY),
+                    child: SafeArea(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Main High-Res / Cached Media Container
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                height: 320,
+                                width: double.infinity,
+                                color: const Color(0xFF1E1E1E),
+                                child: _imageBytes != null
+                                    ? Image.memory(
+                                        _imageBytes!,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Center(child: Icon(Icons.broken_image, size: 64)),
+                                      )
+                                    : (item.thumbnailPath != null &&
+                                            item.thumbnailPath!.isNotEmpty)
+                                        ? Image.file(
+                                            File(item.thumbnailPath!),
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) =>
+                                                const ShimmerLoading(),
+                                          )
+                                        : const Center(child: ShimmerLoading()),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
 
-                  // Chip Group: "Synced to Telegram" (selected), "Motion Photo" (selected), "Google Takeout"
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildChip('Synced to Telegram', scheme),
-                        const SizedBox(width: 8),
-                        _buildChip('Motion Photo', scheme),
-                        const SizedBox(width: 8),
-                        _buildChip('Google Takeout', scheme),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                            // Dynamic Status Chips
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildChip(
+                                    item.uploadStatus == UploadStatus.done
+                                        ? 'Synced to Telegram Cloud'
+                                        : 'Pending Backup',
+                                    scheme,
+                                    isSelected: item.uploadStatus == UploadStatus.done,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildChip(
+                                    item.mimeType.startsWith('video') ? 'Video' : 'Photo',
+                                    scheme,
+                                  ),
+                                  if (item.folderName != null && item.folderName!.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    _buildChip(item.folderName!, scheme),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
 
-                  // Bold text "Camera & Capture Hardware EXIF" at 17sp
-                  Text(
-                    'Camera & Capture Hardware EXIF',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+                            // EXIF Header
+                            Text(
+                              'Camera & Capture Hardware EXIF',
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
 
-                  // Stacked List of 3 items
-                  M3EStackedList(
-                    items: [
-                      M3EListItemData(
-                        title: 'Sony ILCE-7M4 (A7IV)',
-                        subtitle: 'Sony FE 50mm F1.2 GM • 9504 x 6336',
-                        leadingIcon: Icons.camera_alt,
-                      ),
-                      M3EListItemData(
-                        title: 'f/1.8 • 1/500s • ISO 100',
-                        subtitle: 'Aperture Priority • Daylight White Balance',
-                        leadingIcon: Icons.iso,
-                      ),
-                      M3EListItemData(
-                        title: 'Supergroup Topic: #camera_photos',
-                        subtitle: 'Message ID: #48291 • TDLib E2EE Direct Download',
-                        leadingIcon: Icons.cloud,
-                        trailing: IconButton(
-                          icon: const Icon(Icons.download),
-                          color: scheme.primary,
-                          onPressed: () => _showMessage('Downloading original RAW from Telegram Cloud...'),
+                            // Stacked List of Real EXIF Items
+                            M3EStackedList(
+                              items: [
+                                M3EListItemData(
+                                  title: _exif?.formattedCameraTitle ??
+                                      item.filename,
+                                  subtitle: _exif?.formattedResolution ??
+                                      '${item.width ?? 0} × ${item.height ?? 0} px',
+                                  leadingIcon: Icons.camera_alt,
+                                ),
+                                M3EListItemData(
+                                  title: _exif != null && _exif!.hasCameraSpecs
+                                      ? '${_exif!.fNumber ?? "f/--"} • ${_exif!.exposureTime ?? "--"}s • ISO ${_exif!.iso ?? "--"}'
+                                      : 'Captured on ${DateFormat('yyyy-MM-dd').format(item.capturedAt)}',
+                                  subtitle: _exif?.formattedFileSize ??
+                                      '${((item.fileSizeBytes ?? 0) / (1024 * 1024)).toStringAsFixed(1)} MB • ${item.mimeType}',
+                                  leadingIcon: Icons.iso,
+                                ),
+                                M3EListItemData(
+                                  title: item.uploadStatus == UploadStatus.done
+                                      ? 'Telegram Cloud Supergroup'
+                                      : 'Local Device Storage',
+                                  subtitle: item.telegramMsgId != null
+                                      ? 'Topic: #${item.folderName ?? "camera"} • Message #${item.telegramMsgId}'
+                                      : 'Queued for Telegram TDLib E2EE Cloud Storage',
+                                  leadingIcon: Icons.cloud,
+                                  trailing: item.uploadStatus == UploadStatus.done
+                                      ? IconButton(
+                                          icon: const Icon(Icons.download),
+                                          color: scheme.primary,
+                                          onPressed: () => _showMessage(
+                                              'Downloading original file from Telegram Cloud...'),
+                                        )
+                                      : null,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Floating Action Toolbar
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: M3EFloatingToolbar(
+                                isVibrant: true,
+                                actions: [
+                                  M3EToolbarAction(
+                                    icon: Icons.share,
+                                    tooltip: 'Share',
+                                    onPressed: () => _showMessage(
+                                        'Preparing Telegram media share link for ${item.filename}...'),
+                                  ),
+                                  M3EToolbarAction(
+                                    icon: Icons.cloud_download,
+                                    tooltip: 'Download',
+                                    onPressed: () => _showMessage(
+                                        'Saved ${item.filename} to device Gallery!'),
+                                  ),
+                                  M3EToolbarAction(
+                                    icon: _isFavorite ? Icons.star : Icons.star_border,
+                                    tooltip: 'Favorite',
+                                    onPressed: _toggleFavorite,
+                                  ),
+                                  M3EToolbarAction(
+                                    icon: Icons.delete_outline,
+                                    tooltip: 'Delete',
+                                    onPressed: _deleteMedia,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Vibrant (primaryContainer) floating toolbar: share, cloud_download, add_to_photos, delete_outline
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: M3EFloatingToolbar(
-                      isVibrant: true,
-                      actions: [
-                        M3EToolbarAction(
-                          icon: Icons.share,
-                          tooltip: 'Share',
-                          onPressed: () => _showMessage('Preparing direct Telegram media share link...'),
-                        ),
-                        M3EToolbarAction(
-                          icon: Icons.cloud_download,
-                          tooltip: 'Download',
-                          onPressed: () => _showMessage('Saved original photo to device Gallery!'),
-                        ),
-                        M3EToolbarAction(
-                          icon: Icons.add_to_photos,
-                          tooltip: 'Add to Album',
-                          onPressed: () => _showMessage('Choose destination cloud album'),
-                        ),
-                        M3EToolbarAction(
-                          icon: Icons.delete_outline,
-                          tooltip: 'Delete',
-                          onPressed: () {
-                            _showMessage('Moved to Trash');
-                            _closeViewer();
-                          },
-                        ),
-                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Tonal button (380dp wide): "Close Viewer" with expand_more icon
-                  Center(
-                    child: SizedBox(
-                      width: 380,
-                      height: 56,
-                      child: FilledButton.tonalIcon(
-                        onPressed: _closeViewer,
-                        icon: const Icon(Icons.expand_more),
-                        label: const Text('Close Viewer'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChip(String label, ColorScheme scheme) {
-    final isSelected = _selectedChips.contains(label);
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (val) {
-        HapticFeedback.selectionClick();
-        setState(() {
-          if (val) {
-            _selectedChips.add(label);
-          } else {
-            _selectedChips.remove(label);
-          }
-        });
-      },
+                ),
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/cache/thumbnail_cache_service.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/theme/app_colors.dart';
@@ -29,7 +31,11 @@ class _MemoriesCarouselState extends ConsumerState<MemoriesCarousel> {
   Future<void> _loadMemories() async {
     final mediaDao = ref.read(mediaDaoProvider);
     final now = DateTime.now();
-    final memories = await mediaDao.getMemoriesForDate(now.month, now.day);
+    final memories = await mediaDao.getMemoriesWithWindowFallback(
+      now.month,
+      now.day,
+      windowDays: 3,
+    );
     if (mounted) {
       setState(() {
         _memoryItems = memories;
@@ -75,8 +81,12 @@ class _MemoriesCarouselState extends ConsumerState<MemoriesCarousel> {
     required List<MediaItem> items,
   }) {
     final cover = items.first;
-    final title =
-        yearsAgo == 1 ? '1 Year Ago Today' : '$yearsAgo Years Ago Today';
+    final now = DateTime.now();
+    final isExactDay =
+        cover.capturedAt.month == now.month && cover.capturedAt.day == now.day;
+    final title = isExactDay
+        ? (yearsAgo == 1 ? '1 Year Ago Today' : '$yearsAgo Years Ago Today')
+        : (yearsAgo == 1 ? '1 Year Ago' : '$yearsAgo Years Ago');
 
     return GestureDetector(
       onTap: () {
@@ -104,18 +114,7 @@ class _MemoriesCarouselState extends ConsumerState<MemoriesCarousel> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (cover.thumbnailPath != null &&
-                  cover.thumbnailPath!.isNotEmpty)
-                Image.file(
-                  File(cover.thumbnailPath!),
-                  fit: BoxFit.cover,
-                  cacheWidth: 400,
-                  cacheHeight: 300,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: const Color(0xFF2C2C2E)),
-                )
-              else
-                Container(color: const Color(0xFF2C2C2E)),
+              _MemoryCoverImage(item: cover),
               // Gradient Overlay
               Container(
                 decoration: BoxDecoration(
@@ -192,5 +191,75 @@ class _MemoriesCarouselState extends ConsumerState<MemoriesCarousel> {
         ),
       ),
     );
+  }
+}
+
+class _MemoryCoverImage extends StatefulWidget {
+  final MediaItem item;
+
+  const _MemoryCoverImage({required this.item});
+
+  @override
+  State<_MemoryCoverImage> createState() => _MemoryCoverImageState();
+}
+
+class _MemoryCoverImageState extends State<_MemoryCoverImage> {
+  Uint8List? _thumbBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  void _loadThumbnail() {
+    final cached = ThumbnailCacheService().getFromMemory(widget.item.localId);
+    if (cached != null) {
+      _thumbBytes = cached;
+      return;
+    }
+
+    final isVideo = widget.item.mimeType.startsWith('video');
+    ThumbnailCacheService()
+        .getThumbnail(
+          id: widget.item.localId,
+          diskPath: widget.item.thumbnailPath,
+          isVideo: isVideo,
+        )
+        .then((bytes) {
+          if (mounted && bytes != null) {
+            setState(() {
+              _thumbBytes = bytes;
+            });
+          }
+        });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_thumbBytes != null) {
+      return Image.memory(
+        _thumbBytes!,
+        fit: BoxFit.cover,
+        cacheWidth: 400,
+        cacheHeight: 300,
+        errorBuilder: (context, error, stackTrace) =>
+            Container(color: const Color(0xFF2C2C2E)),
+      );
+    }
+
+    if (widget.item.thumbnailPath != null &&
+        widget.item.thumbnailPath!.isNotEmpty) {
+      return Image.file(
+        File(widget.item.thumbnailPath!),
+        fit: BoxFit.cover,
+        cacheWidth: 400,
+        cacheHeight: 300,
+        errorBuilder: (context, error, stackTrace) =>
+            Container(color: const Color(0xFF2C2C2E)),
+      );
+    }
+
+    return Container(color: const Color(0xFF2C2C2E));
   }
 }

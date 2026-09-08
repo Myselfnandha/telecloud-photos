@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
+import '../../../core/database/app_database.dart';
 import '../../../core/database/tables/media_table.dart';
 import '../../../core/di/providers.dart';
-import '../../../shared/widgets/m3e/m3e_card.dart';
-import '../../../shared/widgets/m3e/m3e_stacked_list.dart';
+import '../controllers/timeline_zoom_controller.dart';
+import '../widgets/memories_carousel.dart';
+import '../widgets/timeline_date_header.dart';
+import '../widgets/timeline_photo_grid.dart';
 
 /// Screen 2: "Photos Timeline"
-/// Material 3 Expressive main chronological gallery with On This Day memories,
-/// chip filter group, sticky date headers, and stacked list items.
+/// 100% Real Material 3 Expressive chronological gallery powered by SQLite & Telegram Cloud.
+/// Real On This Day memories, chip filter group, fluid zoom grid, and dynamic date headers.
 class TimelineScreen extends ConsumerStatefulWidget {
   const TimelineScreen({super.key});
 
@@ -21,6 +25,10 @@ class TimelineScreen extends ConsumerStatefulWidget {
 
 class _TimelineScreenState extends ConsumerState<TimelineScreen> {
   String _selectedFilter = 'All Photos';
+  TimelineTier _tier = TimelineTier.dailyGrid;
+  final Set<String> _selectedIds = {};
+  bool _isSelectionMode = false;
+
   final List<String> _filters = [
     'All Photos',
     'Cloud Synced',
@@ -43,6 +51,83 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     context.push('/viewer/$mediaId');
   }
 
+  void _toggleSelection(MediaItem item) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_selectedIds.contains(item.localId)) {
+        _selectedIds.remove(item.localId);
+        if (_selectedIds.isEmpty) _isSelectionMode = false;
+      } else {
+        _selectedIds.add(item.localId);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedIds.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  void _cycleZoomTier() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (_tier == TimelineTier.dailyGrid) {
+        _tier = TimelineTier.monthlyGrid;
+      } else if (_tier == TimelineTier.monthlyGrid) {
+        _tier = TimelineTier.yearlyMosaic;
+      } else {
+        _tier = TimelineTier.dailyGrid;
+      }
+    });
+  }
+
+  List<MediaItem> _applyFilter(List<MediaItem> allItems) {
+    switch (_selectedFilter) {
+      case 'Cloud Synced':
+        return allItems.where((i) => i.uploadStatus == UploadStatus.done).toList();
+      case 'Motion Photos':
+        return allItems.where((i) {
+          final isVid = i.mimeType.startsWith('video');
+          final fn = i.filename.toLowerCase();
+          return isVid || fn.endsWith('.mp4') || fn.endsWith('.mov') || fn.endsWith('.mkv');
+        }).toList();
+      case 'Favorites':
+        return allItems.where((i) => i.isFavorite).toList();
+      case 'All Photos':
+      default:
+        return allItems;
+    }
+  }
+
+  Map<DateTime, List<MediaItem>> _groupByDay(List<MediaItem> items) {
+    final Map<DateTime, List<MediaItem>> grouped = {};
+    for (final item in items) {
+      final dt = item.capturedAt;
+      final dayKey = DateTime(dt.year, dt.month, dt.day);
+      grouped.putIfAbsent(dayKey, () => []).add(item);
+    }
+    return grouped;
+  }
+
+  String _formatDateHeader(DateTime dateKey) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (dateKey == today) {
+      return 'Today';
+    } else if (dateKey == yesterday) {
+      return 'Yesterday';
+    } else if (dateKey.year == now.year) {
+      return DateFormat('MMMM d').format(dateKey);
+    } else {
+      return DateFormat('MMMM d, yyyy').format(dateKey);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -53,206 +138,189 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: scheme.surface,
-        title: const Text('TeleCloud Photos'),
+        title: _isSelectionMode
+            ? Text('${_selectedIds.length} Selected')
+            : const Text('TeleCloud Photos'),
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _clearSelection,
+              )
+            : null,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle, size: 28),
-            tooltip: 'Settings & Account',
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              context.push('/settings');
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Bold text "Memories • On This Day" at 18sp
-            Text(
-              'Memories • On This Day',
-              style: TextStyle(
-                fontFamily: 'Roboto',
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Elevated card with auto_awesome icon placeholder
-            M3ECard(
-              variant: M3ECardVariant.elevated,
-              placeholderIcon: Icons.auto_awesome,
-              headline: '1 Year Ago Today',
-              body: 'August 28, 2025 • Summer Road Trip (24 photos)',
-              onTap: () => _openViewer('memory_road_trip_2025'),
-            ),
-            const SizedBox(height: 16),
-
-            // Chip Group: "All Photos" (selected), "Cloud Synced", "Motion Photos", "Favorites"
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters.map((filter) {
-                  final isSelected = _selectedFilter == filter;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Text(filter),
-                      selected: isSelected,
-                      onSelected: (val) {
-                        HapticFeedback.selectionClick();
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Bold text "Today • 14 photos" at 16sp
-            Text(
-              'Today • 14 photos',
-              style: TextStyle(
-                fontFamily: 'Roboto',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Stacked List of 3 items for Today
-            M3EStackedList(
-              items: [
-                M3EListItemData(
-                  title: 'DSC_0492_RAW.dng',
-                  subtitle: 'Sony A7IV • 61 MP RAW • Synced to 📷 Camera',
-                  leadingIcon: Icons.camera_alt,
-                  trailing: Icon(
-                    Icons.cloud_done,
-                    color: const Color(0xFF30D158),
-                    size: 20,
-                  ),
-                  onTap: () => _openViewer('DSC_0492_RAW.dng'),
-                ),
-                M3EListItemData(
-                  title: 'MVIMG_20260907_174012.mp4',
-                  subtitle: 'Motion Photo • 1080p60 • Synced',
-                  leadingIcon: Icons.motion_photos_on,
-                  trailing: Icon(
-                    Icons.cloud_done,
-                    color: const Color(0xFF30D158),
-                    size: 20,
-                  ),
-                  onTap: () => _openViewer('MVIMG_20260907_174012.mp4'),
-                ),
-                M3EListItemData(
-                  title: 'Screenshot_20260907.png',
-                  subtitle: '1080x2400 • Queued for Upload (4.2 MB)',
-                  leadingIcon: Icons.screenshot,
-                  trailing: Icon(
-                    Icons.cloud_upload,
-                    color: scheme.primary,
-                    size: 20,
-                  ),
-                  onTap: () => _openViewer('Screenshot_20260907.png'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Bold text "Yesterday • 8 photos" at 16sp
-            Text(
-              'Yesterday • 8 photos',
-              style: TextStyle(
-                fontFamily: 'Roboto',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Stacked List for Yesterday
-            M3EStackedList(
-              items: [
-                M3EListItemData(
-                  title: 'PXL_20260906_181420.jpg',
-                  subtitle: 'Pixel 9 Pro • 50 MP • Synced',
-                  leadingIcon: Icons.image,
-                  trailing: Icon(
-                    Icons.cloud_done,
-                    color: const Color(0xFF30D158),
-                    size: 20,
-                  ),
-                  onTap: () => _openViewer('PXL_20260906_181420.jpg'),
-                ),
-              ],
-            ),
-
-            // Live items from Drift SQLite (if user has real scanned camera roll items)
-            asyncMedia.maybeWhen(
-              data: (items) {
-                if (items.isEmpty) return const SizedBox(height: 32);
-                final realExtraItems = items
-                    .where((i) =>
-                        i.filename != 'DSC_0492_RAW.dng' &&
-                        i.filename != 'MVIMG_20260907_174012.mp4' &&
-                        i.filename != 'Screenshot_20260907.png' &&
-                        i.filename != 'PXL_20260906_181420.jpg')
-                    .take(6)
-                    .toList();
-
-                if (realExtraItems.isEmpty) return const SizedBox(height: 32);
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    Text(
-                      'Camera Roll • ${items.length} Local Photos',
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    M3EStackedList(
-                      items: realExtraItems.map((item) {
-                        final isUploaded = item.uploadStatus == UploadStatus.done;
-                        final isVideo = item.mimeType.startsWith('video');
-                        final sizeMB = (item.fileSizeBytes ?? 0) / (1024 * 1024);
-                        return M3EListItemData(
-                          title: item.filename,
-                          subtitle:
-                              '${sizeMB.toStringAsFixed(1)} MB • ${isUploaded ? "Synced" : "Local"}',
-                          leadingIcon: isVideo ? Icons.videocam : Icons.photo,
-                          trailing: Icon(
-                            isUploaded ? Icons.cloud_done : Icons.cloud_upload_outlined,
-                            color: isUploaded ? const Color(0xFF30D158) : scheme.primary,
-                            size: 20,
-                          ),
-                          onTap: () => _openViewer(item.localId),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                );
+          if (!_isSelectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Search Gallery',
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                context.push('/search');
               },
-              orElse: () => const SizedBox(height: 32),
+            ),
+            IconButton(
+              icon: Icon(
+                _tier == TimelineTier.dailyGrid
+                    ? Icons.grid_view_rounded
+                    : (_tier == TimelineTier.monthlyGrid
+                        ? Icons.view_module_rounded
+                        : Icons.view_comfy_alt_rounded),
+              ),
+              tooltip: 'Zoom: ${_tier.label}',
+              onPressed: _cycleZoomTier,
+            ),
+            IconButton(
+              icon: const Icon(Icons.account_circle, size: 28),
+              tooltip: 'Settings & Account',
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                context.push('/settings');
+              },
             ),
           ],
+        ],
+      ),
+      body: asyncMedia.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text('Error loading gallery: $err', style: TextStyle(color: scheme.error)),
+          ),
         ),
+        data: (allItems) {
+          final filteredItems = _applyFilter(allItems);
+          final grouped = _groupByDay(filteredItems);
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Real "On This Day" Memories Carousel (auto-hides if no memories exist)
+              if (!_isSelectionMode && _selectedFilter == 'All Photos')
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: MemoriesCarousel(),
+                  ),
+                ),
+
+              // Filter Chips
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    children: _filters.map((filter) {
+                      final isSelected = _selectedFilter == filter;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          label: Text(filter),
+                          selected: isSelected,
+                          onSelected: (val) {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _selectedFilter = filter;
+                            });
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              // Empty State or Grouped Photo Grid
+              if (filteredItems.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.photo_library_outlined, size: 64, color: scheme.outline),
+                          const SizedBox(height: 16),
+                          Text(
+                            _selectedFilter == 'All Photos'
+                                ? 'No Photos Yet'
+                                : 'No $_selectedFilter',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _selectedFilter == 'All Photos'
+                                ? 'Your device camera roll will sync and display here.'
+                                : 'Try selecting another filter chip above.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: scheme.onSurfaceVariant),
+                          ),
+                          if (_selectedFilter == 'All Photos') ...[
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                ref.read(mediaScannerProvider).scanCameraRoll();
+                              },
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Scan Camera Roll'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final dayKey = grouped.keys.elementAt(index);
+                      final dayItems = grouped[dayKey]!;
+                      final dateLabel = _formatDateHeader(dayKey);
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TimelineDateHeader(
+                            dateLabel: dateLabel,
+                            itemCount: dayItems.length,
+                            isYearly: _tier == TimelineTier.yearlyMosaic,
+                            isAllPhotos: _tier == TimelineTier.allPhotos,
+                          ),
+                          TimelinePhotoGrid(
+                            items: dayItems,
+                            tier: _tier,
+                            isSelectionMode: _isSelectionMode,
+                            selectedIds: _selectedIds,
+                            showSyncBadges: true,
+                            onItemTap: (item) {
+                              if (_isSelectionMode) {
+                                _toggleSelection(item);
+                              } else {
+                                _openViewer(item.localId);
+                              }
+                            },
+                            onItemLongPress: (item) {
+                              _toggleSelection(item);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    },
+                    childCount: grouped.keys.length,
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ],
+          );
+        },
       ),
     );
   }

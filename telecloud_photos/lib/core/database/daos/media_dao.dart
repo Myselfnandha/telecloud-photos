@@ -191,6 +191,33 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
     return count > 0;
   }
 
+  Future<bool> setFavorite(String localId, bool isFavorite) =>
+      toggleFavorite(localId, isFavorite);
+
+  Future<List<MediaItem>> getFavoriteMedia() {
+    return (select(mediaItems)
+          ..where((t) => t.isFavorite.equals(true) & t.isTrashed.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.capturedAt)]))
+        .get();
+  }
+
+  Future<List<MediaItem>> getTrashedMedia() {
+    return (select(mediaItems)
+          ..where((t) => t.isTrashed.equals(true))
+          ..orderBy([(t) => OrderingTerm.desc(t.trashedAt)]))
+        .get();
+  }
+
+  Future<List<MediaItem>> getBackedUpMedia() {
+    return (select(mediaItems)
+          ..where(
+            (t) =>
+                t.uploadStatus.equals(UploadStatus.done.index) &
+                t.isTrashed.equals(false),
+          ))
+        .get();
+  }
+
   Future<int> moveToTrash(List<String> localIds) async {
     final now = DateTime.now();
     return (update(mediaItems)..where((t) => t.localId.isIn(localIds))).write(
@@ -298,6 +325,37 @@ class MediaDao extends DatabaseAccessor<AppDatabase> with _$MediaDaoMixin {
       final dt = item.capturedAt;
       return dt.month == month && dt.day == day && dt.year < now.year;
     }).toList();
+  }
+
+  /// Queries user memories for a given calendar date from previous years,
+  /// with an automatic window fallback (default ±3 days) if no exact-day photos exist.
+  Future<List<MediaItem>> getMemoriesWithWindowFallback(
+    int month,
+    int day, {
+    int windowDays = 3,
+  }) async {
+    final exact = await getMemoriesForDate(month, day);
+    if (exact.isNotEmpty) return exact;
+
+    final all = await (select(
+      mediaItems,
+    )..where((t) => t.isTrashed.equals(false)))
+        .get();
+    final now = DateTime.now();
+
+    final fallbackItems = <MediaItem>[];
+    for (final item in all) {
+      final dt = item.capturedAt;
+      if (dt.year >= now.year) continue;
+
+      // Construct the target date for that specific past year
+      final targetDate = DateTime(dt.year, month, day);
+      final diffDays = dt.difference(targetDate).inDays.abs();
+      if (diffDays <= windowDays) {
+        fallbackItems.add(item);
+      }
+    }
+    return fallbackItems;
   }
 
   Future<List<MediaItem>> getAllMedia() {

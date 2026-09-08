@@ -55,8 +55,8 @@ class DirectoryFileItem extends StatelessWidget {
             child: Hero(
               tag: 'media_${item.localId}',
               child: Container(
-                width: 38,
-                height: 38,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: isLight ? Colors.grey.shade200 : Colors.grey.shade900,
                   borderRadius: BorderRadius.circular(6),
